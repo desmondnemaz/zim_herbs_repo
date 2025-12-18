@@ -1,13 +1,10 @@
-
-
-
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/features/herbs/data/herbs_data.dart';
-import 'package:zim_herbs_repo/features/herbs/presentation/herb_details.dart';
+import 'package:zim_herbs_repo/features/herbs/data/models.dart';
+
 import 'package:zim_herbs_repo/theme/light_mode.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
-
+import 'package:zim_herbs_repo/features/herbs/presentation/herb_details.dart';
 
 //
 class DesktopHerbList extends StatelessWidget {
@@ -15,73 +12,145 @@ class DesktopHerbList extends StatelessWidget {
     super.key,
     required this.filteredHerbs,
     required this.rs,
+    required this.onEdit,
+    required this.onDelete,
   });
 
-  final List<Herb> filteredHerbs;
+  final List<HerbModel> filteredHerbs;
   final ResponsiveSize rs;
+  final Function(HerbModel) onEdit;
+  final Function(HerbModel) onDelete;
 
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-        padding: EdgeInsets.all(defaultPadding),
-        gridDelegate:
-            SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 180,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.8,
-        ),
-        itemCount: filteredHerbs.length,
-        itemBuilder: (context, index) {
-          final herb = filteredHerbs[index];
-          return InkWell(
-             borderRadius: BorderRadius.circular(12),
+      padding: EdgeInsets.all(defaultPadding),
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 200, // Slightly wider for actions
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: filteredHerbs.length,
+      itemBuilder: (context, index) {
+        final herb = filteredHerbs[index];
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => HerbDetailsPage(),
+                builder: (context) => HerbDetailsPage(herbId: herb.id),
               ),
             );
           },
-            child: Card(
-              color: pharmacyTheme.colorScheme.secondary,
-              elevation: 2,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(1.0),
-                        child: Image.asset(
-                          herb.imagePath,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
+          child: Card(
+            color: pharmacyTheme.colorScheme.secondary,
+            elevation: 2,
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    Expanded(
+                      child: Hero(
+                        tag: 'herb-image-${herb.nameEn}',
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(12),
+                          ),
+                          child:
+                              herb.primaryImageUrl != null
+                                  ? Image.network(
+                                    herb.primaryImageUrl!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    errorBuilder:
+                                        (_, __, ___) =>
+                                            Container(color: Colors.grey),
+                                  )
+                                  : Container(
+                                    color: Colors.grey.withValues(alpha: 0.3),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.spa,
+                                        size: 40,
+                                        color:
+                                            pharmacyTheme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
                         ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      herb.name,
-                      style: TextStyle(
-                        fontSize: rs.subtitleFont,
-                        fontWeight: FontWeight.bold,
-                        color: pharmacyTheme
-                            .colorScheme.onSecondary,
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            herb.nameEn,
+                            style: TextStyle(
+                              fontSize: rs.subtitleFont,
+                              fontWeight: FontWeight.bold,
+                              color: pharmacyTheme.colorScheme.onSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (herb.nameSn != null)
+                            Text(
+                              herb.nameSn!,
+                              style: TextStyle(
+                                fontSize: rs.subtitleFont - 2,
+                                color: pharmacyTheme.colorScheme.onSecondary
+                                    .withValues(alpha: 0.7),
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit(herb);
+                      } else if (value == 'delete') {
+                        onDelete(herb);
+                      }
+                    },
+                    itemBuilder:
+                        (context) => [
+                          PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text(
+                              'Delete',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                    icon: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.more_vert, size: 20),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        },
-      );
+          ),
+        );
+      },
+    );
   }
 }

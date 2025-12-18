@@ -16,15 +16,15 @@ class NotificationsSection extends StatelessWidget {
     final List<Map<String, String>> dummyNotifications = [
       {
         "title": "New Herb Added",
-        "message": "Moringa has been added to the herbs list."
+        "message": "Moringa has been added to the herbs list.",
       },
       {
         "title": "Update Available",
-        "message": "A new update is available for the Knowledge section."
+        "message": "A new update is available for the Knowledge section.",
       },
       {
         "title": "Reminder",
-        "message": "Update practitioner verification details."
+        "message": "Update practitioner verification details.",
       },
     ];
 
@@ -60,13 +60,14 @@ class NotificationsSection extends StatelessWidget {
                     ),
                   ),
                 ),
-          
+
                 SizedBox(height: 20),
-          
+
                 // Build dummy notifications list
                 ...dummyNotifications.map((note) {
-                  return SizedBox(               // <--- Forces equal width
-                    width: double.infinity,      // <---
+                  return SizedBox(
+                    // <--- Forces equal width
+                    width: double.infinity, // <---
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(14),
@@ -104,7 +105,7 @@ class NotificationsSection extends StatelessWidget {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
           ),
