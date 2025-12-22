@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+ <!-- ADD THIS LINE -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="zim_herbs_repo"
         android:name="${applicationName}"
