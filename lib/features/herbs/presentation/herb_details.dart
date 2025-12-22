@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/theme/light_mode.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
@@ -23,6 +22,8 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
 
   final HerbRepository _repository = HerbRepository();
   late Future<HerbModel?> _herbFuture;
+  final PageController _pageController = PageController();
+  int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
   @override
   void dispose() {
     _animationController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -67,9 +69,12 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
         if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
           return Scaffold(
             appBar: AppBar(
-              backgroundColor: pharmacyTheme.colorScheme.primary,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -86,15 +91,15 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
         final herb = snapshot.data!;
 
         return Scaffold(
-          backgroundColor: pharmacyTheme.scaffoldBackgroundColor,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: CustomScrollView(
             slivers: [
               // Collapsible App Bar
               SliverAppBar(
                 centerTitle: true,
-                expandedHeight: Responsive.isMobile(context) ? 280 : null,
+                expandedHeight: Responsive.isMobile(context) ? 320 : null,
                 pinned: true,
-                backgroundColor: pharmacyTheme.colorScheme.primary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 leading: IconButton(
                   icon: Container(
                     padding: const EdgeInsets.all(8),
@@ -104,7 +109,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                     ),
                     child: Icon(
                       Icons.arrow_back,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.secondary,
                       size: rs.appBarIcon,
                     ),
                   ),
@@ -122,7 +127,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: pharmacyTheme.colorScheme.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: FittedBox(
@@ -131,8 +136,8 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                           herb.nameEn,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: Responsive.isMobile(context) ? 16 : 20,
-                            color: Colors.white,
+                            fontSize: rs.appBarTitleFont,
+                            color: Theme.of(context).colorScheme.secondary,
                           ),
                         ),
                       ),
@@ -143,39 +148,49 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                           ? Stack(
                             fit: StackFit.expand,
                             children: [
-                              Hero(
-                                tag: 'herb-image-${herb.nameEn}',
-                                child:
-                                    herb.primaryImageUrl != null
-                                        ? Image.network(
-                                          herb.primaryImageUrl!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  Container(
-                                                    color: Colors.grey,
-                                                    child: const Icon(
-                                                      Icons.spa,
-                                                      color: Colors.white,
-                                                      size: 50,
-                                                    ),
+                              if (herb.images.isNotEmpty)
+                                PageView.builder(
+                                  controller: _pageController,
+                                  onPageChanged: (index) {
+                                    setState(() {
+                                      _currentImageIndex = index;
+                                    });
+                                  },
+                                  itemCount: herb.images.length,
+                                  itemBuilder: (context, index) {
+                                    return Hero(
+                                      tag:
+                                          index == 0
+                                              ? 'herb-image-${herb.nameEn}'
+                                              : 'herb-image-${herb.nameEn}-$index',
+                                      child: Image.network(
+                                        herb.images[index].imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Container(
+                                                  color: Colors.grey,
+                                                  child: const Icon(
+                                                    Icons.spa,
+                                                    color: Colors.white,
+                                                    size: 50,
                                                   ),
-                                        )
-                                        : Container(
-                                          color: Colors.grey.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          child: Icon(
-                                            Icons.spa,
-                                            color:
-                                                pharmacyTheme
-                                                    .colorScheme
-                                                    .primary,
-                                            size: 50,
-                                          ),
-                                        ),
-                              ),
-                              // Gradient overlay for better text visibility
+                                                ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                Container(
+                                  color: Colors.grey.withValues(alpha: 0.3),
+                                  child: Icon(
+                                    Icons.spa,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    size: 50,
+                                  ),
+                                ),
+                              // Gradient overlay
                               Container(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -189,6 +204,29 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                   ),
                                 ),
                               ),
+                              // Image Count Indicator
+                              if (herb.images.length > 1)
+                                Positioned(
+                                  bottom: 60,
+                                  right: 16,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black45,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${_currentImageIndex + 1} / ${herb.images.length}',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: rs.captionFont,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
                           )
                           : null,
@@ -218,56 +256,100 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                             children: [
                               // Desktop/Tablet Hero Image (Constrained to card width)
                               if (!Responsive.isMobile(context)) ...[
-                                Hero(
-                                  tag: 'herb-image-${herb.nameEn}',
-                                  child: Container(
-                                    height: 350,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          blurRadius: 10,
-                                          color: Colors.black.withValues(
-                                            alpha: 0.08,
+                                Column(
+                                  children: [
+                                    Hero(
+                                      tag: 'herb-image-${herb.nameEn}',
+                                      child: Container(
+                                        height: 350,
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
                                           ),
-                                          offset: const Offset(0, 4),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              blurRadius: 10,
+                                              color: Colors.black.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          child:
+                                              herb.images.isNotEmpty
+                                                  ? Image.network(
+                                                    herb
+                                                        .images[_currentImageIndex]
+                                                        .imageUrl,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                  : Container(
+                                                    color: Colors.grey
+                                                        .withValues(alpha: 0.3),
+                                                    child: const Icon(
+                                                      Icons.spa,
+                                                      size: 60,
+                                                    ),
+                                                  ),
+                                        ),
+                                      ),
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child:
-                                          herb.primaryImageUrl != null
-                                              ? Image.network(
-                                                herb.primaryImageUrl!,
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (context, e, s) =>
-                                                        Container(
-                                                          color: Colors.grey,
-                                                          child: const Icon(
-                                                            Icons.spa,
-                                                            color: Colors.white,
-                                                            size: 60,
-                                                          ),
-                                                        ),
-                                              )
-                                              : Container(
-                                                color: Colors.grey.withValues(
-                                                  alpha: 0.3,
+                                    if (herb.images.length > 1) ...[
+                                      const SizedBox(height: 12),
+                                      SizedBox(
+                                        height: 60,
+                                        child: ListView.separated(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: herb.images.length,
+                                          separatorBuilder:
+                                              (_, __) =>
+                                                  const SizedBox(width: 8),
+                                          itemBuilder: (context, index) {
+                                            final isSelected =
+                                                _currentImageIndex == index;
+                                            return GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _currentImageIndex = index;
+                                                });
+                                              },
+                                              child: Container(
+                                                width: 60,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color:
+                                                        isSelected
+                                                            ? Theme.of(context)
+                                                                .colorScheme
+                                                                .primary
+                                                            : Colors
+                                                                .transparent,
+                                                    width: 2,
+                                                  ),
                                                 ),
-                                                child: Icon(
-                                                  Icons.spa,
-                                                  color:
-                                                      pharmacyTheme
-                                                          .colorScheme
-                                                          .primary,
-                                                  size: 60,
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  child: Image.network(
+                                                    herb.images[index].imageUrl,
+                                                    fit: BoxFit.cover,
+                                                  ),
                                                 ),
                                               ),
-                                    ),
-                                  ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 const SizedBox(height: 24),
                               ],
@@ -285,10 +367,12 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                   content: Text(
                                     herb.description!,
                                     style: TextStyle(
-                                      fontSize: rs.subtitleFont,
+                                      fontSize: rs.bodyFont,
                                       height: 1.5,
                                       color:
-                                          pharmacyTheme.colorScheme.onSurface,
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                     ),
                                   ),
                                   rs: rs,
@@ -317,7 +401,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: pharmacyTheme.colorScheme.primary,
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -329,7 +413,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                 child: Text(
                   "English: ${herb.nameEn}",
                   style: TextStyle(
-                    fontSize: rs.subtitleFont - 2,
+                    fontSize: rs.labelFont,
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
                   ),
@@ -343,7 +427,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: pharmacyTheme.colorScheme.primary,
+              color: Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -355,7 +439,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                   child: Text(
                     "Shona: ${herb.nameSn!}",
                     style: TextStyle(
-                      fontSize: rs.subtitleFont - 2,
+                      fontSize: rs.labelFont,
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
                     ),
@@ -369,27 +453,20 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: pharmacyTheme.colorScheme.primary.withValues(alpha: 0.15),
+              color: Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: pharmacyTheme.colorScheme.primary.withValues(alpha: 0.3),
-              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.translate,
-                  size: 16,
-                  color: pharmacyTheme.colorScheme.primary,
-                ),
+                const Icon(Icons.translate, size: 16, color: Colors.white),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     "Ndebele: ${herb.nameNd!}",
                     style: TextStyle(
-                      fontSize: rs.subtitleFont - 2,
-                      color: pharmacyTheme.colorScheme.primary,
+                      fontSize: rs.labelFont,
+                      color: Colors.white,
                       fontWeight: FontWeight.w500,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -409,13 +486,13 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
     required ResponsiveSize rs,
     Color? accentColor,
   }) {
-    final color = accentColor ?? pharmacyTheme.colorScheme.primary;
+    final color = accentColor ?? Theme.of(context).colorScheme.primary;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: pharmacyTheme.colorScheme.onPrimary,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -442,7 +519,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: rs.subtitleFont + 2,
+                  fontSize: rs.titleFont,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),

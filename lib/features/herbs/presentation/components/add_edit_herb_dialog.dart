@@ -3,8 +3,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
 import 'package:zim_herbs_repo/features/herbs/data/models.dart';
-import 'package:zim_herbs_repo/theme/light_mode.dart';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class AddEditHerbDialog extends StatefulWidget {
@@ -24,7 +22,8 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
   late TextEditingController _nameNdController;
   late TextEditingController _descriptionController;
 
-  XFile? _selectedImage;
+  final List<XFile> _selectedImages = [];
+  final List<Uint8List> _selectedImageBytes = [];
   bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
   final HerbRepository _repository = HerbRepository();
@@ -49,13 +48,24 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _selectedImage = image;
-      });
+  Future<void> _pickImages() async {
+    final List<XFile> images = await _picker.pickMultiImage();
+    if (images.isNotEmpty) {
+      for (var image in images) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImages.add(image);
+          _selectedImageBytes.add(bytes);
+        });
+      }
     }
+  }
+
+  void _removeSelectedImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+      _selectedImageBytes.removeAt(index);
+    });
   }
 
   @override
@@ -68,58 +78,104 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Image Picker
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[400]!),
-                    image:
-                        _selectedImage != null
-                            ? DecorationImage(
-                              image:
-                                  kIsWeb
-                                      ? NetworkImage(_selectedImage!.path)
-                                      : FileImage(File(_selectedImage!.path))
-                                          as ImageProvider,
-                              fit: BoxFit.cover,
-                            )
-                            : (widget.herb?.primaryImageUrl != null
-                                ? DecorationImage(
-                                  image: NetworkImage(
-                                    widget.herb!.primaryImageUrl!,
-                                  ),
-                                  fit: BoxFit.cover,
-                                )
-                                : null),
-                  ),
-                  child:
-                      _selectedImage == null &&
-                              widget.herb?.primaryImageUrl == null
-                          ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.add_a_photo,
-                                  size: 40,
-                                  color: Colors.grey[600],
-                                ),
-                                Text(
-                                  "Tap to add image",
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                              ],
-                            ),
-                          )
-                          : null,
+              // Image Section
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Images",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+
+              // Horizontal list of images
+              SizedBox(
+                height: 100,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    // Existing Images (from database)
+                    if (widget.herb != null)
+                      ...widget.herb!.images.map(
+                        (img) => Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              img.imageUrl,
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // Newly Selected Images
+                    ..._selectedImages.asMap().entries.map(
+                      (entry) => Stack(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.memory(
+                                _selectedImageBytes[entry.key],
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 4,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: () => _removeSelectedImage(entry.key),
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Add Button
+                    GestureDetector(
+                      onTap: _pickImages,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.add_a_photo,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
 
               TextFormField(
                 controller: _nameEnController,
@@ -171,8 +227,8 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
         ElevatedButton(
           onPressed: _isUploading ? null : _submit,
           style: ElevatedButton.styleFrom(
-            backgroundColor: pharmacyTheme.colorScheme.primary,
-            foregroundColor: pharmacyTheme.colorScheme.onPrimary,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
           ),
           child:
               _isUploading
@@ -181,7 +237,7 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: pharmacyTheme.colorScheme.onPrimary,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   )
                   : const Text('Save'),
@@ -222,16 +278,15 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
           await widget.onSave(newHerb);
         } catch (e) {
           debugPrint('Error saving herb record: $e');
-          // If herb save fails, we stop here as image needs a valid herb record
           return;
         }
 
-        // 3. Upload Image if selected
-        if (_selectedImage != null) {
+        // 3. Upload All Selected Images
+        for (var image in _selectedImages) {
           try {
-            final bytes = await _selectedImage!.readAsBytes();
+            final bytes = await image.readAsBytes();
             final fileName =
-                '${DateTime.now().millisecondsSinceEpoch}_${_selectedImage!.name}';
+                '${DateTime.now().millisecondsSinceEpoch}_${image.name}';
 
             final imageUrl = await _repository.uploadHerbImage(
               herbId,
@@ -249,16 +304,8 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
 
             await _repository.addHerbImage(herbImage);
           } catch (e) {
-            debugPrint('Error handling herb image: $e');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Herb saved, but image upload failed: $e'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-            // We don't return here because the herb itself was saved successfully
+            debugPrint('Error handling herb image upload: $e');
+            // Continue with other images even if one fails
           }
         }
 

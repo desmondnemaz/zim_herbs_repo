@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/utils/responsive.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/features/settings/bloc/settings_bloc.dart';
+import 'responsive.dart';
 
 class ResponsiveSize {
   final BuildContext context;
+  final double? _manualScale;
 
-  ResponsiveSize(this.context);
+  ResponsiveSize(this.context, {double? fontScale}) : _manualScale = fontScale;
 
-  // ------------------- Device detection -------------------
+  double get fontScale =>
+      _manualScale ?? context.watch<SettingsBloc>().state.fontScale;
+
+  // ------------------- Device type -------------------
   bool get isMobile => Responsive.isMobile(context);
   bool get isTablet => Responsive.isTablet(context);
   bool get isDesktop => Responsive.isDesktop(context);
 
-  // Generic helper
+  // ------------------- Helper for responsive values -------------------
   T pick<T>({required T mobile, required T tablet, required T desktop}) {
     if (isDesktop) return desktop;
     if (isTablet) return tablet;
@@ -21,26 +27,35 @@ class ResponsiveSize {
   // ------------------- AppBar / Header -------------------
   double get appBarIcon => pick(mobile: 20, tablet: 26, desktop: 32);
   double get appBarPadding => pick(mobile: 8, tablet: 12, desktop: 16);
-  double get appBarTitleFont => pick(mobile: 16, tablet: 20, desktop: 24);
-  double get appBarSubtitleFont => pick(mobile: 12, tablet: 14, desktop: 16);
+  double get appBarTitleFont =>
+      pick(mobile: 18, tablet: 22, desktop: 26) * fontScale;
+  double get appBarSubtitleFont =>
+      pick(mobile: 14, tablet: 16, desktop: 18) * fontScale;
 
-  // ------------------- Cards / Menu Grid -------------------
-  double get icon => pick(mobile: 32, tablet: 44, desktop: 56);
-  double get padding => pick(mobile: 10, tablet: 16, desktop: 20);
-  double get titleFont => pick(mobile: 13, tablet: 16, desktop: 18);
-  double get subtitleFont => pick(mobile: 10, tablet: 12, desktop: 14);
+  // ------------------- Cards / Grid -------------------
+  double get icon => pick(mobile: 28, tablet: 36, desktop: 48);
+  double get padding => pick(mobile: 8, tablet: 12, desktop: 16);
+  double get titleFont => pick(mobile: 16, tablet: 18, desktop: 20) * fontScale;
+  double get subtitleFont =>
+      pick(mobile: 13, tablet: 15, desktop: 17) * fontScale;
+  double get bodyFont => pick(mobile: 14, tablet: 16, desktop: 18) * fontScale;
+  double get labelFont => pick(mobile: 13, tablet: 15, desktop: 17) * fontScale;
+  double get captionFont =>
+      pick(mobile: 11, tablet: 12, desktop: 13) * fontScale;
   int get gridCount => pick(mobile: 1, tablet: 2, desktop: 4);
-  double get gridSpacing => pick(mobile: 10, tablet: 16, desktop: 20);
-  double get cardAspectRatio => pick(mobile: 1.2, tablet: 1.0, desktop: 1.0);
+  double get gridSpacing => pick(mobile: 8, tablet: 12, desktop: 16);
+  double get cardAspectRatio => pick(mobile: 1.2, tablet: 1.1, desktop: 1.0);
 
-  // ------------------- Notifications / Side Panel -------------------
+  // ------------------- Panels / Sidebars -------------------
   double get panelPadding => pick(mobile: 8, tablet: 12, desktop: 16);
-  double get panelTitleFont => pick(mobile: 14, tablet: 16, desktop: 18);
-  double get panelItemFont => pick(mobile: 12, tablet: 14, desktop: 16);
+  double get panelTitleFont =>
+      pick(mobile: 14, tablet: 16, desktop: 18) * fontScale;
+  double get panelItemFont =>
+      pick(mobile: 12, tablet: 14, desktop: 16) * fontScale;
   double get panelIconSize => pick(mobile: 16, tablet: 20, desktop: 24);
 
-  // ------------------- Global Layout / Spacing -------------------
-  double get defaultPadding => pick(mobile: 10, tablet: 16, desktop: 20);
+  // ------------------- Layout / Spacing -------------------
+  double get defaultPadding => pick(mobile: 8, tablet: 12, desktop: 16);
   double get rowSpacing => pick(mobile: 8, tablet: 12, desktop: 16);
   double get columnSpacing => pick(mobile: 8, tablet: 12, desktop: 16);
 
@@ -48,7 +63,8 @@ class ResponsiveSize {
   double get drawerWidth => pick(mobile: 200, tablet: 250, desktop: 300);
 
   // ------------------- Buttons / FAB -------------------
-  double get buttonFont => pick(mobile: 12, tablet: 14, desktop: 16);
+  double get buttonFont =>
+      pick(mobile: 12, tablet: 14, desktop: 16) * fontScale;
   double get fabSize => pick(mobile: 40, tablet: 50, desktop: 60);
 
   // ------------------- Border Radius -------------------

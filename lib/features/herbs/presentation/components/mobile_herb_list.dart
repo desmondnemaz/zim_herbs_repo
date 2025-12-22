@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/features/herbs/data/models.dart';
 
-import 'package:zim_herbs_repo/theme/light_mode.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/herbs/presentation/herb_details.dart';
@@ -40,7 +39,7 @@ class MobileHerbList extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(0, defaultPadding / 2, 0, 0),
             child: Card(
-              color: pharmacyTheme.colorScheme.secondary,
+              color: Theme.of(context).colorScheme.primary,
               elevation: 2,
               child: ListTile(
                 contentPadding: const EdgeInsets.all(8),
@@ -55,20 +54,27 @@ class MobileHerbList extends StatelessWidget {
                               width: 60,
                               height: 60,
                               fit: BoxFit.cover,
-                              errorBuilder:
-                                  (context, error, stackTrace) => Container(
-                                    width: 60,
-                                    height: 60,
-                                    color: Colors.grey,
-                                  ),
+                              errorBuilder: (context, error, stackTrace) {
+                                debugPrint(
+                                  'FAILED IMAGE URL: ${herb.primaryImageUrl}',
+                                );
+                                debugPrint('Error: $error');
+                                return Container(
+                                  width: 60,
+                                  height: 60,
+                                  color: Colors.grey,
+                                );
+                              },
                             )
                             : Container(
                               width: 60,
                               height: 60,
-                              color: Colors.grey.withValues(alpha: 0.3),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary.withValues(alpha: 0.2),
                               child: Icon(
                                 Icons.spa,
-                                color: pharmacyTheme.colorScheme.primary,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             ),
                   ),
@@ -76,12 +82,23 @@ class MobileHerbList extends StatelessWidget {
                 title: Text(
                   herb.nameEn,
                   style: TextStyle(
-                    fontSize: rs.subtitleFont,
+                    fontSize: rs.titleFont,
                     fontWeight: FontWeight.bold,
-                    color: pharmacyTheme.colorScheme.onSecondary,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
-                subtitle: herb.nameSn != null ? Text(herb.nameSn!) : null,
+                subtitle:
+                    (herb.nameSn != null || herb.nameNd != null)
+                        ? Text(
+                          "${herb.nameSn ?? ''}${herb.nameSn != null && herb.nameNd != null ? ' / ' : ''}${herb.nameNd ?? ''}",
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                            fontSize: rs.subtitleFont,
+                          ),
+                        )
+                        : null,
                 trailing: PopupMenuButton<String>(
                   onSelected: (value) {
                     if (value == 'edit') {
@@ -112,7 +129,7 @@ class MobileHerbList extends StatelessWidget {
                       ],
                   icon: Icon(
                     Icons.more_vert,
-                    color: pharmacyTheme.colorScheme.onSecondary,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
               ),

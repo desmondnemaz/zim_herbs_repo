@@ -1,10 +1,9 @@
 //=======================Left Menu Panel===============================
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/theme/light_mode.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 
-class MenuSection extends StatelessWidget {
+class MenuSection extends StatefulWidget {
   const MenuSection({
     super.key,
     required List<Map<String, dynamic>> dashboardCards,
@@ -13,8 +12,31 @@ class MenuSection extends StatelessWidget {
   final List<Map<String, dynamic>> _dashboardCards;
 
   @override
+  State<MenuSection> createState() => _MenuSectionState();
+}
+
+class _MenuSectionState extends State<MenuSection>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Sizing
     final rs = ResponsiveSize(context);
 
     return Column(
@@ -24,26 +46,72 @@ class MenuSection extends StatelessWidget {
           "Menu",
           style: TextStyle(fontSize: rs.titleFont, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: defaultPadding),
+        const SizedBox(height: defaultPadding),
 
         // ====== Grid Menu Section ======
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _dashboardCards.length,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200,
-            mainAxisSpacing: 15,
-            crossAxisSpacing: 15,
-            childAspectRatio: 1,
-          ),
-          itemBuilder: (context, index) {
-            final item = _dashboardCards[index];
-            return _DashboardCard(
-              icon: item['icon'],
-              title: item['title'],
-              subtitle: item['subtitle'],
-              page: item['page'],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return SizedBox(
+              width: constraints.maxWidth,
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: widget._dashboardCards.length,
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
+                  mainAxisSpacing: 15,
+                  crossAxisSpacing: 15,
+                  childAspectRatio: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final item = widget._dashboardCards[index];
+
+                  // Calculate staggering
+                  final start = index * 0.1;
+                  final end = start + 0.6;
+
+                  final slideAnimation = Tween<Offset>(
+                    begin: const Offset(0, 0.2),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: _controller,
+                      curve: Interval(
+                        start,
+                        end.clamp(0.0, 1.0),
+                        curve: Curves.easeOutCubic,
+                      ),
+                    ),
+                  );
+
+                  final fadeAnimation = Tween<double>(
+                    begin: 0.0,
+                    end: 1.0,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: _controller,
+                      curve: Interval(
+                        start,
+                        end.clamp(0.0, 1.0),
+                        curve: Curves.easeIn,
+                      ),
+                    ),
+                  );
+
+                  return SlideTransition(
+                    position: slideAnimation,
+                    child: FadeTransition(
+                      opacity: fadeAnimation,
+                      child: _DashboardCard(
+                        icon: item['icon'],
+                        title: item['title'],
+                        subtitle: item['subtitle'],
+                        page: item['page'],
+                      ),
+                    ),
+                  );
+                },
+              ),
             );
           },
         ),
@@ -52,7 +120,8 @@ class MenuSection extends StatelessWidget {
   }
 }
 
-class _DashboardCard extends StatelessWidget {
+//=======================Dashboard Card===============================
+class _DashboardCard extends StatefulWidget {
   final IconData icon;
   final String title;
   final String subtitle;
@@ -66,69 +135,79 @@ class _DashboardCard extends StatelessWidget {
   });
 
   @override
+  State<_DashboardCard> createState() => _DashboardCardState();
+}
+
+class _DashboardCardState extends State<_DashboardCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    // detect device type
     final rs = ResponsiveSize(context);
 
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => page),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: pharmacyTheme.colorScheme.secondary,
-          borderRadius: const BorderRadius.only(
-            topRight: Radius.circular(0),
-            bottomLeft: Radius.circular(0),
-            bottomRight: Radius.circular(10),
-            topLeft: Radius.circular(10),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: pharmacyTheme.colorScheme.onSecondary,
-              blurRadius: 4,
-              offset: const Offset(2, 2),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(defaultPadding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min, // <- important
-            children: [
-              Icon(
-                icon,
-                color: pharmacyTheme.colorScheme.primary,
-                size: rs.icon,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isPressed = true),
+      onExit: (_) => setState(() => _isPressed = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => widget.page),
+          );
+        },
+        child: AnimatedScale(
+          scale: _isPressed ? 0.96 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondary,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(10),
+                bottomRight: Radius.circular(10),
               ),
-              const SizedBox(height: 5),
-              Flexible(
-                child: Text(
-                  title,
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.2),
+                  blurRadius: _isPressed ? 4 : 8,
+                  offset: _isPressed ? const Offset(1, 1) : const Offset(4, 4),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(defaultPadding),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  widget.icon,
+                  size: rs.icon,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.title,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.black,
                     fontSize: rs.titleFont,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Flexible(
-                child: Text(
-                  subtitle,
+                const SizedBox(height: 4),
+                Text(
+                  widget.subtitle,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.black,
                     fontSize: rs.subtitleFont,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

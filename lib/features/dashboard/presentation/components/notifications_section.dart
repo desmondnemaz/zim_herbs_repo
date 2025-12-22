@@ -1,6 +1,5 @@
 //=====================Right Notifications Panel========================
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/theme/light_mode.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 
@@ -31,7 +30,7 @@ class NotificationsSection extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(defaultPadding),
       decoration: BoxDecoration(
-        color: pharmacyTheme.colorScheme.secondary,
+        color: Theme.of(context).colorScheme.secondary,
         borderRadius: const BorderRadius.only(
           bottomRight: Radius.circular(10),
           topLeft: Radius.circular(10),
@@ -42,7 +41,7 @@ class NotificationsSection extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(defaultPadding),
             decoration: BoxDecoration(
-              color: pharmacyTheme.colorScheme.secondary,
+              color: Theme.of(context).colorScheme.secondary,
               borderRadius: const BorderRadius.only(
                 bottomRight: Radius.circular(10),
                 topLeft: Radius.circular(10),
@@ -72,7 +71,7 @@ class NotificationsSection extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
@@ -90,7 +89,7 @@ class NotificationsSection extends StatelessWidget {
                             style: TextStyle(
                               fontSize: rs.subtitleFont,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green.shade800,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                           SizedBox(height: 6),

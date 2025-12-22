@@ -1,6 +1,8 @@
 /// Models for Supabase database tables
 /// Matches the schema: Herbs, Conditions, Treatments, Herb Images
 
+library;
+
 class HerbModel {
   final String id;
   final String nameEn;
@@ -31,17 +33,21 @@ class HerbModel {
       nameSn: json['name_sn'] as String?,
       nameNd: json['name_nd'] as String?,
       description: json['description'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
-      images: (json['herb_images'] as List<dynamic>?)
-              ?.map((e) => HerbImageModel.fromJson(e as Map<String, dynamic>))
-              .toList() ??
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'] as String)
+              : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'] as String)
+              : null,
+      images:
+          (json['herb_images'] as List<dynamic>?)?.map((e) {
+            return HerbImageModel.fromJson(e as Map<String, dynamic>);
+          }).toList() ??
           [],
-      treatments: (json['treatments'] as List<dynamic>?)
+      treatments:
+          (json['treatments'] as List<dynamic>?)
               ?.map((e) => TreatmentModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -135,12 +141,14 @@ class ConditionModel {
       description: json['description'] as String?,
       symptoms: json['symptoms'] as String?,
       precautions: json['precautions'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'] as String)
+              : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'] as String)
+              : null,
     );
   }
 
@@ -194,12 +202,16 @@ class TreatmentModel {
       precautions: json['precautions'] as String?,
       sideEffects: json['side_effects'] as String?,
       disclaimer: json['disclaimer'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      condition: json['conditions'] != null
-          ? ConditionModel.fromJson(json['conditions'] as Map<String, dynamic>)
-          : null,
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'] as String)
+              : null,
+      condition:
+          json['conditions'] != null
+              ? ConditionModel.fromJson(
+                json['conditions'] as Map<String, dynamic>,
+              )
+              : null,
     );
   }
 

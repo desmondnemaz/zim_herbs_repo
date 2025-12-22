@@ -22,6 +22,11 @@ class HerbRepository {
     return (response as List<dynamic>)
         .map((json) => HerbModel.fromJson(json as Map<String, dynamic>))
         .toList();
+  } 
+
+  /// Get total count of herbs
+  Future<int> getHerbsCount() async {
+    return await _client.from('herbs').count(CountOption.exact);
   }
 
   /// Add an image record to the database

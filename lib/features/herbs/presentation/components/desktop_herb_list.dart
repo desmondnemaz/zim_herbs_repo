@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/features/herbs/data/models.dart';
 
-import 'package:zim_herbs_repo/theme/light_mode.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/herbs/presentation/herb_details.dart';
@@ -45,7 +44,7 @@ class DesktopHerbList extends StatelessWidget {
             );
           },
           child: Card(
-            color: pharmacyTheme.colorScheme.secondary,
+            color: Theme.of(context).colorScheme.primary,
             elevation: 2,
             child: Stack(
               children: [
@@ -69,13 +68,18 @@ class DesktopHerbList extends StatelessWidget {
                                             Container(color: Colors.grey),
                                   )
                                   : Container(
-                                    color: Colors.grey.withValues(alpha: 0.3),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimary
+                                        .withValues(alpha: 0.2),
                                     child: Center(
                                       child: Icon(
                                         Icons.spa,
                                         size: 40,
                                         color:
-                                            pharmacyTheme.colorScheme.primary,
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimary,
                                       ),
                                     ),
                                   ),
@@ -89,21 +93,22 @@ class DesktopHerbList extends StatelessWidget {
                           Text(
                             herb.nameEn,
                             style: TextStyle(
-                              fontSize: rs.subtitleFont,
+                              fontSize: rs.titleFont,
                               fontWeight: FontWeight.bold,
-                              color: pharmacyTheme.colorScheme.onSecondary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                             ),
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (herb.nameSn != null)
+                          if (herb.nameSn != null || herb.nameNd != null)
                             Text(
-                              herb.nameSn!,
+                              "${herb.nameSn ?? ''}${herb.nameSn != null && herb.nameNd != null ? ' / ' : ''}${herb.nameNd ?? ''}",
                               style: TextStyle(
-                                fontSize: rs.subtitleFont - 2,
-                                color: pharmacyTheme.colorScheme.onSecondary
-                                    .withValues(alpha: 0.7),
+                                fontSize: rs.subtitleFont,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimary.withValues(alpha: 0.7),
                               ),
                               textAlign: TextAlign.center,
                               maxLines: 1,
@@ -139,7 +144,9 @@ class DesktopHerbList extends StatelessWidget {
                     icon: Container(
                       padding: EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0.8),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.more_vert, size: 20),
