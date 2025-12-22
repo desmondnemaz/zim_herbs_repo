@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/features/conditions/data/repository/model.dart';
+import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
 import 'models.dart';
 
 class HerbRepository {
@@ -15,14 +17,14 @@ class HerbRepository {
         .select('''
           *,
           herb_images(*),
-          treatments(*, conditions(*))
+          treatment_herbs(*, treatments(*, conditions(*)))
         ''')
         .order('name_en');
 
     return (response as List<dynamic>)
         .map((json) => HerbModel.fromJson(json as Map<String, dynamic>))
         .toList();
-  } 
+  }
 
   /// Get total count of herbs
   Future<int> getHerbsCount() async {
@@ -44,7 +46,7 @@ class HerbRepository {
             .select('''
           *,
           herb_images(*),
-          treatments(*, conditions(*))
+          treatment_herbs(*, treatments(*, conditions(*)))
         ''')
             .eq('id', id)
             .maybeSingle();
@@ -60,7 +62,7 @@ class HerbRepository {
         .select('''
           *,
           herb_images(*),
-          treatments(*, conditions(*))
+          treatment_herbs(*, treatments(*, conditions(*)))
         ''')
         .or(
           'name_en.ilike.%$query%,name_sn.ilike.%$query%,name_nd.ilike.%$query%',
@@ -88,9 +90,9 @@ class HerbRepository {
         .select('''
           *,
           herb_images(*),
-          treatments!inner(*, conditions(*))
+          treatment_herbs!inner(*, treatments(*, conditions(*)))
         ''')
-        .eq('treatments.condition_id', conditionId)
+        .eq('treatment_herbs.treatments.condition_id', conditionId)
         .order('name_en');
 
     return (response as List<dynamic>)
@@ -137,5 +139,61 @@ class HerbRepository {
   /// Delete a herb
   Future<void> deleteHerb(String id) async {
     await _client.from('herbs').delete().eq('id', id);
+  }
+
+  /// Create a new condition
+  Future<ConditionModel> createCondition(ConditionModel condition) async {
+    final response =
+        await _client
+            .from('conditions')
+            .insert(condition.toJson())
+            .select()
+            .single();
+    return ConditionModel.fromJson(response);
+  }
+
+  /// Create a new treatment with herbs
+  Future<TreatmentModel> createTreatment(
+    TreatmentModel treatment,
+    List<TreatmentHerbModel> herbs,
+  ) async {
+    // 1. Insert Treatment
+    final treatmentData = treatment.toJson();
+    treatmentData.remove('id');
+    treatmentData.remove('created_at');
+    treatmentData.remove('updated_at');
+
+    final treatmentResponse =
+        await _client
+            .from('treatments')
+            .insert(treatmentData)
+            .select()
+            .single();
+
+    final newTreatmentId = treatmentResponse['id'] as String;
+
+    // 2. Insert Treatment Herbs
+    List<Map<String, dynamic>> insertedHerbs = [];
+    if (herbs.isNotEmpty) {
+      final herbsData =
+          herbs.map((h) {
+            final Map<String, dynamic> data = h.toJson();
+            data['treatment_id'] = newTreatmentId;
+            data.remove('id');
+            data.remove('created_at');
+            data.remove('updated_at');
+            return data;
+          }).toList();
+
+      final herbsResponse =
+          await _client.from('treatment_herbs').insert(herbsData).select();
+      insertedHerbs = List<Map<String, dynamic>>.from(herbsResponse);
+    }
+
+    // 3. Construct and return full object
+    return TreatmentModel.fromJson({
+      ...treatmentResponse,
+      'treatment_herbs': insertedHerbs,
+    });
   }
 }

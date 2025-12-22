@@ -3,6 +3,8 @@
 
 library;
 
+import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
+
 class HerbModel {
   final String id;
   final String nameEn;
@@ -47,8 +49,14 @@ class HerbModel {
           }).toList() ??
           [],
       treatments:
-          (json['treatments'] as List<dynamic>?)
-              ?.map((e) => TreatmentModel.fromJson(e as Map<String, dynamic>))
+          (json['treatment_herbs'] as List<dynamic>?)
+              ?.map((e) {
+                // The treatment object is nested inside the treatment_herb record
+                final treatmentJson = e['treatments'] as Map<String, dynamic>?;
+                if (treatmentJson == null) return null;
+                return TreatmentModel.fromJson(treatmentJson);
+              })
+              .whereType<TreatmentModel>()
               .toList() ??
           [],
     );
@@ -108,124 +116,6 @@ class HerbImageModel {
       'image_url': imageUrl,
       'description': description,
       'order_index': orderIndex,
-    };
-  }
-}
-
-class ConditionModel {
-  final String id;
-  final String name;
-  final String? bodySystem;
-  final String? description;
-  final String? symptoms;
-  final String? precautions;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-
-  ConditionModel({
-    required this.id,
-    required this.name,
-    this.bodySystem,
-    this.description,
-    this.symptoms,
-    this.precautions,
-    this.createdAt,
-    this.updatedAt,
-  });
-
-  factory ConditionModel.fromJson(Map<String, dynamic> json) {
-    return ConditionModel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      bodySystem: json['body_system'] as String?,
-      description: json['description'] as String?,
-      symptoms: json['symptoms'] as String?,
-      precautions: json['precautions'] as String?,
-      createdAt:
-          json['created_at'] != null
-              ? DateTime.parse(json['created_at'] as String)
-              : null,
-      updatedAt:
-          json['updated_at'] != null
-              ? DateTime.parse(json['updated_at'] as String)
-              : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'body_system': bodySystem,
-      'description': description,
-      'symptoms': symptoms,
-      'precautions': precautions,
-    };
-  }
-}
-
-class TreatmentModel {
-  final String id;
-  final String herbId;
-  final String conditionId;
-  final String? dosage;
-  final String? preparation;
-  final String? methodOfUse;
-  final String? precautions;
-  final String? sideEffects;
-  final String? disclaimer;
-  final DateTime? createdAt;
-  final ConditionModel? condition;
-
-  TreatmentModel({
-    required this.id,
-    required this.herbId,
-    required this.conditionId,
-    this.dosage,
-    this.preparation,
-    this.methodOfUse,
-    this.precautions,
-    this.sideEffects,
-    this.disclaimer,
-    this.createdAt,
-    this.condition,
-  });
-
-  factory TreatmentModel.fromJson(Map<String, dynamic> json) {
-    return TreatmentModel(
-      id: json['id'] as String,
-      herbId: json['herb_id'] as String,
-      conditionId: json['condition_id'] as String,
-      dosage: json['dosage'] as String?,
-      preparation: json['preparation'] as String?,
-      methodOfUse: json['method_of_use'] as String?,
-      precautions: json['precautions'] as String?,
-      sideEffects: json['side_effects'] as String?,
-      disclaimer: json['disclaimer'] as String?,
-      createdAt:
-          json['created_at'] != null
-              ? DateTime.parse(json['created_at'] as String)
-              : null,
-      condition:
-          json['conditions'] != null
-              ? ConditionModel.fromJson(
-                json['conditions'] as Map<String, dynamic>,
-              )
-              : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'herb_id': herbId,
-      'condition_id': conditionId,
-      'dosage': dosage,
-      'preparation': preparation,
-      'method_of_use': methodOfUse,
-      'precautions': precautions,
-      'side_effects': sideEffects,
-      'disclaimer': disclaimer,
     };
   }
 }

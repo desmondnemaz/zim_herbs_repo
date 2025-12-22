@@ -35,6 +35,7 @@ class _HomePageState extends State<HomePage> {
       appBar:
           !isDesktop
               ? AppBar(
+                toolbarHeight: rs.appBarHeight,
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 elevation: 0,
                 title: const _BrandLogo(),
@@ -153,12 +154,15 @@ class _BrandLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          "ZIM Herbal Pharmacy",
-          style: TextStyle(
-            fontSize: rs.appBarTitleFont,
-            fontWeight: FontWeight.w900,
-            color: Theme.of(context).colorScheme.secondary,
+        Flexible(
+          child: Text(
+            "ZIM Herbal Pharmacy",
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: rs.appBarTitleFont,
+              fontWeight: FontWeight.w900,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
           ),
         ),
         const SizedBox(width: 12),

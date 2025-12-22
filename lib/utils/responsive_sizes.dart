@@ -27,6 +27,7 @@ class ResponsiveSize {
   // ------------------- AppBar / Header -------------------
   double get appBarIcon => pick(mobile: 20, tablet: 26, desktop: 32);
   double get appBarPadding => pick(mobile: 8, tablet: 12, desktop: 16);
+  double get appBarHeight => pick(mobile: 80, tablet: 90, desktop: 100);
   double get appBarTitleFont =>
       pick(mobile: 18, tablet: 22, desktop: 26) * fontScale;
   double get appBarSubtitleFont =>

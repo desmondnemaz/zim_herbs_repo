@@ -4,6 +4,7 @@ import 'package:zim_herbs_repo/features/dashboard/presentation/coming_soon.dart'
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/menu_section.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/notifications_section.dart';
 import 'package:zim_herbs_repo/features/herbs/presentation/herbs_list.dart';
+import 'package:zim_herbs_repo/features/treatments/presentation/treatments_list.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 
@@ -20,19 +21,19 @@ class DashboardScreen extends StatelessWidget {
         'icon': Icons.local_florist,
         'title': 'Herbs',
         'subtitle': '(A - Z)',
-        'page': HerbsList(),
+        'page': const HerbsList(),
       },
       {
         'icon': Icons.healing,
-        'title': 'Remedies',
+        'title': 'Treatments',
         'subtitle': '(By condition)',
-        'page': ComingSoonPage(),
+        'page': const TreatmentsList(),
       },
       {
         'icon': Icons.sick_outlined,
         'title': 'Diseases',
         'subtitle': '(A - Z)',
-        'page': ConditionsListPage(),
+        'page': const ConditionsListPage(),
       },
       {
         'icon': Icons.groups,
