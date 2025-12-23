@@ -23,6 +23,24 @@ class TreatmentRepository {
         .toList();
   }
 
+  /// Fetch a single treatment by ID with its conditions and herbs
+  Future<TreatmentModel?> getTreatmentById(String id) async {
+    final response =
+        await _client
+            .from('treatments')
+            .select('''
+          *,
+          conditions(*),
+          treatment_herbs(*, herbs(*, herb_images(*)))
+        ''')
+            .eq('id', id)
+            .maybeSingle();
+
+    if (response == null) return null;
+
+    return TreatmentModel.fromJson(response);
+  }
+
   /// Search treatments by name or condition
   Future<List<TreatmentModel>> searchTreatments(String query) async {
     final response = await _client

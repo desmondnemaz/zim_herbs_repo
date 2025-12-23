@@ -274,45 +274,79 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                   const SizedBox(height: 20),
                   _buildSectionTitle('Dosage & Details', rs),
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          controller: _dosageAdultController,
-                          label: 'Adult Dosage',
-                          rs: rs,
-                        ),
+                  // Use Column for mobile, Row for tablet/desktop
+                  rs.isMobile
+                      ? Column(
+                        children: [
+                          _buildTextField(
+                            controller: _dosageAdultController,
+                            label: 'Adult Dosage',
+                            rs: rs,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildTextField(
+                            controller: _dosageInfantController,
+                            label: 'Infant Dosage',
+                            rs: rs,
+                          ),
+                        ],
+                      )
+                      : Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _dosageAdultController,
+                              label: 'Adult Dosage',
+                              rs: rs,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _dosageInfantController,
+                              label: 'Infant Dosage',
+                              rs: rs,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildTextField(
-                          controller: _dosageInfantController,
-                          label: 'Infant Dosage',
-                          rs: rs,
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          controller: _frequencyController,
-                          label: 'Frequency',
-                          rs: rs,
-                        ),
+                  // Use Column for mobile, Row for tablet/desktop
+                  rs.isMobile
+                      ? Column(
+                        children: [
+                          _buildTextField(
+                            controller: _frequencyController,
+                            label: 'Frequency',
+                            rs: rs,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildTextField(
+                            controller: _durationController,
+                            label: 'Duration',
+                            rs: rs,
+                          ),
+                        ],
+                      )
+                      : Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _frequencyController,
+                              label: 'Frequency',
+                              rs: rs,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _durationController,
+                              label: 'Duration',
+                              rs: rs,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildTextField(
-                          controller: _durationController,
-                          label: 'Duration',
-                          rs: rs,
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 10),
                   _buildTextField(
                     controller: _precautionsController,
@@ -501,37 +535,63 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  controller: controllers.quantity,
-                  label: 'Qty',
-                  hintText: '2',
-                  rs: rs,
-                ),
+          // Use Column for mobile, Row for tablet/desktop
+          rs.isMobile
+              ? Column(
+                children: [
+                  _buildTextField(
+                    controller: controllers.quantity,
+                    label: 'Qty',
+                    hintText: '2',
+                    rs: rs,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    controller: controllers.unit,
+                    label: 'Unit',
+                    hintText: 'cups',
+                    rs: rs,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    controller: controllers.preparation,
+                    label: 'Prep Note',
+                    hintText: 'chopped',
+                    rs: rs,
+                  ),
+                ],
+              )
+              : Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: controllers.quantity,
+                      label: 'Qty',
+                      hintText: '2',
+                      rs: rs,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: controllers.unit,
+                      label: 'Unit',
+                      hintText: 'cups',
+                      rs: rs,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: _buildTextField(
+                      controller: controllers.preparation,
+                      label: 'Prep Note',
+                      hintText: 'chopped',
+                      rs: rs,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildTextField(
-                  controller: controllers.unit,
-                  label: 'Unit',
-                  hintText: 'cups',
-                  rs: rs,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
-                child: _buildTextField(
-                  controller: controllers.preparation,
-                  label: 'Prep Note',
-                  hintText: 'chopped',
-                  rs: rs,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

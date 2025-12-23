@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_repository.dart';
 import 'package:zim_herbs_repo/features/treatments/bloc/treatment_bloc.dart';
 import 'package:zim_herbs_repo/features/treatments/presentation/add_edit_treatment_page.dart';
+import 'package:zim_herbs_repo/features/treatments/presentation/treatment_details.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 
@@ -171,7 +172,15 @@ class _TreatmentsListView extends StatelessWidget {
                                   size: 16,
                                 ),
                                 onTap: () {
-                                  // Navigate to details
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => TreatmentDetailsPage(
+                                            treatmentId: treatment.id,
+                                          ),
+                                    ),
+                                  );
                                 },
                               ),
                             );
