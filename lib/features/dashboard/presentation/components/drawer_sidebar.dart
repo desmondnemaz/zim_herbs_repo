@@ -3,6 +3,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
+import 'package:zim_herbs_repo/core/presentation/widgets/zimbabwe_widgets.dart';
 
 class DrawerSideBar extends StatefulWidget {
   const DrawerSideBar({super.key});
@@ -19,126 +20,131 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
     return Drawer(
       backgroundColor: Theme.of(context).colorScheme.primary,
       elevation: 0,
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Drawer Header / Logo
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
+      child: ZimbabweWorkBackground(
+        patternColor: Colors.white.withValues(alpha: 0.05),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Drawer Header / Logo
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.secondary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.grass,
+                        size: 64,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "ZIM HERBS",
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Menu Items
+              _buildMenuItem(
+                title: "Dashboard",
+                svgSrc: "assets/icons/menu_dashboard.svg",
+                isActive: _activeRoute == "Dashboard",
+                onTap: () => setState(() => _activeRoute = "Dashboard"),
+              ),
+              _buildMenuItem(
+                title: "Profile",
+                svgSrc: "assets/icons/menu_profile.svg",
+                isActive: _activeRoute == "Profile",
+                onTap: () => setState(() => _activeRoute = "Profile"),
+              ),
+              _buildMenuItem(
+                title: "Settings",
+                svgSrc: "assets/icons/menu_setting.svg",
+                isActive: _activeRoute == "Settings",
+                onTap: () {
+                  if (!Responsive.isDesktop(context)) {
+                    Navigator.pop(context); // Close drawer only on mobile
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsPage(),
+                    ),
+                  );
+                },
+              ),
+
+              const Spacer(),
+
+              // Footer
+              Padding(
+                padding: const EdgeInsets.all(defaultPadding),
+                child: Column(
+                  children: [
+                    Divider(
                       color: Theme.of(
                         context,
-                      ).colorScheme.secondary.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+                      ).colorScheme.onPrimary.withValues(alpha: 0.2),
                     ),
-                    child: Icon(
-                      Icons.grass,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "ZIM HERBS",
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Menu Items
-            _buildMenuItem(
-              title: "Dashboard",
-              svgSrc: "assets/icons/menu_dashboard.svg",
-              isActive: _activeRoute == "Dashboard",
-              onTap: () => setState(() => _activeRoute = "Dashboard"),
-            ),
-            _buildMenuItem(
-              title: "Profile",
-              svgSrc: "assets/icons/menu_profile.svg",
-              isActive: _activeRoute == "Profile",
-              onTap: () => setState(() => _activeRoute = "Profile"),
-            ),
-            _buildMenuItem(
-              title: "Settings",
-              svgSrc: "assets/icons/menu_setting.svg",
-              isActive: _activeRoute == "Settings",
-              onTap: () {
-                if (!Responsive.isDesktop(context)) {
-                  Navigator.pop(context); // Close drawer only on mobile
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-            ),
-
-            const Spacer(),
-
-            // Footer
-            Padding(
-              padding: const EdgeInsets.all(defaultPadding),
-              child: Column(
-                children: [
-                  Divider(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onPrimary.withValues(alpha: 0.2),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: CircleAvatar(
-                          radius: 12,
-                          backgroundColor: Colors.transparent,
-                          backgroundImage: const AssetImage(
-                            'assets/images/zimbabwe-flag-rounded.png',
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.transparent,
+                            backgroundImage: const AssetImage(
+                              'assets/images/zimbabwe-flag-rounded.png',
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "ZIM HERBS",
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimary.withValues(alpha: 0.6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(width: 8),
+                        Text(
+                          "ZIM HERBS",
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withValues(alpha: 0.6),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    "v1.0.0",
-                    style: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withValues(alpha: 0.4),
-                      fontSize: 10,
+                      ],
                     ),
-                  ),
-                ],
+                    Text(
+                      "v1.0.0",
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withValues(alpha: 0.4),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

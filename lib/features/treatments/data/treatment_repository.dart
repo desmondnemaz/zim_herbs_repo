@@ -107,4 +107,62 @@ class TreatmentRepository {
       'treatment_herbs': insertedHerbs,
     });
   }
+
+  /// Get total count of treatments
+  Future<int> getTreatmentsCount() async {
+    return await _client.from('treatments').count(CountOption.exact);
+  }
+
+  /// Update an existing treatment
+  Future<TreatmentModel> updateTreatment(TreatmentModel treatment) async {
+    // 1. Update Treatment core data
+    final treatmentData = treatment.toJson();
+    treatmentData.remove('id');
+    treatmentData.remove('created_at');
+    treatmentData.remove('updated_at');
+    treatmentData.remove('treatment_herbs');
+    treatmentData.remove('conditions');
+
+    await _client
+        .from('treatments')
+        .update(treatmentData)
+        .eq('id', treatment.id);
+
+    // 2. Refresh Treatment Herbs: Delete old and insert new
+    await _client
+        .from('treatment_herbs')
+        .delete()
+        .eq('treatment_id', treatment.id);
+
+    if (treatment.treatmentHerbs.isNotEmpty) {
+      final herbsData =
+          treatment.treatmentHerbs.map((h) {
+            final Map<String, dynamic> data = h.toJson();
+            data['treatment_id'] = treatment.id;
+            data.remove('id');
+            data.remove('created_at');
+            data.remove('updated_at');
+            data.remove('herbs');
+            return data;
+          }).toList();
+
+      await _client.from('treatment_herbs').insert(herbsData);
+    }
+
+    // 3. Re-fetch current state to ensure full object is returned
+    return await getTreatmentById(treatment.id) ?? treatment;
+  }
+
+  /// Delete a treatment
+  Future<void> deleteTreatment(String id) async {
+    await _client.from('treatments').delete().eq('id', id);
+  }
+
+  /// Approve or disapprove a treatment
+  Future<void> approveTreatment(String id, {bool approved = true}) async {
+    await _client
+        .from('treatments')
+        .update({'is_approved': approved})
+        .eq('id', id);
+  }
 }

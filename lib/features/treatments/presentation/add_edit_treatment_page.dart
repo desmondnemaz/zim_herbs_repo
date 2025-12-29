@@ -11,7 +11,8 @@ import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 /// Page for Creating and Editing Treatments.
 /// Uses [TreatmentFormBloc] to manage state.
 class AddEditTreatmentPage extends StatelessWidget {
-  const AddEditTreatmentPage({super.key});
+  final TreatmentModel? treatment;
+  const AddEditTreatmentPage({super.key, this.treatment});
 
   @override
   Widget build(BuildContext context) {
@@ -20,14 +21,15 @@ class AddEditTreatmentPage extends StatelessWidget {
           (context) => TreatmentFormBloc(
             herbRepository: HerbRepository(),
             treatmentRepository: TreatmentRepository(),
-          )..add(LoadFormResources()),
-      child: const _TreatmentFormView(),
+          )..add(LoadFormResources(treatment: treatment)),
+      child: _TreatmentFormView(treatment: treatment),
     );
   }
 }
 
 class _TreatmentFormView extends StatefulWidget {
-  const _TreatmentFormView();
+  final TreatmentModel? treatment;
+  const _TreatmentFormView({this.treatment});
 
   @override
   State<_TreatmentFormView> createState() => _TreatmentFormViewState();
@@ -53,6 +55,25 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
 
   // We manage the TEXT controllers for the dynamic rows here in the UI state
   final List<_HerbRowControllers> _rowControllers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.treatment != null) {
+      _nameController.text = widget.treatment!.name;
+      _methodController.text = widget.treatment!.methodOfUse;
+      _preparationController.text = widget.treatment!.preparation;
+      _dosageInfantController.text = widget.treatment!.dosageInfants ?? '';
+      _dosageAdultController.text = widget.treatment!.dosageAdults ?? '';
+      _durationController.text = widget.treatment!.duration ?? '';
+      _frequencyController.text = widget.treatment!.frequency ?? '';
+      _notesController.text = widget.treatment!.notes ?? '';
+      _precautionsController.text = widget.treatment!.precautions ?? '';
+      _sideEffectsController.text = widget.treatment!.sideEffects ?? '';
+      _disclaimerController.text = widget.treatment!.disclaimer ?? '';
+      // Conditions and herbs will be handled by the Bloc listener once loaded
+    }
+  }
 
   @override
   void dispose() {
@@ -112,20 +133,40 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
     }
 
     final treatment = TreatmentModel(
-      id: '',
+      id: widget.treatment?.id ?? '',
       conditionId: _selectedCondition!.id,
       name: _nameController.text,
       methodOfUse: _methodController.text,
       preparation: _preparationController.text,
-      dosageInfants: _dosageInfantController.text,
-      dosageAdults: _dosageAdultController.text,
-      duration: _durationController.text,
-      frequency: _frequencyController.text,
-      notes: _notesController.text,
-      precautions: _precautionsController.text,
-      sideEffects: _sideEffectsController.text,
-      disclaimer: _disclaimerController.text,
+      dosageInfants:
+          _dosageInfantController.text.isEmpty
+              ? null
+              : _dosageInfantController.text,
+      dosageAdults:
+          _dosageAdultController.text.isEmpty
+              ? null
+              : _dosageAdultController.text,
+      duration:
+          _durationController.text.isEmpty ? null : _durationController.text,
+      frequency:
+          _frequencyController.text.isEmpty ? null : _frequencyController.text,
+      notes: _notesController.text.isEmpty ? null : _notesController.text,
+      precautions:
+          _precautionsController.text.isEmpty
+              ? null
+              : _precautionsController.text,
+      sideEffects:
+          _sideEffectsController.text.isEmpty
+              ? null
+              : _sideEffectsController.text,
+      disclaimer:
+          _disclaimerController.text.isEmpty
+              ? null
+              : _disclaimerController.text,
       treatmentHerbs: treatmentHerbs,
+      isApproved: widget.treatment?.isApproved ?? false,
+      approvedAt: widget.treatment?.approvedAt,
+      approvedBy: widget.treatment?.approvedBy,
     );
 
     context.read<TreatmentFormBloc>().add(SubmitTreatment(treatment));
@@ -137,9 +178,9 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'New Treatment',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          widget.treatment == null ? 'New Treatment' : 'Edit Treatment',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.secondary,
@@ -159,8 +200,24 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
           }
         },
         builder: (context, state) {
+          if (state.status == TreatmentFormStatus.loaded) {
+            if (widget.treatment != null && _selectedCondition == null) {
+              try {
+                _selectedCondition = state.conditions.firstWhere(
+                  (c) => c.id == widget.treatment!.conditionId,
+                );
+              } catch (_) {}
+            }
+          }
+
           while (_rowControllers.length < state.herbRows.length) {
-            _rowControllers.add(_HerbRowControllers());
+            final index = _rowControllers.length;
+            final controllers = _HerbRowControllers();
+            final rowState = state.herbRows[index];
+            controllers.quantity.text = rowState.quantity;
+            controllers.unit.text = rowState.unit;
+            controllers.preparation.text = rowState.preparation;
+            _rowControllers.add(controllers);
           }
           while (_rowControllers.length > state.herbRows.length) {
             _rowControllers.removeLast().dispose();
@@ -385,7 +442,9 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                                 color: Colors.white,
                               )
                               : Text(
-                                'CREATE TREATMENT',
+                                widget.treatment == null
+                                    ? 'CREATE TREATMENT'
+                                    : 'SAVE CHANGES',
                                 style: TextStyle(
                                   fontSize: rs.subtitleFont,
                                   fontWeight: FontWeight.bold,

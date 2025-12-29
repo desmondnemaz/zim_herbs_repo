@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_repository.dart';
 import 'package:zim_herbs_repo/features/treatments/bloc/treatment_bloc.dart';
 import 'package:zim_herbs_repo/features/treatments/presentation/add_edit_treatment_page.dart';
-import 'package:zim_herbs_repo/features/treatments/presentation/treatment_details.dart';
+import 'package:zim_herbs_repo/features/treatments/presentation/components/desktop_treatment_list.dart';
+import 'package:zim_herbs_repo/features/treatments/presentation/components/mobile_treatment_list.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 
@@ -117,75 +117,16 @@ class _TreatmentsListView extends StatelessWidget {
                             RefreshTreatments(),
                           );
                         },
-                        child: ListView.separated(
-                          padding: EdgeInsets.all(rs.defaultPadding),
-                          itemCount: state.treatments.length,
-                          separatorBuilder:
-                              (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final treatment = state.treatments[index];
-                            return Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
+                        child:
+                            Responsive.isMobile(context)
+                                ? MobileTreatmentList(
+                                  treatments: state.treatments,
+                                  rs: rs,
+                                )
+                                : DesktopTreatmentList(
+                                  treatments: state.treatments,
+                                  rs: rs,
                                 ),
-                                title: Text(
-                                  treatment.name,
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 4),
-                                    if (treatment.condition != null)
-                                      Chip(
-                                        label: Text(
-                                          treatment.condition!.name,
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                        backgroundColor:
-                                            Theme.of(context)
-                                                .colorScheme
-                                                .surfaceContainerHighest,
-                                        padding: EdgeInsets.zero,
-                                        materialTapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${treatment.treatmentHerbs.length} Herbs',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: const Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                ),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => TreatmentDetailsPage(
-                                            treatmentId: treatment.id,
-                                          ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
                       );
                     }
                     return const SizedBox.shrink();

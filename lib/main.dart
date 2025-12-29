@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/config/supabase_config.dart';
-import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
+import 'package:zim_herbs_repo/features/onboarding/presentation/splash_page.dart';
 import 'package:zim_herbs_repo/theme/light_mode.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:zim_herbs_repo/features/settings/bloc/settings_bloc.dart';
@@ -77,7 +77,7 @@ class MyApp extends StatelessWidget {
                         children: const [
                           Icon(Icons.wifi, color: Colors.white),
                           SizedBox(width: 12),
-                          Text('Back Online'),
+                          Text('You are online'),
                         ],
                       ),
                       backgroundColor: Colors.green,
@@ -86,7 +86,7 @@ class MyApp extends StatelessWidget {
                   );
                 }
               },
-              child: const HomePage(),
+              child: const SplashScreen(),
             ),
           );
         },

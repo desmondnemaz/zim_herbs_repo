@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_repository.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
+import 'package:zim_herbs_repo/features/treatments/presentation/add_edit_treatment_page.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 
@@ -41,7 +42,77 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
     _animationController.forward();
-    _treatmentFuture = _repository.getTreatmentById(widget.treatmentId);
+    _refreshTreatment();
+  }
+
+  void _refreshTreatment() {
+    setState(() {
+      _treatmentFuture = _repository.getTreatmentById(widget.treatmentId);
+    });
+  }
+
+  Future<void> _handleApprove(TreatmentModel treatment) async {
+    try {
+      await _repository.approveTreatment(
+        treatment.id,
+        approved: !treatment.isApproved,
+      );
+      _refreshTreatment();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              treatment.isApproved
+                  ? 'Unapproved successfully'
+                  : 'Approved successfully',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _handleDelete(TreatmentModel treatment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Treatment'),
+            content: Text('Are you sure you want to delete ${treatment.name}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('CANCEL'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('DELETE'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _repository.deleteTreatment(treatment.id);
+        if (mounted) {
+          Navigator.pop(context, true); // Return to list
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
+    }
   }
 
   @override
@@ -108,6 +179,74 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
+                actions: [
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.black26,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        treatment.isApproved
+                            ? Icons.check_circle
+                            : Icons.check_circle_outline,
+                        color:
+                            treatment.isApproved
+                                ? Colors.green
+                                : Theme.of(context).colorScheme.secondary,
+                        size: rs.appBarIcon * 0.8,
+                      ),
+                    ),
+                    onPressed: () => _handleApprove(treatment),
+                    tooltip: treatment.isApproved ? 'Unapprove' : 'Approve',
+                  ),
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.black26,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.edit,
+                        color: Theme.of(context).colorScheme.secondary,
+                        size: rs.appBarIcon * 0.8,
+                      ),
+                    ),
+                    onPressed: () async {
+                      final updated = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                                  AddEditTreatmentPage(treatment: treatment),
+                        ),
+                      );
+                      if (updated == true) {
+                        _refreshTreatment();
+                      }
+                    },
+                    tooltip: 'Edit',
+                  ),
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.black26,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.delete,
+                        color: Colors.redAccent,
+                        size: rs.appBarIcon * 0.8,
+                      ),
+                    ),
+                    onPressed: () => _handleDelete(treatment),
+                    tooltip: 'Delete',
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   centerTitle: true,
                   title: FittedBox(
@@ -231,7 +370,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                   treatment.dosageInfants != null)
                                 _buildSectionCard(
                                   icon: Icons.medication_outlined,
-                                  title: "Dosage Information",
+                                  title: "Dosage Details",
                                   content: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -263,14 +402,14 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                   treatment.duration != null)
                                 _buildSectionCard(
                                   icon: Icons.schedule_outlined,
-                                  title: "Schedule",
+                                  title: "Schedule & Timing",
                                   content: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       if (treatment.frequency != null) ...[
                                         _buildInfoRow(
-                                          "Frequency",
+                                          "Usage Frequency",
                                           treatment.frequency!,
                                           rs,
                                         ),
@@ -278,7 +417,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                       ],
                                       if (treatment.duration != null)
                                         _buildInfoRow(
-                                          "Duration",
+                                          "Treatment Duration",
                                           treatment.duration!,
                                           rs,
                                         ),
@@ -423,15 +562,15 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
   }
 
   Widget _buildHerbItem(TreatmentHerbModel th, ResponsiveSize rs) {
+    final imageUrl = th.herb?.primaryImageUrl;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-          width: 1.5,
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         ),
         boxShadow: [
           BoxShadow(
@@ -441,42 +580,45 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.spa,
-                  size: 24,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  th.herb?.nameEn ?? 'Unknown Herb',
-                  style: TextStyle(
-                    fontSize: rs.subtitleFont,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ],
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: PageStorageKey<String>(th.herb?.id ?? 'herb_tile'),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              image:
+                  imageUrl != null
+                      ? DecorationImage(
+                        image: NetworkImage(imageUrl),
+                        fit: BoxFit.cover,
+                      )
+                      : null,
+            ),
+            child:
+                imageUrl == null
+                    ? Icon(
+                      Icons.spa,
+                      color: Theme.of(context).colorScheme.primary,
+                    )
+                    : null,
           ),
-          if (th.quantity != null ||
-              th.unit != null ||
-              th.preparation != null) ...[
-            const SizedBox(height: 12),
+          title: Text(
+            th.herb?.nameEn ?? 'Unknown Herb',
+            style: TextStyle(
+              fontSize: rs.subtitleFont,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -488,99 +630,58 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (th.quantity != null && th.unit != null)
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.scale_outlined,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Quantity: ",
-                          style: TextStyle(
-                            fontSize: rs.bodyFont,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          "${th.quantity} ${th.unit}",
-                          style: TextStyle(
-                            fontSize: rs.bodyFont,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
+                  if (th.quantity != null && th.quantity!.isNotEmpty)
+                    _buildHerbDetailRow(
+                      Icons.scale_outlined,
+                      "Quantity",
+                      "${th.quantity} ${th.unit ?? ''}",
+                      rs,
                     ),
-                  if (th.quantity != null &&
-                      th.unit != null &&
-                      th.preparation != null)
-                    const SizedBox(height: 8),
-                  if (th.preparation != null)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.cut_outlined,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Preparation: ",
-                          style: TextStyle(
-                            fontSize: rs.bodyFont,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            th.preparation!,
-                            style: TextStyle(
-                              fontSize: rs.bodyFont,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ],
+                  if (th.preparation != null && th.preparation!.isNotEmpty) ...[
+                    if (th.quantity != null && th.quantity!.isNotEmpty)
+                      const SizedBox(height: 8),
+                    _buildHerbDetailRow(
+                      Icons.cut_outlined,
+                      "Preparation",
+                      th.preparation!,
+                      rs,
                     ),
+                  ],
                 ],
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildSmallChip(String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
+  Widget _buildHerbDetailRow(
+    IconData icon,
+    String label,
+    String value,
+    ResponsiveSize rs,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          "$label: ",
+          style: TextStyle(
+            fontSize: rs.bodyFont,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(fontSize: rs.bodyFont, color: Colors.black),
+          ),
+        ),
+      ],
     );
   }
 

@@ -7,7 +7,13 @@ abstract class TreatmentFormEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadFormResources extends TreatmentFormEvent {}
+class LoadFormResources extends TreatmentFormEvent {
+  final TreatmentModel? treatment;
+  const LoadFormResources({this.treatment});
+
+  @override
+  List<Object?> get props => [treatment];
+}
 
 class AddHerbRow extends TreatmentFormEvent {}
 

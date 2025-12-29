@@ -37,12 +37,30 @@ class TreatmentFormBloc extends Bloc<TreatmentFormEvent, TreatmentFormState> {
         _herbRepository.getAllHerbs(),
       ]);
 
+      final List<TreatmentHerbRow> herbRows = [];
+      if (event.treatment != null) {
+        for (var th in event.treatment!.treatmentHerbs) {
+          herbRows.add(
+            TreatmentHerbRow(
+              selectedHerb: th.herb,
+              quantity: th.quantity ?? '',
+              unit: th.unit ?? '',
+              preparation: th.preparation ?? '',
+            ),
+          );
+        }
+      }
+
+      if (herbRows.isEmpty) {
+        herbRows.add(const TreatmentHerbRow());
+      }
+
       emit(
         state.copyWith(
           status: TreatmentFormStatus.loaded,
           conditions: results[0] as List<ConditionModel>,
           availableHerbs: results[1] as List<HerbModel>,
-          herbRows: [const TreatmentHerbRow()],
+          herbRows: herbRows,
         ),
       );
     } catch (e) {
@@ -86,10 +104,14 @@ class TreatmentFormBloc extends Bloc<TreatmentFormEvent, TreatmentFormState> {
   ) async {
     emit(state.copyWith(status: TreatmentFormStatus.submitting));
     try {
-      await _treatmentRepository.createTreatment(
-        event.treatment,
-        event.treatment.treatmentHerbs,
-      );
+      if (event.treatment.id.isEmpty) {
+        await _treatmentRepository.createTreatment(
+          event.treatment,
+          event.treatment.treatmentHerbs,
+        );
+      } else {
+        await _treatmentRepository.updateTreatment(event.treatment);
+      }
 
       emit(state.copyWith(status: TreatmentFormStatus.success));
     } catch (e) {

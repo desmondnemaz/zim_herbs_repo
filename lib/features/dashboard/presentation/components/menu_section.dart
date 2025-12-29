@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/presentation/widgets/zimbabwe_widgets.dart';
 
 class MenuSection extends StatefulWidget {
   const MenuSection({
@@ -107,6 +108,7 @@ class _MenuSectionState extends State<MenuSection>
                         title: item['title'],
                         subtitle: item['subtitle'],
                         page: item['page'],
+                        count: item['count'],
                       ),
                     ),
                   );
@@ -126,12 +128,14 @@ class _DashboardCard extends StatefulWidget {
   final String title;
   final String subtitle;
   final Widget page;
+  final int? count;
 
   const _DashboardCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.page,
+    this.count,
   });
 
   @override
@@ -161,53 +165,98 @@ class _DashboardCardState extends State<_DashboardCard> {
         child: AnimatedScale(
           scale: _isPressed ? 0.96 : 1.0,
           duration: const Duration(milliseconds: 100),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(10),
-                bottomRight: Radius.circular(10),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Theme.of(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondary,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.2),
+                      blurRadius: _isPressed ? 4 : 8,
+                      offset:
+                          _isPressed ? const Offset(1, 1) : const Offset(4, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(defaultPadding),
+                child: ZimbabweWorkBackground(
+                  patternColor: Theme.of(
                     context,
-                  ).colorScheme.primary.withValues(alpha: 0.2),
-                  blurRadius: _isPressed ? 4 : 8,
-                  offset: _isPressed ? const Offset(1, 1) : const Offset(4, 4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(defaultPadding),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  widget.icon,
-                  size: rs.icon,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  widget.title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: rs.titleFont,
-                    fontWeight: FontWeight.w700,
+                  ).colorScheme.primary.withValues(alpha: 0.03),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: 6,
+                    children: [
+                      Icon(
+                        widget.icon,
+                        size: rs.icon,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      Text(
+                        widget.title,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: rs.titleFont,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        widget.subtitle,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: rs.subtitleFont,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: rs.subtitleFont,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              if (widget.count != null)
+                Positioned(
+                  top: -5,
+                  right: -5,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: const Offset(2, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      widget.count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
