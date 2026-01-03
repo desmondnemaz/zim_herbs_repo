@@ -5,6 +5,7 @@ import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
 import 'package:zim_herbs_repo/features/herbs/data/models.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_repository.dart';
+import 'package:zim_herbs_repo/components/searchable_dropdown.dart';
 import 'package:zim_herbs_repo/features/treatments/bloc/treatment_form_bloc.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 
@@ -245,7 +246,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                   ),
                   const SizedBox(height: 10),
 
-                  _SearchableDropdown<ConditionModel>(
+                  SearchableDropdown<ConditionModel>(
                     value: _selectedCondition,
                     items: state.conditions,
                     label: 'Condition',
@@ -570,7 +571,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
             children: [
               Expanded(
                 flex: 2,
-                child: _SearchableDropdown<HerbModel>(
+                child: SearchableDropdown<HerbModel>(
                   value: rowState.selectedHerb,
                   items: herbs,
                   label: 'Select Herb',
@@ -666,159 +667,5 @@ class _HerbRowControllers {
     quantity.dispose();
     unit.dispose();
     preparation.dispose();
-  }
-}
-
-class _SearchableDropdown<T> extends StatelessWidget {
-  final T? value;
-  final List<T> items;
-  final String label;
-  final String Function(T) itemLabelBuilder;
-  final void Function(T?) onChanged;
-  final ResponsiveSize rs;
-  final String? Function(T?)? validator;
-
-  const _SearchableDropdown({
-    required this.value,
-    required this.items,
-    required this.label,
-    required this.itemLabelBuilder,
-    required this.onChanged,
-    required this.rs,
-    this.validator,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // We recreate the exact same decoration as the text fields
-    // but use a GestureDetector to open the dialog.
-    return InkWell(
-      onTap: () async {
-        final T? result = await showDialog<T>(
-          context: context,
-          builder:
-              (context) => _SearchDialog<T>(
-                items: items,
-                itemLabelBuilder: itemLabelBuilder,
-                label: label,
-              ),
-        );
-        if (result != null) {
-          onChanged(result);
-        }
-      },
-      child: InputDecorator(
-        decoration: (context
-                    .findAncestorStateOfType<_TreatmentFormViewState>() ??
-                (throw StateError('_TreatmentFormViewState not found')))
-            ._inputDecoration(context, rs, label),
-        isEmpty: value == null,
-        child: Builder(
-          builder: (context) {
-            final currentValue = value;
-            return Text(
-              currentValue == null ? '' : itemLabelBuilder(currentValue),
-              style: TextStyle(fontSize: rs.bodyFont),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _SearchDialog<T> extends StatefulWidget {
-  final List<T> items;
-  final String Function(T) itemLabelBuilder;
-  final String label;
-
-  const _SearchDialog({
-    required this.items,
-    required this.itemLabelBuilder,
-    required this.label,
-  });
-
-  @override
-  State<_SearchDialog<T>> createState() => _SearchDialogState<T>();
-}
-
-class _SearchDialogState<T> extends State<_SearchDialog<T>> {
-  List<T> _filteredItems = [];
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredItems = widget.items;
-  }
-
-  void _filter(String query) {
-    if (query.isEmpty) {
-      setState(() => _filteredItems = widget.items);
-      return;
-    }
-    setState(() {
-      _filteredItems =
-          widget.items
-              .where(
-                (item) => widget
-                    .itemLabelBuilder(item)
-                    .toLowerCase()
-                    .contains(query.toLowerCase()),
-              )
-              .toList();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search ${widget.label}...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onChanged: _filter,
-            ),
-          ),
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.5,
-            ),
-            child:
-                _filteredItems.isEmpty
-                    ? const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text('No results found'),
-                    )
-                    : ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: _filteredItems.length,
-                      separatorBuilder:
-                          (context, index) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final item = _filteredItems[index];
-                        return ListTile(
-                          title: Text(widget.itemLabelBuilder(item)),
-                          onTap: () {
-                            Navigator.pop(context, item);
-                          },
-                        );
-                      },
-                    ),
-          ),
-        ],
-      ),
-    );
   }
 }

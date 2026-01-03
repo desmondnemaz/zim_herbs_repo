@@ -9,6 +9,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart'
     as conn;
 
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -38,6 +41,7 @@ class MyApp extends StatelessWidget {
       child: BlocBuilder<SettingsBloc, SettingsState>(
         builder: (context, state) {
           return MaterialApp(
+            scaffoldMessengerKey: rootScaffoldMessengerKey,
             debugShowCheckedModeBanner: false,
             theme: pharmacyTheme,
             home: BlocListener<conn.ConnectionBloc, conn.ConnectionState>(
@@ -45,14 +49,16 @@ class MyApp extends StatelessWidget {
                   (previous, current) => previous.status != current.status,
               listener: (context, state) {
                 if (state.status == conn.ConnectionStatus.offline) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  rootScaffoldMessengerKey.currentState?.showSnackBar(
                     SnackBar(
                       content: Row(
                         children: const [
                           Icon(Icons.wifi_off, color: Colors.white),
                           SizedBox(width: 12),
-                          Text(
-                            'No internet, some features will not work correctly',
+                          Expanded(
+                            child: Text(
+                              'No internet, some features will not work correctly',
+                            ),
                           ),
                         ],
                       ),
@@ -64,14 +70,15 @@ class MyApp extends StatelessWidget {
                         label: 'DISMISS',
                         textColor: Colors.white,
                         onPressed: () {
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          rootScaffoldMessengerKey.currentState
+                              ?.hideCurrentSnackBar();
                         },
                       ),
                     ),
                   );
                 } else if (state.status == conn.ConnectionStatus.online) {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  rootScaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+                  rootScaffoldMessengerKey.currentState?.showSnackBar(
                     SnackBar(
                       content: Row(
                         children: const [

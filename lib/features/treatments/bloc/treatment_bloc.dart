@@ -12,6 +12,7 @@ class TreatmentBloc extends Bloc<TreatmentEvent, TreatmentState> {
   TreatmentBloc(this._repository) : super(TreatmentInitial()) {
     on<LoadTreatments>(_onLoadTreatments);
     on<SearchTreatments>(_onSearchTreatments);
+    on<FilterTreatmentsByCondition>(_onFilterTreatmentsByCondition);
     on<RefreshTreatments>(_onRefreshTreatments);
   }
 
@@ -44,6 +45,26 @@ class TreatmentBloc extends Bloc<TreatmentEvent, TreatmentState> {
       }
     } catch (e) {
       emit(TreatmentError("Search failed: $e"));
+    }
+  }
+
+  Future<void> _onFilterTreatmentsByCondition(
+    FilterTreatmentsByCondition event,
+    Emitter<TreatmentState> emit,
+  ) async {
+    emit(TreatmentLoading());
+    try {
+      if (event.conditionId == null) {
+        final treatments = await _repository.getAllTreatments();
+        emit(TreatmentLoaded(treatments));
+      } else {
+        final treatments = await _repository.getTreatmentsByCondition(
+          event.conditionId!,
+        );
+        emit(TreatmentLoaded(treatments));
+      }
+    } catch (e) {
+      emit(TreatmentError("Failed to filter treatments: $e"));
     }
   }
 

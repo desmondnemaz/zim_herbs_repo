@@ -175,6 +175,29 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
 
                         return Column(
                           children: [
+                            // Counter
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 8,
+                                right: 20,
+                                bottom: 0,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    "Total: ${state.conditions.length}",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                             _buildFilters(context, rs, state.searchQuery),
                             Expanded(
                               child:
@@ -275,21 +298,13 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
             ),
           ),
           SizedBox(width: defaultPadding),
-          BlocBuilder<ConditionBloc, ConditionState>(
-            builder: (context, state) {
-              String title = "Conditions";
-              if (state is ConditionLoaded) {
-                title = "Conditions (${state.conditions.length})";
-              }
-              return Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.secondary,
-                  fontSize: rs.appBarTitleFont,
-                ),
-              );
-            },
+          Text(
+            "Conditions",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.secondary,
+              fontSize: rs.appBarTitleFont,
+            ),
           ),
         ],
       ),

@@ -171,7 +171,14 @@ class _DashboardCardState extends State<_DashboardCard> {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondary,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.85),
+                    ],
+                  ),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(10),
                     bottomRight: Radius.circular(10),
@@ -180,18 +187,22 @@ class _DashboardCardState extends State<_DashboardCard> {
                     BoxShadow(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withValues(alpha: 0.2),
-                      blurRadius: _isPressed ? 4 : 8,
+                      ).colorScheme.primary.withValues(alpha: 0.4),
+                      blurRadius: _isPressed ? 6 : 12,
                       offset:
-                          _isPressed ? const Offset(1, 1) : const Offset(4, 4),
+                          _isPressed ? const Offset(2, 2) : const Offset(4, 6),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: _isPressed ? 2 : 4,
+                      offset:
+                          _isPressed ? const Offset(1, 1) : const Offset(2, 3),
                     ),
                   ],
                 ),
                 padding: const EdgeInsets.all(defaultPadding),
                 child: ZimbabweWorkBackground(
-                  patternColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.03),
+                  patternColor: Colors.white.withValues(alpha: 0.08),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     spacing: 6,
@@ -199,7 +210,7 @@ class _DashboardCardState extends State<_DashboardCard> {
                       Icon(
                         widget.icon,
                         size: rs.icon,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: Theme.of(context).colorScheme.secondary,
                       ),
                       Text(
                         widget.title,
@@ -209,6 +220,7 @@ class _DashboardCardState extends State<_DashboardCard> {
                         style: TextStyle(
                           fontSize: rs.titleFont,
                           fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
                       Text(
@@ -218,8 +230,8 @@ class _DashboardCardState extends State<_DashboardCard> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: rs.subtitleFont,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withValues(alpha: 0.85),
                         ),
                       ),
                     ],

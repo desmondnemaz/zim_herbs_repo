@@ -58,6 +58,43 @@ class TreatmentRepository {
         .toList();
   }
 
+  /// Get treatments filtered by a specific condition
+  Future<List<TreatmentModel>> getTreatmentsByCondition(
+    String conditionId,
+  ) async {
+    final response = await _client
+        .from('treatments')
+        .select('''
+          *,
+          conditions!inner(*),
+          treatment_herbs(*, herbs(*, herb_images(*)))
+        ''')
+        .eq('condition_id', conditionId)
+        .order('name');
+
+    return (response as List<dynamic>)
+        .map((json) => TreatmentModel.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Get treatments that use a specific herb
+  Future<List<TreatmentModel>> getTreatmentsByHerbId(String herbId) async {
+    // We want treatments where ANY of the treatment_herbs match the herbId.
+    // Using !inner on treatment_herbs forces an inner join, filtering out treatments with no matching herbs.
+    final response = await _client
+        .from('treatments')
+        .select('''
+          *,
+          conditions(*),
+          treatment_herbs!inner(*)
+        ''')
+        .eq('treatment_herbs.herb_id', herbId);
+
+    return (response as List<dynamic>)
+        .map((json) => TreatmentModel.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Create a new treatment with herbs
   Future<TreatmentModel> createTreatment(
     TreatmentModel treatment,

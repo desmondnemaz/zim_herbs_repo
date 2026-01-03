@@ -4,6 +4,9 @@ import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
 import 'package:zim_herbs_repo/features/herbs/data/models.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
+import 'package:zim_herbs_repo/features/treatments/data/treatment_repository.dart';
+import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
+import 'package:zim_herbs_repo/features/treatments/presentation/treatments_list.dart';
 
 class HerbDetailsPage extends StatefulWidget {
   final String herbId;
@@ -22,6 +25,9 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
 
   final HerbRepository _repository = HerbRepository();
   late Future<HerbModel?> _herbFuture;
+  final TreatmentRepository _treatmentRepository = TreatmentRepository();
+  late Future<List<TreatmentModel>> _treatmentsFuture;
+  
   final PageController _pageController = PageController();
   int _currentImageIndex = 0;
 
@@ -44,6 +50,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
     );
     _animationController.forward();
     _herbFuture = _repository.getHerbById(widget.herbId);
+    _treatmentsFuture = _treatmentRepository.getTreatmentsByHerbId(widget.herbId);
   }
 
   @override
@@ -355,29 +362,91 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                               ],
 
                               // Category & Scientific Name Chips
-                              _buildHeaderChips(herb, rs),
-                              const SizedBox(height: 20),
+                              _buildNamesSection(herb, rs),
+                              const SizedBox(height: 24),
 
                               // Description Section
                               if (herb.description != null &&
                                   herb.description!.isNotEmpty)
                                 _buildSectionCard(
-                                  icon: Icons.description_outlined,
-                                  title: "About",
+                                  icon: Icons.info_outline_rounded,
+                                  title: "About this Herb",
                                   content: Text(
                                     herb.description!,
                                     style: TextStyle(
                                       fontSize: rs.bodyFont,
-                                      height: 1.5,
+                                      height: 1.6, // Better reading height
                                       color:
                                           Theme.of(
                                             context,
-                                          ).colorScheme.onSurface,
+                                          ).colorScheme.onSurface.withValues(alpha: 0.8),
                                     ),
                                   ),
                                   rs: rs,
                                 ),
                               const SizedBox(height: 32),
+
+                              // Treatable Conditions Section
+                              FutureBuilder<List<TreatmentModel>>(
+                                future: _treatmentsFuture,
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData ||
+                                      snapshot.data!.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  final treatments = snapshot.data!;
+                                  final uniqueConditions =
+                                      treatments
+                                          .map((t) => t.condition)
+                                          .where((c) => c != null)
+                                          .toSet()
+                                          .toList();
+
+                                  if (uniqueConditions.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  return Column(
+                                    children: [
+                                      _buildSectionCard(
+                                        icon: Icons.medical_services_rounded, // Rounded icon
+                                        title: "Treatable Conditions",
+                                        content: Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children:
+                                              uniqueConditions.map((condition) {
+                                                return _ConditionBadge(
+                                                  name: condition!.name,
+                                                  onTap: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder:
+                                                            (context) =>
+                                                                TreatmentsList(
+                                                                  initialConditionId:
+                                                                      condition
+                                                                          .id,
+                                                                ),
+                                                      ),
+                                                    );
+                                                  },
+                                                );
+                                              }).toList(),
+                                        ),
+                                        rs: rs,
+                                        accentColor:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.secondary,
+                                      ),
+                                      const SizedBox(height: 100), // Bottom padding
+                                    ],
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -393,7 +462,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
     );
   }
 
-  Widget _buildHeaderChips(HerbModel herb, ResponsiveSize rs) {
+  Widget _buildNamesSection(HerbModel herb, ResponsiveSize rs) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -490,15 +559,15 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20), // More rounded
         boxShadow: [
           BoxShadow(
-            blurRadius: 10,
-            color: Colors.black.withValues(alpha: 0.08),
-            offset: const Offset(0, 4),
+            blurRadius: 15, // Softer shadow
+            color: Colors.black.withValues(alpha: 0.06),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -508,27 +577,75 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 20, color: color),
+                child: Icon(icon, size: 24, color: color),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: rs.titleFont,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+                  fontWeight: FontWeight.w800, // Extra bold for headers
+                  color: Theme.of(context).colorScheme.onSurface,
+                  letterSpacing: -0.5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           content,
         ],
+      ),
+    );
+  }
+}
+
+class _ConditionBadge extends StatelessWidget {
+  final String name;
+  final VoidCallback onTap;
+
+  const _ConditionBadge({required this.name, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.teal.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.teal.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.healing_rounded,
+                size: 16,
+                color: Colors.teal,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: Colors.teal,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

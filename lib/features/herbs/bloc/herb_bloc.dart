@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/features/herbs/data/models.dart';
 import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
 import 'package:zim_herbs_repo/features/herbs/bloc/herb_event.dart';
 import 'package:zim_herbs_repo/features/herbs/bloc/herb_state.dart';
@@ -8,6 +9,7 @@ import 'package:zim_herbs_repo/features/herbs/bloc/herb_state.dart';
 /// and returns a State (Meal).
 class HerbBloc extends Bloc<HerbEvent, HerbState> {
   final HerbRepository _repository;
+  List<HerbModel> _allHerbs = [];
 
   // We start the "Chef" with an Initial State
   HerbBloc(this._repository) : super(HerbInitial()) {
@@ -24,10 +26,10 @@ class HerbBloc extends Bloc<HerbEvent, HerbState> {
 
     try {
       // 2. Go to the database and get the herbs
-      final herbs = await _repository.getAllHerbs();
+      _allHerbs = await _repository.getAllHerbs();
 
       // 3. Success! Send the herbs back to the UI (Loaded)
-      emit(HerbLoaded(herbs));
+      emit(HerbLoaded(_allHerbs));
     } catch (e) {
       // 4. Oops! Something failed. Tell the UI what happened (Error)
       emit(HerbError("Failed to load herbs: $e"));
@@ -40,16 +42,28 @@ class HerbBloc extends Bloc<HerbEvent, HerbState> {
     Emitter<HerbState> emit,
   ) async {
     try {
-      // Get all herbs again (or we could cache them)
-      final allHerbs = await _repository.getAllHerbs();
+      // If we don't have herbs yet, load them first
+      if (_allHerbs.isEmpty) {
+        _allHerbs = await _repository.getAllHerbs();
+      }
+
+      final query = event.query.toLowerCase();
+
+      // If query is empty, show everything
+      if (query.isEmpty) {
+        emit(HerbLoaded(_allHerbs, searchQuery: ""));
+        return;
+      }
 
       // Filter them based on the query the user typed
       final filtered =
-          allHerbs.where((herb) {
+          _allHerbs.where((herb) {
             final name = herb.nameEn.toLowerCase();
             final shona = herb.nameSn?.toLowerCase() ?? "";
-            final query = event.query.toLowerCase();
-            return name.contains(query) || shona.contains(query);
+            final ndebele = herb.nameNd?.toLowerCase() ?? "";
+            return name.contains(query) ||
+                shona.contains(query) ||
+                ndebele.contains(query);
           }).toList();
 
       // Send the filtered list back to the UI

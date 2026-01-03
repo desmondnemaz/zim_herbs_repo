@@ -40,7 +40,9 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
       (r) =>
           r == ConnectivityResult.mobile ||
           r == ConnectivityResult.wifi ||
-          r == ConnectivityResult.ethernet,
+          r == ConnectivityResult.ethernet ||
+          r == ConnectivityResult.vpn ||
+          r == ConnectivityResult.other,
     );
 
     if (isOnline) {

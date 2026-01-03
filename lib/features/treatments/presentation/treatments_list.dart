@@ -7,27 +7,38 @@ import 'package:zim_herbs_repo/features/treatments/presentation/components/deskt
 import 'package:zim_herbs_repo/features/treatments/presentation/components/mobile_treatment_list.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/components/searchable_dropdown.dart';
+import 'package:zim_herbs_repo/features/conditions/data/repository/condition_repository.dart';
+import 'package:zim_herbs_repo/features/conditions/data/repository/model.dart';
 
 class TreatmentsList extends StatelessWidget {
-  const TreatmentsList({super.key});
+  final String? initialConditionId;
+
+  const TreatmentsList({super.key, this.initialConditionId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create:
-          (context) =>
-              TreatmentBloc(TreatmentRepository())..add(LoadTreatments()),
-      child: const _TreatmentsListView(),
+          (context) => TreatmentBloc(TreatmentRepository())
+            ..add(
+              initialConditionId != null
+                  ? FilterTreatmentsByCondition(initialConditionId)
+                  : LoadTreatments(),
+            ),
+      child: _TreatmentsListView(initialConditionId: initialConditionId),
     );
   }
 }
 
 class _TreatmentsListView extends StatelessWidget {
-  const _TreatmentsListView();
+  final String? initialConditionId;
+  const _TreatmentsListView({this.initialConditionId});
 
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
+    final conditionsFuture = ConditionRepository().getAllConditions();
 
     return Scaffold(
       appBar:
@@ -72,26 +83,75 @@ class _TreatmentsListView extends StatelessWidget {
               // Header
               _buildHeader(context, rs),
 
-              // Search Bar (Simple implementation matching Herbs style)
+              // Counter
+              BlocBuilder<TreatmentBloc, TreatmentState>(
+                builder: (context, state) {
+                  if (state is TreatmentLoaded) {
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        top: 8,
+                        right: 20,
+                        bottom: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            "Total: ${state.treatments.length}",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
+              // Filter & Search Section
               Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: TextField(
-                  onChanged: (value) {
-                    context.read<TreatmentBloc>().add(SearchTreatments(value));
-                  },
-                  decoration: InputDecoration(
-                    hintText: "Search treatments...",
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.onPrimary,
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Theme.of(context).colorScheme.primary,
+                child: Column(
+                  children: [
+
+                    // Condition Filter
+                    FutureBuilder<List<ConditionModel>>(
+                      future: conditionsFuture,
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const SizedBox.shrink();
+                        }
+                        final conditions = snapshot.data!;
+                        ConditionModel? initialCondition;
+                        if (initialConditionId != null) {
+                          try {
+                            initialCondition = conditions.firstWhere(
+                              (c) => c.id == initialConditionId,
+                            );
+                          } catch (_) {}
+                        }
+                        return BlocBuilder<TreatmentBloc, TreatmentState>(
+                          builder: (context, state) {
+                            return _ConditionFilterDropdown(
+                              conditions: conditions,
+                              initialValue: initialCondition,
+                              onConditionSelected: (c) {
+                                context.read<TreatmentBloc>().add(
+                                  FilterTreatmentsByCondition(c?.id),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
+                  ],
                 ),
               ),
 
@@ -106,9 +166,7 @@ class _TreatmentsListView extends StatelessWidget {
                     }
                     if (state is TreatmentLoaded) {
                       if (state.treatments.isEmpty) {
-                        return const Center(
-                          child: Text('No treatments found.'),
-                        );
+                        return const Center(child: Text('No treatments found.'));
                       }
 
                       return RefreshIndicator(
@@ -155,24 +213,77 @@ class _TreatmentsListView extends StatelessWidget {
             ),
           ),
           SizedBox(width: rs.defaultPadding),
-          BlocBuilder<TreatmentBloc, TreatmentState>(
-            builder: (context, state) {
-              String title = "All Treatments";
-              if (state is TreatmentLoaded) {
-                title = "All Treatments (${state.treatments.length})";
-              }
-              return Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.secondary,
-                  fontSize: rs.appBarTitleFont,
-                ),
-              );
-            },
+          Text(
+            "All Treatments",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.secondary,
+              fontSize: rs.appBarTitleFont,
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ConditionFilterDropdown extends StatefulWidget {
+  final List<ConditionModel> conditions;
+  final ConditionModel? initialValue;
+  final Function(ConditionModel?) onConditionSelected;
+
+  const _ConditionFilterDropdown({
+    required this.conditions,
+    this.initialValue,
+    required this.onConditionSelected,
+  });
+
+  @override
+  State<_ConditionFilterDropdown> createState() =>
+      _ConditionFilterDropdownState();
+}
+
+class _ConditionFilterDropdownState extends State<_ConditionFilterDropdown> {
+  ConditionModel? _selectedCondition;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCondition = widget.initialValue;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rs = ResponsiveSize(context);
+    return Row(
+      children: [
+        Expanded(
+          child: SearchableDropdown<ConditionModel>(
+            value: _selectedCondition,
+            items: widget.conditions,
+            label: 'Filter by Condition',
+            rs: rs,
+            itemLabelBuilder: (c) => c.name,
+            onChanged: (val) {
+              setState(() {
+                _selectedCondition = val;
+              });
+              widget.onConditionSelected(val);
+            },
+          ),
+        ),
+        if (_selectedCondition != null)
+          IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              setState(() {
+                _selectedCondition = null;
+              });
+              widget.onConditionSelected(null);
+            },
+            tooltip: 'Clear Filter',
+          ),
+      ],
     );
   }
 }
