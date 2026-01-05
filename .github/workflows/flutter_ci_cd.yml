@@ -17,48 +17,44 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      # 1️⃣ Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Java (required for Android build)
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
 
-      # 3️⃣ Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # 4️⃣ Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # 5️⃣ Build Flutter Web
       - name: Build Flutter Web
+        # Added a check: if repo name is 'username.github.io', use '/', else use '/repo/'
         run: |
-          flutter build web --release \
-          --base-href "/${{ github.event.repository.name }}/"
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d '/' -f 2)
+          if [[ "$REPO_NAME" == *.github.io ]]; then
+            flutter build web --release --base-href "/"
+          else
+            flutter build web --release --base-href "/$REPO_NAME/"
+          fi
 
-      # 6️⃣ Build Android APK (no Play Store)
       - name: Build Android APK
         run: flutter build apk --release
 
-      # 7️⃣ Upload Android APK artifact
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: android-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      # 8️⃣ Upload Web build for Pages
       - name: Upload Web artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -70,9 +66,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
-      # 9️⃣ Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
