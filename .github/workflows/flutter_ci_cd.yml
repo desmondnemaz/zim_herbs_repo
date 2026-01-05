@@ -55,6 +55,9 @@ jobs:
           name: android-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
+      - name: Copy APK to Web folder
+        run: cp build/app/outputs/flutter-apk/app-release.apk build/web/zim-herbs.apk
+
       - name: Upload Web artifact
         uses: actions/upload-pages-artifact@v3
         with:

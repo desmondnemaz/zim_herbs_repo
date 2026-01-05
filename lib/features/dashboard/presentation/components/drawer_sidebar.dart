@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
@@ -87,6 +89,18 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                   );
                 },
               ),
+              if (kIsWeb)
+                _buildMenuItem(
+                  title: "Download Android App",
+                  icon: Icons.android,
+                  isActive: false,
+                  onTap: () async {
+                    final url = Uri.parse('zim-herbs.apk');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url);
+                    }
+                  },
+                ),
 
               const Spacer(),
 
