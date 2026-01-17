@@ -198,16 +198,18 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                   ),
                                 ),
                               // Gradient overlay
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.transparent,
-                                      Colors.black.withValues(alpha: 0.7),
-                                    ],
-                                    stops: const [0.5, 1.0],
+                              IgnorePointer(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.7),
+                                      ],
+                                      stops: const [0.5, 1.0],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -216,20 +218,22 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                 Positioned(
                                   bottom: 60,
                                   right: 16,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black45,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '${_currentImageIndex + 1} / ${herb.images.length}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: rs.captionFont,
+                                  child: IgnorePointer(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black45,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '${_currentImageIndex + 1} / ${herb.images.length}',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: rs.captionFont,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -561,7 +565,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.onPrimary,
         borderRadius: BorderRadius.circular(20), // More rounded
         boxShadow: [
           BoxShadow(

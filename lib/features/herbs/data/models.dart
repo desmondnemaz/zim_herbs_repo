@@ -29,6 +29,13 @@ class HerbModel {
   });
 
   factory HerbModel.fromJson(Map<String, dynamic> json) {
+    final images =
+        (json['herb_images'] as List<dynamic>?)
+            ?.map((e) => HerbImageModel.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+    images.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
     return HerbModel(
       id: json['id'] as String,
       nameEn: json['name_en'] as String,
@@ -43,11 +50,7 @@ class HerbModel {
           json['updated_at'] != null
               ? DateTime.parse(json['updated_at'] as String)
               : null,
-      images:
-          (json['herb_images'] as List<dynamic>?)?.map((e) {
-            return HerbImageModel.fromJson(e as Map<String, dynamic>);
-          }).toList() ??
-          [],
+      images: images,
       treatments:
           (json['treatment_herbs'] as List<dynamic>?)
               ?.map((e) {

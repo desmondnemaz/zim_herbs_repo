@@ -185,10 +185,7 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                                     style: TextStyle(
                                       fontSize: rs.bodyFont,
                                       height: 1.5,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
+                                      color: Colors.black,
                                     ),
                                   ),
                                   rs: rs,
@@ -256,16 +253,20 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
       runSpacing: 8,
       children: [
         Chip(
-          avatar: const Icon(Icons.info_outline, size: 16, color: Colors.white),
+          avatar: Icon(
+            Icons.info_outline,
+            size: 16,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
           label: Text(
             bodySystemLabel(condition.bodySystem),
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onPrimary,
               fontWeight: FontWeight.bold,
               fontSize: rs.labelFont,
             ),
           ),
-          backgroundColor: getBodySystemColor(condition.bodySystem),
+          backgroundColor: Theme.of(context).colorScheme.primary,
           side: BorderSide.none,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -298,7 +299,7 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
               text,
               style: TextStyle(
                 fontSize: rs.bodyFont,
-                color: Theme.of(context).colorScheme.onSurface,
+                color: Colors.black,
               ),
             ),
           ),
@@ -314,13 +315,13 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
     required ResponsiveSize rs,
     Color? accentColor,
   }) {
-    final color = accentColor ?? Theme.of(context).colorScheme.primary;
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.onPrimary,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -338,10 +339,10 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
+                  color: primaryColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 20, color: color),
+                child: Icon(icon, size: 20, color: primaryColor),
               ),
               const SizedBox(width: 12),
               Text(
@@ -349,7 +350,7 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                 style: TextStyle(
                   fontSize: rs.titleFont,
                   fontWeight: FontWeight.bold,
-                  color: color,
+                  color: Colors.black,
                 ),
               ),
             ],
