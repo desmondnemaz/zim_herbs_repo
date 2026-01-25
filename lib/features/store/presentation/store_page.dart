@@ -8,6 +8,7 @@ import 'package:zim_herbs_repo/features/store/bloc/store_event.dart';
 import 'package:zim_herbs_repo/features/store/bloc/cart_cubit.dart';
 import 'package:zim_herbs_repo/features/store/bloc/cart_state.dart';
 import 'package:zim_herbs_repo/features/store/data/models/product_model.dart';
+import 'package:zim_herbs_repo/features/store/presentation/components/cart_summary_sheet.dart';
 
 class StorePage extends StatelessWidget {
   const StorePage({super.key});
@@ -46,7 +47,12 @@ class StorePage extends StatelessWidget {
                       children: [
                         IconButton(
                           onPressed: () {
-                            // TODO: Show cart summary
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => const CartSummarySheet(),
+                            );
                           },
                           icon: const Icon(
                             Icons.shopping_cart_outlined,

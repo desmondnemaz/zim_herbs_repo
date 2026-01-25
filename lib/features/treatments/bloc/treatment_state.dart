@@ -28,3 +28,11 @@ class TreatmentError extends TreatmentState {
   @override
   List<Object?> get props => [message];
 }
+
+class TreatmentOperationSuccess extends TreatmentState {
+  final String message;
+  const TreatmentOperationSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

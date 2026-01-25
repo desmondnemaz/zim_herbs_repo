@@ -13,6 +13,9 @@ class ConditionBloc extends Bloc<ConditionEvent, ConditionState> {
     on<LoadConditions>(_onLoadConditions);
     on<SearchConditions>(_onSearchConditions);
     on<RefreshConditions>(_onRefreshConditions);
+    on<CreateCondition>(_onCreateCondition);
+    on<UpdateCondition>(_onUpdateCondition);
+    on<DeleteCondition>(_onDeleteCondition);
   }
 
   /// Logic for loading the initial list
@@ -59,5 +62,47 @@ class ConditionBloc extends Bloc<ConditionEvent, ConditionState> {
     Emitter<ConditionState> emit,
   ) async {
     await _onLoadConditions(LoadConditions(), emit);
+  }
+
+  Future<void> _onCreateCondition(
+    CreateCondition event,
+    Emitter<ConditionState> emit,
+  ) async {
+    emit(ConditionLoading());
+    try {
+      await _repository.createCondition(event.condition);
+      emit(const ConditionOperationSuccess("Condition created successfully"));
+      add(RefreshConditions());
+    } catch (e) {
+      emit(ConditionError("Failed to create condition: $e"));
+    }
+  }
+
+  Future<void> _onUpdateCondition(
+    UpdateCondition event,
+    Emitter<ConditionState> emit,
+  ) async {
+    emit(ConditionLoading());
+    try {
+      await _repository.updateCondition(event.condition);
+      emit(const ConditionOperationSuccess("Condition updated successfully"));
+      add(RefreshConditions());
+    } catch (e) {
+      emit(ConditionError("Failed to update condition: $e"));
+    }
+  }
+
+  Future<void> _onDeleteCondition(
+    DeleteCondition event,
+    Emitter<ConditionState> emit,
+  ) async {
+    emit(ConditionLoading());
+    try {
+      await _repository.deleteCondition(event.id);
+      emit(const ConditionOperationSuccess("Condition deleted successfully"));
+      add(RefreshConditions());
+    } catch (e) {
+      emit(ConditionError("Failed to delete condition: $e"));
+    }
   }
 }

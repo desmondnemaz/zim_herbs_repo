@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/features/onboarding/bloc/onboarding_cubit.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
-import 'package:hive/hive.dart';
-import 'package:zim_herbs_repo/features/settings/bloc/settings_bloc.dart';
 import 'package:zim_herbs_repo/core/presentation/widgets/zimbabwe_widgets.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -37,134 +37,159 @@ class _OnboardingPageState extends State<OnboardingPage> {
     ),
   ];
 
-  void _onFinish() async {
-    final box = await Hive.openBox(SettingsBloc.boxName);
-    await box.put('onboarding_done', true);
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
-    );
+  void _onFinish(BuildContext context) {
+    context.read<OnboardingCubit>().completeOnboarding();
   }
 
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: ZimbabweWorkBackground(
-        child: SafeArea(
-          child: Stack(
-            children: [
-              Column(
+    return BlocProvider(
+      create: (context) => OnboardingCubit(),
+      child: BlocListener<OnboardingCubit, OnboardingState>(
+        listener: (context, state) {
+          if (state is OnboardingComplete) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomePage()),
+            );
+          } else if (state is OnboardingError) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: ZimbabweWorkBackground(
+            child: SafeArea(
+              child: Stack(
                 children: [
-                  Expanded(
-                    flex: 3,
-                    child: PageView.builder(
-                      controller: _pageController,
-                      onPageChanged: (index) {
-                        setState(() {
-                          _currentPage = index;
-                        });
-                      },
-                      itemCount: _contents.length,
-                      itemBuilder: (context, index) {
-                        return OnboardingSlide(
-                          content: _contents[index],
-                          rs: rs,
-                        );
-                      },
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              _contents.length,
-                              (index) => buildDot(index, context),
-                            ),
-                          ),
-                          const Spacer(),
-                          Center(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: rs.pick(
-                                  mobile: double.infinity,
-                                  tablet: 400.0,
-                                  desktop: 400.0,
-                                ),
-                              ),
-                              child: SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    if (_currentPage == _contents.length - 1) {
-                                      _onFinish();
-                                    } else {
-                                      _pageController.nextPage(
-                                        duration: const Duration(
-                                          milliseconds: 300,
-                                        ),
-                                        curve: Curves.easeIn,
-                                      );
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    foregroundColor:
-                                        Theme.of(context).colorScheme.secondary,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: Text(
-                                    _currentPage == _contents.length - 1
-                                        ? "GET STARTED"
-                                        : "NEXT",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.1,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
+                  Column(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: PageView.builder(
+                          controller: _pageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentPage = index;
+                            });
+                          },
+                          itemCount: _contents.length,
+                          itemBuilder: (context, index) {
+                            return OnboardingSlide(
+                              content: _contents[index],
+                              rs: rs,
+                            );
+                          },
+                        ),
                       ),
+                      Expanded(
+                        flex: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  _contents.length,
+                                  (index) => buildDot(index, context),
+                                ),
+                              ),
+                              const Spacer(),
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: rs.pick(
+                                      mobile: double.infinity,
+                                      tablet: 400.0,
+                                      desktop: 400.0,
+                                    ),
+                                  ),
+                                  child: Builder(
+                                    builder:
+                                        (context) => SizedBox(
+                                          width: double.infinity,
+                                          height: 56,
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              if (_currentPage ==
+                                                  _contents.length - 1) {
+                                                _onFinish(context);
+                                              } else {
+                                                _pageController.nextPage(
+                                                  duration: const Duration(
+                                                    milliseconds: 300,
+                                                  ),
+                                                  curve: Curves.easeIn,
+                                                );
+                                              }
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                              foregroundColor:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.secondary,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              elevation: 0,
+                                            ),
+                                            child: Text(
+                                              _currentPage ==
+                                                      _contents.length - 1
+                                                  ? "GET STARTED"
+                                                  : "NEXT",
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1.1,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 24,
+                    child: Builder(
+                      builder:
+                          (context) => TextButton(
+                            onPressed: () => _onFinish(context),
+                            style: TextButton.styleFrom(
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                            ),
+                            child: const Text(
+                              "SKIP",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                          ),
                     ),
                   ),
                 ],
               ),
-              Positioned(
-                top: 16,
-                right: 24,
-                child: TextButton(
-                  onPressed: _onFinish,
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  ),
-                  child: const Text(
-                    "SKIP",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

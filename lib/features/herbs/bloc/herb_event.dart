@@ -27,3 +27,13 @@ class SearchHerbs extends HerbEvent {
 /// This event tells the BLoC: "A herb was added or updated,
 /// please fetch the latest data so we can see the changes."
 class RefreshHerbs extends HerbEvent {}
+
+/// This event tells the BLoC: "Please delete this herb from the database."
+class DeleteHerb extends HerbEvent {
+  final String id;
+
+  const DeleteHerb(this.id);
+
+  @override
+  List<Object?> get props => [id];
+}

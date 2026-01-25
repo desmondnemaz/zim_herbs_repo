@@ -20,12 +20,11 @@ class TreatmentsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create:
-          (context) => TreatmentBloc(TreatmentRepository())
-            ..add(
-              initialConditionId != null
-                  ? FilterTreatmentsByCondition(initialConditionId)
-                  : LoadTreatments(),
-            ),
+          (context) => TreatmentBloc(TreatmentRepository())..add(
+            initialConditionId != null
+                ? FilterTreatmentsByCondition(initialConditionId)
+                : LoadTreatments(),
+          ),
       child: _TreatmentsListView(initialConditionId: initialConditionId),
     );
   }
@@ -78,120 +77,138 @@ class _TreatmentsListView extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
           ),
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(context, rs),
+          child: BlocListener<TreatmentBloc, TreatmentState>(
+            listener: (context, state) {
+              if (state is TreatmentOperationSuccess) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
+              } else if (state is TreatmentError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: Column(
+              children: [
+                // Header
+                _buildHeader(context, rs),
 
-              // Counter
-              BlocBuilder<TreatmentBloc, TreatmentState>(
-                builder: (context, state) {
-                  if (state is TreatmentLoaded) {
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                        top: 8,
-                        right: 20,
-                        bottom: 0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            "Total: ${state.treatments.length}",
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-
-              // Filter & Search Section
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  children: [
-
-                    // Condition Filter
-                    FutureBuilder<List<ConditionModel>>(
-                      future: conditionsFuture,
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const SizedBox.shrink();
-                        }
-                        final conditions = snapshot.data!;
-                        ConditionModel? initialCondition;
-                        if (initialConditionId != null) {
-                          try {
-                            initialCondition = conditions.firstWhere(
-                              (c) => c.id == initialConditionId,
-                            );
-                          } catch (_) {}
-                        }
-                        return BlocBuilder<TreatmentBloc, TreatmentState>(
-                          builder: (context, state) {
-                            return _ConditionFilterDropdown(
-                              conditions: conditions,
-                              initialValue: initialCondition,
-                              onConditionSelected: (c) {
-                                context.read<TreatmentBloc>().add(
-                                  FilterTreatmentsByCondition(c?.id),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: BlocBuilder<TreatmentBloc, TreatmentState>(
+                // Counter
+                BlocBuilder<TreatmentBloc, TreatmentState>(
                   builder: (context, state) {
-                    if (state is TreatmentLoading) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (state is TreatmentError) {
-                      return Center(child: Text('Error: ${state.message}'));
-                    }
                     if (state is TreatmentLoaded) {
-                      if (state.treatments.isEmpty) {
-                        return const Center(child: Text('No treatments found.'));
-                      }
-
-                      return RefreshIndicator(
-                        onRefresh: () async {
-                          context.read<TreatmentBloc>().add(
-                            RefreshTreatments(),
-                          );
-                        },
-                        child:
-                            Responsive.isMobile(context)
-                                ? MobileTreatmentList(
-                                  treatments: state.treatments,
-                                  rs: rs,
-                                )
-                                : DesktopTreatmentList(
-                                  treatments: state.treatments,
-                                  rs: rs,
-                                ),
+                      return Padding(
+                        padding: const EdgeInsets.only(
+                          top: 8,
+                          right: 20,
+                          bottom: 0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              "Total: ${state.treatments.length}",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     }
                     return const SizedBox.shrink();
                   },
                 ),
-              ),
-            ],
+
+                // Filter & Search Section
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      // Condition Filter
+                      FutureBuilder<List<ConditionModel>>(
+                        future: conditionsFuture,
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const SizedBox.shrink();
+                          }
+                          final conditions = snapshot.data!;
+                          ConditionModel? initialCondition;
+                          if (initialConditionId != null) {
+                            try {
+                              initialCondition = conditions.firstWhere(
+                                (c) => c.id == initialConditionId,
+                              );
+                            } catch (_) {}
+                          }
+                          return BlocBuilder<TreatmentBloc, TreatmentState>(
+                            builder: (context, state) {
+                              return _ConditionFilterDropdown(
+                                conditions: conditions,
+                                initialValue: initialCondition,
+                                onConditionSelected: (c) {
+                                  context.read<TreatmentBloc>().add(
+                                    FilterTreatmentsByCondition(c?.id),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                Expanded(
+                  child: BlocBuilder<TreatmentBloc, TreatmentState>(
+                    builder: (context, state) {
+                      if (state is TreatmentLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      // Note: Errors are handled by Listener snackbar,
+                      // but we still show the list if we have one.
+                      if (state is TreatmentLoaded) {
+                        if (state.treatments.isEmpty) {
+                          return const Center(
+                            child: Text('No treatments found.'),
+                          );
+                        }
+
+                        return RefreshIndicator(
+                          onRefresh: () async {
+                            context.read<TreatmentBloc>().add(
+                              RefreshTreatments(),
+                            );
+                          },
+                          child:
+                              (Responsive.isMobile(context)
+                                  ? MobileTreatmentList(
+                                        treatments: state.treatments,
+                                        rs: rs,
+                                      )
+                                      as Widget
+                                  : DesktopTreatmentList(
+                                        treatments: state.treatments,
+                                        rs: rs,
+                                      )
+                                      as Widget),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/features/herbs/bloc/herb_bloc.dart';
 import 'package:zim_herbs_repo/features/herbs/data/models.dart';
 
 import 'package:zim_herbs_repo/theme/spacing.dart';
@@ -36,10 +38,15 @@ class DesktopHerbList extends StatelessWidget {
         return InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
+            final bloc = context.read<HerbBloc>();
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => HerbDetailsPage(herbId: herb.id),
+                builder:
+                    (context) => BlocProvider.value(
+                      value: bloc,
+                      child: HerbDetailsPage(herbId: herb.id),
+                    ),
               ),
             );
           },

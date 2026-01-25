@@ -4,7 +4,8 @@ import 'package:zim_herbs_repo/config/supabase_config.dart';
 import 'package:zim_herbs_repo/features/onboarding/presentation/splash_page.dart';
 import 'package:zim_herbs_repo/theme/light_mode.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:zim_herbs_repo/features/settings/bloc/settings_bloc.dart';
+import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
+import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart'
     as conn;
@@ -36,7 +37,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => SettingsBloc()..add(LoadSettings())),
+        BlocProvider(
+          create:
+              (context) => SettingsCubit(SettingsRepository())..loadSettings(),
+        ),
         BlocProvider(
           create:
               (context) => conn.ConnectionBloc()..add(conn.ConnectionListen()),
@@ -47,7 +51,7 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(create: (context) => CartCubit()),
       ],
-      child: BlocBuilder<SettingsBloc, SettingsState>(
+      child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
           return MaterialApp(
             scaffoldMessengerKey: rootScaffoldMessengerKey,

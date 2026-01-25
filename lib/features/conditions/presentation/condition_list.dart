@@ -21,20 +21,13 @@ class ConditionsListPage extends StatefulWidget {
 }
 
 class _ConditionsListPageState extends State<ConditionsListPage> {
-  final ConditionRepository _repository = ConditionRepository();
-
-  // We no longer need all these variables! The BLoC holds our state now.
+  // We no longer need the repository here!
   BodySystem? _selectedBodySystem;
 
-  @override
-  void initState() {
-    super.initState();
-    // In BLoC, we usually don't need initState for fetching if we use ..add(LoadConditions()) in provider
-  }
-
-  // No more manual filtering!
-
-  Future<void> _handleDelete(ConditionModel condition) async {
+  Future<void> _handleDelete(
+    BuildContext context,
+    ConditionModel condition,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder:
@@ -59,24 +52,8 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
           ),
     );
 
-    if (confirm == true) {
-      try {
-        await _repository.deleteCondition(condition.id);
-
-        // Human: We tell the Chef to reload.
-        if (mounted) {
-          context.read<ConditionBloc>().add(RefreshConditions());
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Condition deleted')));
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting condition: $e')),
-          );
-        }
-      }
+    if (confirm == true && context.mounted) {
+      context.read<ConditionBloc>().add(DeleteCondition(condition.id));
     }
   }
 
@@ -87,36 +64,17 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
     await showDialog(
       context: context,
       builder:
-          (context) => AddEditConditionDialog(
+          (dialogContext) => AddEditConditionDialog(
             condition: condition,
             onSave: (newCondition) async {
-              try {
-                if (condition == null) {
-                  await _repository.createCondition(newCondition);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Condition added')),
-                    );
-                  }
-                } else {
-                  await _repository.updateCondition(newCondition);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Condition updated')),
-                    );
-                  }
-                }
-                // Human: Refresh the chef!
-                if (context.mounted) {
-                  context.read<ConditionBloc>().add(RefreshConditions());
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error saving condition: $e')),
-                  );
-                }
-                rethrow;
+              if (condition == null) {
+                context.read<ConditionBloc>().add(
+                  CreateCondition(newCondition),
+                );
+              } else {
+                context.read<ConditionBloc>().add(
+                  UpdateCondition(newCondition),
+                );
               }
             },
           ),
@@ -127,157 +85,192 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
 
-    // STEP 1: Wrap in BlocProvider
     return BlocProvider(
-      create: (context) => ConditionBloc(_repository)..add(LoadConditions()),
-      child: Scaffold(
-        appBar:
-            Responsive.isDesktop(context)
-                ? null
-                : AppBar(
-                  toolbarHeight: 10,
-                  elevation: 0,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                ),
-        body: SafeArea(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-            ),
-            child: Column(
-              children: [
-                // Branded Header
-                _buildHeader(context, rs),
-
-                // STEP 2: Use BlocBuilder for the content
-                Expanded(
-                  child: BlocBuilder<ConditionBloc, ConditionState>(
-                    builder: (context, state) {
-                      // Case A: Chef is busy
-                      if (state is ConditionLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      // Case B: Error
-                      if (state is ConditionError) {
-                        return Center(child: Text(state.message));
-                      }
-
-                      // Case C: Success
-                      if (state is ConditionLoaded) {
-                        // We still filter by body system in the UI for now
-                        // as it's a simpler local UI filter for this feature
-                        final filteredBySystem =
-                            state.conditions.where((c) {
-                              return _selectedBodySystem == null ||
-                                  c.bodySystem == _selectedBodySystem;
-                            }).toList();
-
-                        return Column(
-                          children: [
-                            // Counter
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: 8,
-                                right: 20,
-                                bottom: 0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    "Total: ${state.conditions.length}",
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withValues(alpha: 0.7),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            _buildFilters(context, rs, state.searchQuery),
-                            Expanded(
-                              child:
-                                  filteredBySystem.isEmpty
-                                      ? _buildEmptyView(state.searchQuery)
-                                      : Responsive(
-                                        mobile: MobileConditionList(
-                                          conditions: filteredBySystem,
-                                          rs: rs,
-                                          onRefresh: () async {
-                                            context.read<ConditionBloc>().add(
-                                              RefreshConditions(),
-                                            );
-                                          },
-                                          onEdit:
-                                              (condition) => _showAddEditDialog(
-                                                context: context,
-                                                condition: condition,
-                                              ),
-                                          onDelete: _handleDelete,
-                                        ),
-                                        tablet: DesktopConditionList(
-                                          conditions: filteredBySystem,
-                                          rs: rs,
-                                          onRefresh: () async {
-                                            context.read<ConditionBloc>().add(
-                                              RefreshConditions(),
-                                            );
-                                          },
-                                          onEdit:
-                                              (condition) => _showAddEditDialog(
-                                                context: context,
-                                                condition: condition,
-                                              ),
-                                          onDelete: _handleDelete,
-                                        ),
-                                        desktop: DesktopConditionList(
-                                          conditions: filteredBySystem,
-                                          rs: rs,
-                                          onRefresh: () async {
-                                            context.read<ConditionBloc>().add(
-                                              RefreshConditions(),
-                                            );
-                                          },
-                                          onEdit:
-                                              (condition) => _showAddEditDialog(
-                                                context: context,
-                                                condition: condition,
-                                              ),
-                                          onDelete: _handleDelete,
-                                        ),
-                                      ),
-                            ),
-                          ],
-                        );
-                      }
-
-                      return const SizedBox.shrink();
-                    },
+      create:
+          (context) =>
+              ConditionBloc(ConditionRepository())..add(LoadConditions()),
+      child: BlocListener<ConditionBloc, ConditionState>(
+        listener: (context, state) {
+          if (state is ConditionOperationSuccess) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+          } else if (state is ConditionError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: Scaffold(
+          appBar:
+              Responsive.isDesktop(context)
+                  ? null
+                  : AppBar(
+                    toolbarHeight: 10,
+                    elevation: 0,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                   ),
-                ),
-              ],
+          body: SafeArea(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
+              child: Column(
+                children: [
+                  // Branded Header
+                  _buildHeader(context, rs),
+
+                  // STEP 2: Use BlocBuilder for the content
+                  Expanded(
+                    child: BlocBuilder<ConditionBloc, ConditionState>(
+                      builder: (context, state) {
+                        // Case A: Chef is busy
+                        if (state is ConditionLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        // Case B: Error
+                        if (state is ConditionError) {
+                          return Center(child: Text(state.message));
+                        }
+
+                        // Case C: Success
+                        if (state is ConditionLoaded) {
+                          // We still filter by body system in the UI for now
+                          // as it's a simpler local UI filter for this feature
+                          final filteredBySystem =
+                              state.conditions.where((c) {
+                                return _selectedBodySystem == null ||
+                                    c.bodySystem == _selectedBodySystem;
+                              }).toList();
+
+                          return Column(
+                            children: [
+                              // Counter
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  right: 20,
+                                  bottom: 0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      "Total: ${state.conditions.length}",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _buildFilters(context, rs, state.searchQuery),
+                              Expanded(
+                                child:
+                                    filteredBySystem.isEmpty
+                                        ? _buildEmptyView(state.searchQuery)
+                                        : Responsive(
+                                          mobile: MobileConditionList(
+                                            conditions: filteredBySystem,
+                                            rs: rs,
+                                            onRefresh: () async {
+                                              context.read<ConditionBloc>().add(
+                                                RefreshConditions(),
+                                              );
+                                            },
+                                            onEdit:
+                                                (condition) =>
+                                                    _showAddEditDialog(
+                                                      context: context,
+                                                      condition: condition,
+                                                    ),
+                                            onDelete:
+                                                (cond) => _handleDelete(
+                                                  context,
+                                                  cond,
+                                                ),
+                                          ),
+                                          tablet: DesktopConditionList(
+                                            conditions: filteredBySystem,
+                                            rs: rs,
+                                            onRefresh: () async {
+                                              context.read<ConditionBloc>().add(
+                                                RefreshConditions(),
+                                              );
+                                            },
+                                            onEdit:
+                                                (condition) =>
+                                                    _showAddEditDialog(
+                                                      context: context,
+                                                      condition: condition,
+                                                    ),
+                                            onDelete:
+                                                (cond) => _handleDelete(
+                                                  context,
+                                                  cond,
+                                                ),
+                                          ),
+                                          desktop: DesktopConditionList(
+                                            conditions: filteredBySystem,
+                                            rs: rs,
+                                            onRefresh: () async {
+                                              context.read<ConditionBloc>().add(
+                                                RefreshConditions(),
+                                              );
+                                            },
+                                            onEdit:
+                                                (condition) =>
+                                                    _showAddEditDialog(
+                                                      context: context,
+                                                      condition: condition,
+                                                    ),
+                                            onDelete:
+                                                (cond) => _handleDelete(
+                                                  context,
+                                                  cond,
+                                                ),
+                                          ),
+                                        ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        floatingActionButton: Builder(
-          builder:
-              (context) => FloatingActionButton(
-                tooltip: 'Add Condition',
-                onPressed: () => _showAddEditDialog(context: context),
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.secondary,
-                    width: 4,
+          floatingActionButton: Builder(
+            builder:
+                (context) => FloatingActionButton(
+                  tooltip: 'Add Condition',
+                  onPressed: () => _showAddEditDialog(context: context),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.secondary,
+                      width: 4,
+                    ),
                   ),
+                  child: const Icon(Icons.add, color: Colors.white),
                 ),
-                child: const Icon(Icons.add, color: Colors.white),
-              ),
+          ),
         ),
       ),
     );

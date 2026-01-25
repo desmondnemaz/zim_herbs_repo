@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/settings/bloc/settings_bloc.dart';
+import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
 import 'responsive.dart';
 
 class ResponsiveSize {
@@ -10,7 +10,7 @@ class ResponsiveSize {
   ResponsiveSize(this.context, {double? fontScale}) : _manualScale = fontScale;
 
   double get fontScale =>
-      _manualScale ?? context.watch<SettingsBloc>().state.fontScale;
+      _manualScale ?? context.watch<SettingsCubit>().state.fontScale;
 
   // ------------------- Device type -------------------
   bool get isMobile => Responsive.isMobile(context);

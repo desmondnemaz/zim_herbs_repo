@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_repository.dart';
+import 'package:zim_herbs_repo/features/treatments/bloc/treatment_bloc.dart';
+import 'package:zim_herbs_repo/features/treatments/bloc/treatment_detail_cubit.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/features/treatments/presentation/add_edit_treatment_page.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
@@ -21,9 +24,6 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  final TreatmentRepository _repository = TreatmentRepository();
-  late Future<TreatmentModel?> _treatmentFuture;
-
   @override
   void initState() {
     super.initState();
@@ -42,43 +42,18 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
     _animationController.forward();
-    _refreshTreatment();
   }
 
-  void _refreshTreatment() {
-    setState(() {
-      _treatmentFuture = _repository.getTreatmentById(widget.treatmentId);
-    });
+  void _handleApprove(BuildContext context, TreatmentModel treatment) {
+    context.read<TreatmentBloc>().add(
+      ApproveTreatment(treatment.id, !treatment.isApproved),
+    );
   }
 
-  Future<void> _handleApprove(TreatmentModel treatment) async {
-    try {
-      await _repository.approveTreatment(
-        treatment.id,
-        approved: !treatment.isApproved,
-      );
-      _refreshTreatment();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              treatment.isApproved
-                  ? 'Unapproved successfully'
-                  : 'Approved successfully',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
-  }
-
-  Future<void> _handleDelete(TreatmentModel treatment) async {
+  Future<void> _handleDelete(
+    BuildContext context,
+    TreatmentModel treatment,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -99,19 +74,8 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
           ),
     );
 
-    if (confirmed == true) {
-      try {
-        await _repository.deleteTreatment(treatment.id);
-        if (mounted) {
-          Navigator.pop(context, true); // Return to list
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
-        }
-      }
+    if (confirmed == true && context.mounted) {
+      context.read<TreatmentBloc>().add(DeleteTreatment(treatment.id));
     }
   }
 
@@ -125,389 +89,445 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
 
-    return FutureBuilder<TreatmentModel?>(
-      future: _treatmentFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create:
+              (context) =>
+                  TreatmentDetailCubit(TreatmentRepository())
+                    ..loadTreatment(widget.treatmentId),
+        ),
+        BlocProvider.value(value: context.read<TreatmentBloc>()),
+      ],
+      child: MultiBlocListener(
+        listeners: [
+          BlocListener<TreatmentBloc, TreatmentState>(
+            listener: (context, state) {
+              if (state is TreatmentOperationSuccess) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
+                // If it was a deletion, go back
+                if (state.message.contains("deleted")) {
+                  Navigator.pop(context);
+                } else {
+                  // If it was an approval, refresh the detail view
+                  context.read<TreatmentDetailCubit>().loadTreatment(
+                    widget.treatmentId,
+                  );
+                }
+              } else if (state is TreatmentError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+        child: BlocBuilder<TreatmentDetailCubit, TreatmentDetailState>(
+          builder: (context, state) {
+            if (state is TreatmentDetailLoading ||
+                state is TreatmentDetailInitial) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            body: Center(
-              child: Text(
-                snapshot.hasError
-                    ? 'Error: ${snapshot.error}'
-                    : 'Treatment not found',
-              ),
-            ),
-          );
-        }
-
-        final treatment = snapshot.data!;
-
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                centerTitle: true,
-                expandedHeight: Responsive.isMobile(context) ? 200 : 250,
-                pinned: true,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                leading: IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.black26,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: Theme.of(context).colorScheme.secondary,
-                      size: rs.appBarIcon,
-                    ),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                actions: [
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.black26,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        treatment.isApproved
-                            ? Icons.check_circle
-                            : Icons.check_circle_outline,
-                        color:
-                            treatment.isApproved
-                                ? Colors.green
-                                : Theme.of(context).colorScheme.secondary,
-                        size: rs.appBarIcon * 0.8,
-                      ),
-                    ),
-                    onPressed: () => _handleApprove(treatment),
-                    tooltip: treatment.isApproved ? 'Unapprove' : 'Approve',
-                  ),
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.black26,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.edit,
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: rs.appBarIcon * 0.8,
-                      ),
-                    ),
-                    onPressed: () async {
-                      final updated = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) =>
-                                  AddEditTreatmentPage(treatment: treatment),
-                        ),
-                      );
-                      if (updated == true) {
-                        _refreshTreatment();
-                      }
-                    },
-                    tooltip: 'Edit',
-                  ),
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.black26,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.delete,
-                        color: Colors.redAccent,
-                        size: rs.appBarIcon * 0.8,
-                      ),
-                    ),
-                    onPressed: () => _handleDelete(treatment),
-                    tooltip: 'Delete',
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  title: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        treatment.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: rs.appBarTitleFont,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  background: Container(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.1),
-                    child: Center(
-                      child: Opacity(
-                        opacity: 0.2,
-                        child: Icon(
-                          Icons.medical_services_outlined,
-                          size: 120,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+            if (state is TreatmentDetailError) {
+              return Scaffold(
+                appBar: AppBar(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ),
-              ),
+                body: Center(child: Text(state.message)),
+              );
+            }
 
-              SliverToBoxAdapter(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth:
-                              Responsive.isMobile(context)
-                                  ? double.infinity
-                                  : 800,
+            if (state is TreatmentDetailLoaded) {
+              final treatment = state.treatment;
+
+              return Scaffold(
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                body: CustomScrollView(
+                  slivers: [
+                    SliverAppBar(
+                      centerTitle: true,
+                      expandedHeight: Responsive.isMobile(context) ? 200 : 250,
+                      pinned: true,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      leading: IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Colors.black26,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.arrow_back,
+                            color: Theme.of(context).colorScheme.secondary,
+                            size: rs.appBarIcon,
+                          ),
                         ),
-                        child: Padding(
-                          padding: EdgeInsets.all(defaultPadding),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildHeaderChips(treatment, rs),
-                              const SizedBox(height: 24),
-
-                              // Herbs Section
-                              if (treatment.treatmentHerbs.isNotEmpty)
-                                _buildSectionCard(
-                                  icon: Icons.spa_outlined,
-                                  title: "Herbs & Ingredients",
-                                  content: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children:
-                                        treatment.treatmentHerbs
-                                            .map((th) => _buildHerbItem(th, rs))
-                                            .toList(),
-                                  ),
-                                  rs: rs,
-                                  accentColor:
-                                      Theme.of(context).colorScheme.primary,
-                                ),
-
-                              const SizedBox(height: 24),
-
-                              // Preparation Section
-                              _buildSectionCard(
-                                icon: Icons.science_outlined,
-                                title: "Preparation",
-                                content: Text(
-                                  treatment.preparation,
-                                  style: TextStyle(
-                                    fontSize: rs.bodyFont,
-                                    height: 1.5,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                ),
-                                rs: rs,
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      actions: [
+                        IconButton(
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.black26,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              treatment.isApproved
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
+                              color:
+                                  treatment.isApproved
+                                      ? Colors.green
+                                      : Theme.of(context).colorScheme.secondary,
+                              size: rs.appBarIcon * 0.8,
+                            ),
+                          ),
+                          onPressed: () => _handleApprove(context, treatment),
+                          tooltip:
+                              treatment.isApproved ? 'Unapprove' : 'Approve',
+                        ),
+                        IconButton(
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.black26,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.edit,
+                              color: Theme.of(context).colorScheme.secondary,
+                              size: rs.appBarIcon * 0.8,
+                            ),
+                          ),
+                          onPressed: () async {
+                            final updated = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => AddEditTreatmentPage(
+                                      treatment: treatment,
+                                    ),
                               ),
-
-                              const SizedBox(height: 24),
-
-                              // Method of Use Section
-                              _buildSectionCard(
-                                icon: Icons.local_hospital_outlined,
-                                title: "Method of Use",
-                                content: Text(
-                                  treatment.methodOfUse,
-                                  style: TextStyle(
-                                    fontSize: rs.bodyFont,
-                                    height: 1.5,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                ),
-                                rs: rs,
+                            );
+                            if (updated == true && context.mounted) {
+                              context
+                                  .read<TreatmentDetailCubit>()
+                                  .loadTreatment(widget.treatmentId);
+                              context.read<TreatmentBloc>().add(
+                                RefreshTreatments(),
+                              );
+                            }
+                          },
+                          tooltip: 'Edit',
+                        ),
+                        IconButton(
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.black26,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.delete,
+                              color: Colors.redAccent,
+                              size: rs.appBarIcon * 0.8,
+                            ),
+                          ),
+                          onPressed: () => _handleDelete(context, treatment),
+                          tooltip: 'Delete',
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      flexibleSpace: FlexibleSpaceBar(
+                        centerTitle: true,
+                        title: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              treatment.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: rs.appBarTitleFont,
+                                color: Theme.of(context).colorScheme.secondary,
                               ),
-
-                              const SizedBox(height: 24),
-
-                              // Dosage Section
-                              if (treatment.dosageAdults != null ||
-                                  treatment.dosageInfants != null)
-                                _buildSectionCard(
-                                  icon: Icons.medication_outlined,
-                                  title: "Dosage Details",
-                                  content: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (treatment.dosageAdults != null) ...[
-                                        _buildInfoRow(
-                                          "Adults",
-                                          treatment.dosageAdults!,
-                                          rs,
-                                        ),
-                                        const SizedBox(height: 8),
-                                      ],
-                                      if (treatment.dosageInfants != null)
-                                        _buildInfoRow(
-                                          "Infants",
-                                          treatment.dosageInfants!,
-                                          rs,
-                                        ),
-                                    ],
-                                  ),
-                                  rs: rs,
-                                  accentColor: Colors.blue,
-                                ),
-
-                              const SizedBox(height: 24),
-
-                              // Frequency & Duration
-                              if (treatment.frequency != null ||
-                                  treatment.duration != null)
-                                _buildSectionCard(
-                                  icon: Icons.schedule_outlined,
-                                  title: "Schedule & Timing",
-                                  content: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (treatment.frequency != null) ...[
-                                        _buildInfoRow(
-                                          "Usage Frequency",
-                                          treatment.frequency!,
-                                          rs,
-                                        ),
-                                        const SizedBox(height: 8),
-                                      ],
-                                      if (treatment.duration != null)
-                                        _buildInfoRow(
-                                          "Treatment Duration",
-                                          treatment.duration!,
-                                          rs,
-                                        ),
-                                    ],
-                                  ),
-                                  rs: rs,
-                                  accentColor: Colors.teal,
-                                ),
-
-                              const SizedBox(height: 24),
-
-                              // Precautions Section
-                              if (treatment.precautions != null &&
-                                  treatment.precautions!.isNotEmpty)
-                                _buildSectionCard(
-                                  icon: Icons.warning_amber_rounded,
-                                  title: "Precautions",
-                                  content: Text(
-                                    treatment.precautions!,
-                                    style: TextStyle(
-                                      fontSize: rs.bodyFont,
-                                      height: 1.5,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  rs: rs,
-                                  accentColor: Colors.orange,
-                                ),
-
-                              const SizedBox(height: 24),
-
-                              // Side Effects Section
-                              if (treatment.sideEffects != null &&
-                                  treatment.sideEffects!.isNotEmpty)
-                                _buildSectionCard(
-                                  icon: Icons.error_outline,
-                                  title: "Possible Side Effects",
-                                  content: Text(
-                                    treatment.sideEffects!,
-                                    style: TextStyle(
-                                      fontSize: rs.bodyFont,
-                                      height: 1.5,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  rs: rs,
-                                  accentColor: Colors.red,
-                                ),
-
-                              const SizedBox(height: 24),
-
-                              // Notes Section
-                              if (treatment.notes != null &&
-                                  treatment.notes!.isNotEmpty)
-                                _buildSectionCard(
-                                  icon: Icons.note_outlined,
-                                  title: "Additional Notes",
-                                  content: Text(
-                                    treatment.notes!,
-                                    style: TextStyle(
-                                      fontSize: rs.bodyFont,
-                                      height: 1.5,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  rs: rs,
-                                ),
-
-                              const SizedBox(height: 32),
-                            ],
+                            ),
+                          ),
+                        ),
+                        background: Container(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.1),
+                          child: Center(
+                            child: Opacity(
+                              opacity: 0.2,
+                              child: Icon(
+                                Icons.medical_services_outlined,
+                                size: 120,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+
+                    SliverToBoxAdapter(
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    Responsive.isMobile(context)
+                                        ? double.infinity
+                                        : 800,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(defaultPadding),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildHeaderChips(treatment, rs),
+                                    const SizedBox(height: 24),
+
+                                    // Herbs Section
+                                    if (treatment.treatmentHerbs.isNotEmpty)
+                                      _buildSectionCard(
+                                        icon: Icons.spa_outlined,
+                                        title: "Herbs & Ingredients",
+                                        content: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children:
+                                              treatment.treatmentHerbs
+                                                  .map(
+                                                    (th) =>
+                                                        _buildHerbItem(th, rs),
+                                                  )
+                                                  .toList(),
+                                        ),
+                                        rs: rs,
+                                        accentColor:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                      ),
+
+                                    const SizedBox(height: 24),
+
+                                    // Preparation Section
+                                    _buildSectionCard(
+                                      icon: Icons.science_outlined,
+                                      title: "Preparation",
+                                      content: Text(
+                                        treatment.preparation,
+                                        style: TextStyle(
+                                          fontSize: rs.bodyFont,
+                                          height: 1.5,
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                      rs: rs,
+                                    ),
+
+                                    const SizedBox(height: 24),
+
+                                    // Method of Use Section
+                                    _buildSectionCard(
+                                      icon: Icons.local_hospital_outlined,
+                                      title: "Method of Use",
+                                      content: Text(
+                                        treatment.methodOfUse,
+                                        style: TextStyle(
+                                          fontSize: rs.bodyFont,
+                                          height: 1.5,
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                      rs: rs,
+                                    ),
+
+                                    const SizedBox(height: 24),
+
+                                    // Dosage Section
+                                    if (treatment.dosageAdults != null ||
+                                        treatment.dosageInfants != null)
+                                      _buildSectionCard(
+                                        icon: Icons.medication_outlined,
+                                        title: "Dosage Details",
+                                        content: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            if (treatment.dosageAdults !=
+                                                null) ...[
+                                              _buildInfoRow(
+                                                "Adults",
+                                                treatment.dosageAdults!,
+                                                rs,
+                                              ),
+                                              const SizedBox(height: 8),
+                                            ],
+                                            if (treatment.dosageInfants != null)
+                                              _buildInfoRow(
+                                                "Infants",
+                                                treatment.dosageInfants!,
+                                                rs,
+                                              ),
+                                          ],
+                                        ),
+                                        rs: rs,
+                                        accentColor: Colors.blue,
+                                      ),
+
+                                    const SizedBox(height: 24),
+
+                                    // Frequency & Duration
+                                    if (treatment.frequency != null ||
+                                        treatment.duration != null)
+                                      _buildSectionCard(
+                                        icon: Icons.schedule_outlined,
+                                        title: "Schedule & Timing",
+                                        content: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            if (treatment.frequency !=
+                                                null) ...[
+                                              _buildInfoRow(
+                                                "Usage Frequency",
+                                                treatment.frequency!,
+                                                rs,
+                                              ),
+                                              const SizedBox(height: 8),
+                                            ],
+                                            if (treatment.duration != null)
+                                              _buildInfoRow(
+                                                "Treatment Duration",
+                                                treatment.duration!,
+                                                rs,
+                                              ),
+                                          ],
+                                        ),
+                                        rs: rs,
+                                        accentColor: Colors.teal,
+                                      ),
+
+                                    const SizedBox(height: 24),
+
+                                    // Precautions Section
+                                    if (treatment.precautions != null &&
+                                        treatment.precautions!.isNotEmpty)
+                                      _buildSectionCard(
+                                        icon: Icons.warning_amber_rounded,
+                                        title: "Precautions",
+                                        content: Text(
+                                          treatment.precautions!,
+                                          style: TextStyle(
+                                            fontSize: rs.bodyFont,
+                                            height: 1.5,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        rs: rs,
+                                        accentColor: Colors.orange,
+                                      ),
+
+                                    const SizedBox(height: 24),
+
+                                    // Side Effects Section
+                                    if (treatment.sideEffects != null &&
+                                        treatment.sideEffects!.isNotEmpty)
+                                      _buildSectionCard(
+                                        icon: Icons.error_outline,
+                                        title: "Possible Side Effects",
+                                        content: Text(
+                                          treatment.sideEffects!,
+                                          style: TextStyle(
+                                            fontSize: rs.bodyFont,
+                                            height: 1.5,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        rs: rs,
+                                        accentColor: Colors.red,
+                                      ),
+
+                                    const SizedBox(height: 24),
+
+                                    // Notes Section
+                                    if (treatment.notes != null &&
+                                        treatment.notes!.isNotEmpty)
+                                      _buildSectionCard(
+                                        icon: Icons.note_outlined,
+                                        title: "Additional Notes",
+                                        content: Text(
+                                          treatment.notes!,
+                                          style: TextStyle(
+                                            fontSize: rs.bodyFont,
+                                            height: 1.5,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        rs: rs,
+                                      ),
+
+                                    const SizedBox(height: 32),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              );
+            }
+
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
     );
   }
 

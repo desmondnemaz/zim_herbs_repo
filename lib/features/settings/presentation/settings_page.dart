@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/settings/bloc/settings_bloc.dart';
+import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
+import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 
@@ -9,83 +10,92 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<SettingsBloc, SettingsState>(
-      builder: (context, state) {
-        final rs = ResponsiveSize(context);
+    return BlocProvider(
+      create: (context) => SettingsCubit(SettingsRepository())..loadSettings(),
+      child: BlocBuilder<SettingsCubit, SettingsState>(
+        builder: (context, state) {
+          final rs = ResponsiveSize(context);
 
-        return Scaffold(
-          appBar:
-              Responsive.isDesktop(context)
-                  ? null
-                  : AppBar(
-                    toolbarHeight: 0,
-                    elevation: 0,
-                    backgroundColor: Theme.of(context).colorScheme.primary,
+          if (state.isLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          return Scaffold(
+            appBar:
+                Responsive.isDesktop(context)
+                    ? null
+                    : AppBar(
+                      toolbarHeight: 0,
+                      elevation: 0,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                    ),
+            body: SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildHeader(context, rs),
+                  const SizedBox(height: 16),
+                  _buildSection(
+                    context: context,
+                    title: 'Appearance',
+                    rs: rs,
+                    children: [
+                      const SizedBox(height: 16),
+                      _buildSliderSetting(
+                        context: context,
+                        icon: Icons.text_fields_rounded,
+                        title: 'Font Scale',
+                        value: state.fontScale,
+                        min: 0.8,
+                        max: 1.5,
+                        divisions: 7,
+                        label: '${(state.fontScale * 100).toInt()}%',
+                        onChanged:
+                            (val) => context
+                                .read<SettingsCubit>()
+                                .updateFontScale(val),
+                        rs: rs,
+                        footer: 'Preview your reading experience below',
+                      ),
+                    ],
                   ),
-          body: SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildHeader(context, rs),
-                const SizedBox(height: 16),
-                _buildSection(
-                  context: context,
-                  title: 'Appearance',
-                  rs: rs,
-                  children: [
-                    const SizedBox(height: 16),
-                    _buildSliderSetting(
-                      context: context,
-                      icon: Icons.text_fields_rounded,
-                      title: 'Font Scale',
-                      value: state.fontScale,
-                      min: 0.8,
-                      max: 1.5,
-                      divisions: 7,
-                      label: '${(state.fontScale * 100).toInt()}%',
-                      onChanged:
-                          (val) => context.read<SettingsBloc>().add(
-                            UpdateFontScale(val),
-                          ),
-                      rs: rs,
-                      footer: 'Preview your reading experience below',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildSection(
-                  context: context,
-                  title: 'Font Preview',
-                  rs: rs,
-                  children: [_buildPreviewCard(context, rs)],
-                ),
-                const SizedBox(height: 24),
-                _buildSection(
-                  context: context,
-                  title: 'Information',
-                  rs: rs,
-                  children: [
-                    _buildAboutTile(
-                      context: context,
-                      icon: Icons.info_outline,
-                      title: 'App Version',
-                      trailing: 'v1.0.0',
-                      rs: rs,
-                    ),
-                    _buildAboutTile(
-                      context: context,
-                      icon: Icons.policy_outlined,
-                      title: 'Privacy Policy',
-                      rs: rs,
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  _buildSection(
+                    context: context,
+                    title: 'Font Preview',
+                    rs: rs,
+                    children: [_buildPreviewCard(context, rs)],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSection(
+                    context: context,
+                    title: 'Information',
+                    rs: rs,
+                    children: [
+                      _buildAboutTile(
+                        context: context,
+                        icon: Icons.info_outline,
+                        title: 'App Version',
+                        trailing: 'v1.0.0',
+                        rs: rs,
+                      ),
+                      _buildAboutTile(
+                        context: context,
+                        icon: Icons.policy_outlined,
+                        title: 'Privacy Policy',
+                        rs: rs,
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

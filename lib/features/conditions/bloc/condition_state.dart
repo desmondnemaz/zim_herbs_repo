@@ -35,3 +35,12 @@ class ConditionError extends ConditionState {
   @override
   List<Object?> get props => [message];
 }
+
+/// 5. Success State: Used for signals like "Condition Added Successfully"
+class ConditionOperationSuccess extends ConditionState {
+  final String message;
+  const ConditionOperationSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

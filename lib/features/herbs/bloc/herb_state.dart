@@ -37,3 +37,13 @@ class HerbError extends HerbState {
   @override
   List<Object?> get props => [message];
 }
+
+/// 5. Success State: A specific operation (like delete) was successful.
+class HerbOperationSuccess extends HerbState {
+  final String message;
+
+  const HerbOperationSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

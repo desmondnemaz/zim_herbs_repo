@@ -17,6 +17,7 @@ class HerbBloc extends Bloc<HerbEvent, HerbState> {
     on<LoadHerbs>(_onLoadHerbs);
     on<SearchHerbs>(_onSearchHerbs);
     on<RefreshHerbs>(_onRefreshHerbs);
+    on<DeleteHerb>(_onDeleteHerb);
   }
 
   /// This function runs when the UI says "LoadHerbs"
@@ -79,5 +80,16 @@ class HerbBloc extends Bloc<HerbEvent, HerbState> {
     Emitter<HerbState> emit,
   ) async {
     await _onLoadHerbs(LoadHerbs(), emit);
+  }
+
+  Future<void> _onDeleteHerb(DeleteHerb event, Emitter<HerbState> emit) async {
+    try {
+      await _repository.deleteHerb(event.id);
+      emit(const HerbOperationSuccess("Herb deleted successfully"));
+      // Refresh the list automatically
+      add(RefreshHerbs());
+    } catch (e) {
+      emit(HerbError("Failed to delete herb: $e"));
+    }
   }
 }

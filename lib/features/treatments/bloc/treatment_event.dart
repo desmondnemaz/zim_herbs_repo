@@ -26,3 +26,20 @@ class FilterTreatmentsByCondition extends TreatmentEvent {
 }
 
 class RefreshTreatments extends TreatmentEvent {}
+
+class DeleteTreatment extends TreatmentEvent {
+  final String id;
+  const DeleteTreatment(this.id);
+
+  @override
+  List<Object?> get props => [id];
+}
+
+class ApproveTreatment extends TreatmentEvent {
+  final String id;
+  final bool approved;
+  const ApproveTreatment(this.id, this.approved);
+
+  @override
+  List<Object?> get props => [id, approved];
+}

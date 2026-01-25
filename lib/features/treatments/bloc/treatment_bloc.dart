@@ -14,6 +14,38 @@ class TreatmentBloc extends Bloc<TreatmentEvent, TreatmentState> {
     on<SearchTreatments>(_onSearchTreatments);
     on<FilterTreatmentsByCondition>(_onFilterTreatmentsByCondition);
     on<RefreshTreatments>(_onRefreshTreatments);
+    on<DeleteTreatment>(_onDeleteTreatment);
+    on<ApproveTreatment>(_onApproveTreatment);
+  }
+
+  Future<void> _onDeleteTreatment(
+    DeleteTreatment event,
+    Emitter<TreatmentState> emit,
+  ) async {
+    emit(TreatmentLoading());
+    try {
+      await _repository.deleteTreatment(event.id);
+      emit(const TreatmentOperationSuccess("Treatment deleted successfully"));
+      add(RefreshTreatments());
+    } catch (e) {
+      emit(TreatmentError("Failed to delete treatment: $e"));
+    }
+  }
+
+  Future<void> _onApproveTreatment(
+    ApproveTreatment event,
+    Emitter<TreatmentState> emit,
+  ) async {
+    emit(TreatmentLoading());
+    try {
+      await _repository.approveTreatment(event.id, approved: event.approved);
+      final message =
+          event.approved ? "Treatment approved" : "Treatment unapproved";
+      emit(TreatmentOperationSuccess(message));
+      add(RefreshTreatments());
+    } catch (e) {
+      emit(TreatmentError("Failed to update approval status: $e"));
+    }
   }
 
   Future<void> _onLoadTreatments(

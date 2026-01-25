@@ -84,4 +84,14 @@ class StoreRepository {
     }
     return _allProducts.where((p) => p.category == category).toList();
   }
+
+  Future<ProductModel?> getProductById(String id) async {
+    // Simulate network delay
+    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      return _allProducts.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
 }

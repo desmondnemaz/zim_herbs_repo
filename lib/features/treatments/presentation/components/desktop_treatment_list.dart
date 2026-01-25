@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/features/treatments/bloc/treatment_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
@@ -47,12 +49,17 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
             duration: const Duration(milliseconds: 200),
             child: InkWell(
               onTap: () {
+                final bloc = context.read<TreatmentBloc>();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
-                        (context) =>
-                            TreatmentDetailsPage(treatmentId: treatment.id),
+                        (context) => BlocProvider.value(
+                          value: bloc,
+                          child: TreatmentDetailsPage(
+                            treatmentId: treatment.id,
+                          ),
+                        ),
                   ),
                 );
               },

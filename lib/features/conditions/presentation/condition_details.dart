@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/conditions/data/repository/condition_repository.dart';
 import 'package:zim_herbs_repo/features/conditions/data/repository/model.dart';
+import 'package:zim_herbs_repo/features/conditions/bloc/condition_detail_cubit.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/enums.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
@@ -22,9 +24,6 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  final ConditionRepository _repository = ConditionRepository();
-  late Future<ConditionModel?> _conditionFuture;
-
   @override
   void initState() {
     super.initState();
@@ -43,7 +42,6 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
     _animationController.forward();
-    _conditionFuture = _repository.getConditionById(widget.conditionId);
   }
 
   @override
@@ -56,194 +54,196 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
 
-    return FutureBuilder<ConditionModel?>(
-      future: _conditionFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    return BlocProvider(
+      create:
+          (context) =>
+              ConditionDetailCubit(ConditionRepository())
+                ..loadCondition(widget.conditionId),
+      child: BlocBuilder<ConditionDetailCubit, ConditionDetailState>(
+        builder: (context, state) {
+          if (state is ConditionDetailLoading ||
+              state is ConditionDetailInitial) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            body: Center(
-              child: Text(
-                snapshot.hasError
-                    ? 'Error: ${snapshot.error}'
-                    : 'Condition not found',
-              ),
-            ),
-          );
-        }
-
-        final condition = snapshot.data!;
-        final systemColor = getBodySystemColor(condition.bodySystem);
-
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                centerTitle: true,
-                expandedHeight: Responsive.isMobile(context) ? 200 : 250,
-                pinned: true,
+          if (state is ConditionDetailError) {
+            return Scaffold(
+              appBar: AppBar(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 leading: IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.black26,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: Theme.of(context).colorScheme.secondary,
-                      size: rs.appBarIcon,
-                    ),
-                  ),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
                 ),
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  title: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        condition.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: rs.appBarTitleFont,
+              ),
+              body: Center(child: Text(state.message)),
+            );
+          }
+
+          if (state is ConditionDetailLoaded) {
+            final condition = state.condition;
+            final systemColor = getBodySystemColor(condition.bodySystem);
+
+            return Scaffold(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              body: CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    centerTitle: true,
+                    expandedHeight: Responsive.isMobile(context) ? 200 : 250,
+                    pinned: true,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    leading: IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.black26,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.arrow_back,
                           color: Theme.of(context).colorScheme.secondary,
+                          size: rs.appBarIcon,
                         ),
                       ),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                  ),
-                  background: Container(
-                    color: systemColor.withValues(alpha: 0.1),
-                    child: Center(
-                      child: Opacity(
-                        opacity: 0.2,
-                        child: SvgPicture.asset(
-                          getBodySystemSvg(condition.bodySystem),
-                          width: 120,
-                          height: 120,
-                          colorFilter: const ColorFilter.mode(
-                            Colors.white,
-                            BlendMode.srcIn,
+                    flexibleSpace: FlexibleSpaceBar(
+                      centerTitle: true,
+                      title: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            condition.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: rs.appBarTitleFont,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      background: Container(
+                        color: systemColor.withValues(alpha: 0.1),
+                        child: Center(
+                          child: Opacity(
+                            opacity: 0.2,
+                            child: SvgPicture.asset(
+                              getBodySystemSvg(condition.bodySystem),
+                              width: 120,
+                              height: 120,
+                              colorFilter: const ColorFilter.mode(
+                                Colors.white,
+                                BlendMode.srcIn,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth:
-                              Responsive.isMobile(context)
-                                  ? double.infinity
-                                  : 800,
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.all(defaultPadding),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildHeaderChips(condition, rs),
-                              const SizedBox(height: 24),
-
-                              if (condition.description != null &&
-                                  condition.description!.isNotEmpty)
-                                _buildSectionCard(
-                                  icon: Icons.description_outlined,
-                                  title: "Description",
-                                  content: Text(
-                                    condition.description!,
-                                    style: TextStyle(
-                                      fontSize: rs.bodyFont,
-                                      height: 1.5,
-                                      color: Colors.black,
+                  SliverToBoxAdapter(
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth:
+                                  Responsive.isMobile(context)
+                                      ? double.infinity
+                                      : 800,
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.all(defaultPadding),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildHeaderChips(condition, rs),
+                                  const SizedBox(height: 24),
+                                  if (condition.description != null &&
+                                      condition.description!.isNotEmpty)
+                                    _buildSectionCard(
+                                      icon: Icons.description_outlined,
+                                      title: "Description",
+                                      content: Text(
+                                        condition.description!,
+                                        style: TextStyle(
+                                          fontSize: rs.bodyFont,
+                                          height: 1.5,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      rs: rs,
+                                      accentColor: systemColor,
                                     ),
-                                  ),
-                                  rs: rs,
-                                  accentColor: systemColor,
-                                ),
-
-                              if (condition.symptoms.isNotEmpty) ...[
-                                const SizedBox(height: 24),
-                                _buildSectionCard(
-                                  icon: Icons.list_alt,
-                                  title: "Common Symptoms",
-                                  content: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children:
-                                        condition.symptoms
-                                            .map(
-                                              (s) => _buildBulletPoint(s, rs),
-                                            )
-                                            .toList(),
-                                  ),
-                                  rs: rs,
-                                  accentColor: systemColor,
-                                ),
-                              ],
-
-                              if (condition.precautions.isNotEmpty) ...[
-                                const SizedBox(height: 24),
-                                _buildSectionCard(
-                                  icon: Icons.warning_amber_rounded,
-                                  title: "Precautions",
-                                  content: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children:
-                                        condition.precautions
-                                            .map(
-                                              (p) => _buildBulletPoint(p, rs),
-                                            )
-                                            .toList(),
-                                  ),
-                                  rs: rs,
-                                  accentColor: Colors.orange,
-                                ),
-                              ],
-                              const SizedBox(height: 32),
-                            ],
+                                  if (condition.symptoms.isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSectionCard(
+                                      icon: Icons.list_alt,
+                                      title: "Common Symptoms",
+                                      content: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children:
+                                            condition.symptoms
+                                                .map(
+                                                  (s) =>
+                                                      _buildBulletPoint(s, rs),
+                                                )
+                                                .toList(),
+                                      ),
+                                      rs: rs,
+                                      accentColor: systemColor,
+                                    ),
+                                  ],
+                                  if (condition.precautions.isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSectionCard(
+                                      icon: Icons.warning_amber_rounded,
+                                      title: "Precautions",
+                                      content: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children:
+                                            condition.precautions
+                                                .map(
+                                                  (p) =>
+                                                      _buildBulletPoint(p, rs),
+                                                )
+                                                .toList(),
+                                      ),
+                                      rs: rs,
+                                      accentColor: Colors.orange,
+                                    ),
+                                  ],
+                                  const SizedBox(height: 32),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        );
-      },
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
@@ -297,10 +297,7 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: rs.bodyFont,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: rs.bodyFont, color: Colors.black),
             ),
           ),
         ],
