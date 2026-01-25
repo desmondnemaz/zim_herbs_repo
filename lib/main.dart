@@ -8,6 +8,10 @@ import 'package:zim_herbs_repo/features/settings/bloc/settings_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart'
     as conn;
+import 'package:zim_herbs_repo/features/store/data/repository/store_repository.dart';
+import 'package:zim_herbs_repo/features/store/bloc/store_bloc.dart';
+import 'package:zim_herbs_repo/features/store/bloc/store_event.dart';
+import 'package:zim_herbs_repo/features/store/bloc/cart_cubit.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -37,6 +41,11 @@ class MyApp extends StatelessWidget {
           create:
               (context) => conn.ConnectionBloc()..add(conn.ConnectionListen()),
         ),
+        BlocProvider(
+          create:
+              (context) => StoreBloc(StoreRepository())..add(FetchProducts()),
+        ),
+        BlocProvider(create: (context) => CartCubit()),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(
         builder: (context, state) {

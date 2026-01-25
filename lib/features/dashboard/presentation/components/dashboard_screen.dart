@@ -4,6 +4,7 @@ import 'package:zim_herbs_repo/features/dashboard/presentation/coming_soon.dart'
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/menu_section.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/notifications_section.dart';
 import 'package:zim_herbs_repo/features/herbs/presentation/herbs_list.dart';
+import 'package:zim_herbs_repo/features/store/presentation/store_page.dart';
 import 'package:zim_herbs_repo/features/treatments/presentation/treatments_list.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
@@ -52,13 +53,23 @@ class DashboardScreen extends StatelessWidget {
         'subtitle': '(Contributions)',
         'page': const ComingSoonPage(),
       },
+      {
+        'icon': Icons.smart_toy_outlined,
+        'title': 'AI Chatbot',
+        'subtitle': '(Coming Soon)',
+        'page': const ComingSoonPage(),
+      },
+      {
+        'icon': Icons.storefront_outlined,
+        'title': 'Herbal Store',
+        'subtitle': '(Traditonal Products)',
+        'page': const StorePage(),
+      },
     ];
 
     return SafeArea(
       child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-        ),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
         child: Column(
           children: [
             Expanded(
