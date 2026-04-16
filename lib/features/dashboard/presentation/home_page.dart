@@ -8,6 +8,10 @@ import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart'
     as conn;
 import 'package:zim_herbs_repo/utils/responsive.dart';
 
+import 'package:zim_herbs_repo/features/dashboard/bloc/recommendations_bloc.dart';
+import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
+import 'package:zim_herbs_repo/features/store/data/repository/store_repository.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -24,8 +28,17 @@ class _HomePageState extends State<HomePage> {
     final rs = ResponsiveSize(context);
     final isDesktop = Responsive.isDesktop(context);
 
-    return BlocProvider(
-      create: (context) => DashboardCubit(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => DashboardCubit()),
+        BlocProvider(
+          create:
+              (context) => RecommendationsBloc(
+                herbRepository: HerbRepository(),
+                storeRepository: StoreRepository(),
+              )..add(FetchRecommendations()),
+        ),
+      ],
       child: BlocBuilder<DashboardCubit, DashboardState>(
         builder: (context, state) {
           return Scaffold(

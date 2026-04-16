@@ -26,6 +26,41 @@ class HerbRepository {
         .toList();
   }
 
+  /// Get latest herbs by creation date
+  Future<List<HerbModel>> getLatestHerbs({int limit = 5}) async {
+    final response = await _client
+        .from('herbs')
+        .select('''
+          *,
+          herb_images(*),
+          treatment_herbs(*, treatments(*, conditions(*)))
+        ''')
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return (response as List<dynamic>)
+        .map((json) => HerbModel.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Get trending herbs (based on recent updates or popularity metrics)
+  /// For now, we'll fetch recently updated herbs as a proxy for trending
+  Future<List<HerbModel>> getTrendingHerbs({int limit = 5}) async {
+    final response = await _client
+        .from('herbs')
+        .select('''
+          *,
+          herb_images(*),
+          treatment_herbs(*, treatments(*, conditions(*)))
+        ''')
+        .order('updated_at', ascending: false)
+        .limit(limit);
+
+    return (response as List<dynamic>)
+        .map((json) => HerbModel.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Get total count of herbs
   Future<int> getHerbsCount() async {
     return await _client.from('herbs').count(CountOption.exact);

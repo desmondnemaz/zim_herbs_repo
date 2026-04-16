@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
 import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
+import 'package:zim_herbs_repo/features/notifications/presentation/notifications_page.dart';
 import 'package:zim_herbs_repo/core/presentation/widgets/zimbabwe_widgets.dart';
 
 class DrawerSideBar extends StatefulWidget {
@@ -72,6 +73,22 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                 svgSrc: "assets/icons/menu_profile.svg",
                 isActive: _activeRoute == "Profile",
                 onTap: () => setState(() => _activeRoute = "Profile"),
+              ),
+              _buildMenuItem(
+                title: "Notifications",
+                icon: Icons.notifications_none,
+                isActive: _activeRoute == "Notifications",
+                onTap: () {
+                  if (!Responsive.isDesktop(context)) {
+                    Navigator.pop(context); // Close drawer only on mobile
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsPage(),
+                    ),
+                  );
+                },
               ),
               _buildMenuItem(
                 title: "Settings",

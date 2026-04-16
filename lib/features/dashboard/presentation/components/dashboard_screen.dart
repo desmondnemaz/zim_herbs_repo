@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/conditions/presentation/condition_list.dart';
+import 'package:zim_herbs_repo/features/dashboard/bloc/recommendations_bloc.dart';
+import 'package:zim_herbs_repo/features/dashboard/presentation/components/recommendation_widgets.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/coming_soon.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/menu_section.dart';
-import 'package:zim_herbs_repo/features/dashboard/presentation/components/notifications_section.dart';
 import 'package:zim_herbs_repo/features/herbs/presentation/herbs_list.dart';
 import 'package:zim_herbs_repo/features/store/presentation/store_page.dart';
+import 'package:zim_herbs_repo/features/telemedicine/presentation/telemedicine_page.dart';
 import 'package:zim_herbs_repo/features/treatments/presentation/treatments_list.dart';
-import 'package:zim_herbs_repo/utils/responsive.dart';
 import 'package:zim_herbs_repo/theme/spacing.dart';
+import 'package:zim_herbs_repo/features/dashboard/presentation/components/hero_header.dart';
 
 class DashboardScreen extends StatelessWidget {
   final VoidCallback toogleDashbordSideBar;
@@ -65,61 +68,144 @@ class DashboardScreen extends StatelessWidget {
         'subtitle': '(Traditonal Products)',
         'page': const StorePage(),
       },
+      {
+        'icon': Icons.medical_services_outlined,
+        'title': 'Telemedicine',
+        'subtitle': '(Consultation)',
+        'page': const TelemedicinePage(),
+      },
     ];
 
-    return SafeArea(
-      child: Container(
-        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child:
-                    Responsive.isMobile(context)
-                        ? Container(
-                          padding: EdgeInsets.only(
-                            right: defaultPadding,
-                            top: defaultPadding,
-                            bottom: 50,
-                            left: defaultPadding,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Search/Greeting Hero Section
+              const HeroHeader(),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+
+                    // ====== Recommendations Sections ======
+                    BlocBuilder<RecommendationsBloc, RecommendationsState>(
+                      builder: (context, state) {
+                        if (state is RecommendationsLoading) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        } else if (state is RecommendationsLoaded) {
+                          return Column(
                             children: [
-                              MenuSection(dashboardCards: dashboardCards),
-                              const SizedBox(height: defaultPadding),
-                              const NotificationsSection(),
-                            ],
-                          ),
-                        )
-                        : Container(
-                          padding: EdgeInsets.all(defaultPadding),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 4,
-                                child: MenuSection(
-                                  dashboardCards: dashboardCards,
+                              // 2. Trending Herbs
+                              SectionHeader(
+                                title: "Trending Herbs",
+                                onSeeAll: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const HerbsList(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              SizedBox(
+                                height: 220,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: state.trendingHerbs.length,
+                                  itemBuilder: (context, index) {
+                                    return HerbHighlightCard(
+                                      herb: state.trendingHerbs[index],
+                                    );
+                                  },
                                 ),
                               ),
-                              const SizedBox(width: defaultPadding),
-                              const Expanded(
-                                flex: 2,
-                                child: NotificationsSection(),
+                              const SizedBox(height: 20),
+
+                              // 3. New in Shop
+                              SectionHeader(
+                                title: "New in Shop",
+                                onSeeAll: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const StorePage(),
+                                    ),
+                                  );
+                                },
                               ),
+                              SizedBox(
+                                height: 220,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: state.newStoreProducts.length,
+                                  itemBuilder: (context, index) {
+                                    return ProductHighlightCard(
+                                      product: state.newStoreProducts[index],
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // 4. New in Repo
+                              SectionHeader(
+                                title: "Newest Additions (Repo)",
+                                onSeeAll: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const HerbsList(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              SizedBox(
+                                height: 220,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: state.newRepoHerbs.length,
+                                  itemBuilder: (context, index) {
+                                    return HerbHighlightCard(
+                                      herb: state.newRepoHerbs[index],
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 20),
                             ],
-                          ),
-                        ),
+                          );
+                        } else if (state is RecommendationsError) {
+                          return Center(
+                            child: Text(
+                              "Error loading highlights: ${state.message}",
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+
+                    // 5. Menu Grid
+                    const SizedBox(height: 10),
+                    MenuSection(dashboardCards: dashboardCards),
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

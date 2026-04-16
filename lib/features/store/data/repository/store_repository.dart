@@ -85,6 +85,14 @@ class StoreRepository {
     return _allProducts.where((p) => p.category == category).toList();
   }
 
+  Future<List<ProductModel>> getLatestProducts({int limit = 5}) async {
+    // Simulate network delay
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    // For mock repository, we just take the last 'limit' items
+    return _allProducts.reversed.take(limit).toList();
+  }
+
   Future<ProductModel?> getProductById(String id) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 500));

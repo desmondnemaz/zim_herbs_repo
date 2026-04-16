@@ -45,7 +45,11 @@ class _MenuSectionState extends State<MenuSection>
       children: [
         Text(
           "Menu",
-          style: TextStyle(fontSize: rs.titleFont, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: rs.titleFont,
+            fontWeight: FontWeight.bold,
+            color: Colors.green[700],
+          ),
         ),
         const SizedBox(height: defaultPadding),
 
