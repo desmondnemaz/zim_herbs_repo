@@ -97,7 +97,7 @@ class MyApp extends StatelessWidget {
                         children: const [
                           Icon(Icons.wifi, color: Colors.white),
                           SizedBox(width: 12),
-                          Text('You are online '),
+                          Text('You are online'),
                         ],
                       ),
                       backgroundColor: Colors.green,
