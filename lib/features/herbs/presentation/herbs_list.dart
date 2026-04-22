@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/herbs/data/models.dart';
-import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
+
 import 'package:zim_herbs_repo/features/herbs/bloc/herb_bloc.dart';
 import 'package:zim_herbs_repo/features/herbs/bloc/herb_event.dart';
 import 'package:zim_herbs_repo/features/herbs/bloc/herb_state.dart';
@@ -22,7 +22,6 @@ class HerbsList extends StatefulWidget {
 class _HerbsListState extends State<HerbsList> {
   // We no longer need _herbsFuture or searchQuery here!
   // The BLoC will manage those for us.
-  final HerbRepository _repository = HerbRepository();
 
   @override
   void initState() {
@@ -80,157 +79,155 @@ class _HerbsListState extends State<HerbsList> {
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
 
-    // STEP 1: Wrap everything in a BlocProvider so the children can find the "Chef"
-    return BlocProvider(
-      create: (context) => HerbBloc(_repository)..add(LoadHerbs()),
-      child: BlocListener<HerbBloc, HerbState>(
-        listener: (context, state) {
-          if (state is HerbOperationSuccess) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
-          } else if (state is HerbError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-        child: Builder(
-          builder: (context) {
-            return Scaffold(
-              appBar:
-                  Responsive.isDesktop(context)
-                      ? null
-                      : AppBar(
+    // We use the global HerbBloc
+    return Builder(
+      builder: (context) {
+        // Trigger a load if it's not already loaded
+        final currentBlocState = context.read<HerbBloc>().state;
+        if (currentBlocState is HerbInitial) {
+          context.read<HerbBloc>().add(LoadHerbs());
+        }
+
+        return BlocListener<HerbBloc, HerbState>(
+          listener: (context, state) {
+            if (state is HerbOperationSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
+            } else if (state is HerbError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          child: Builder(
+            builder: (context) {
+              return Scaffold(
+                appBar: Responsive.isDesktop(context)
+                    ? null
+                    : AppBar(
                         toolbarHeight: 10,
                         elevation: 0,
                         backgroundColor: Theme.of(context).colorScheme.primary,
                       ),
-              floatingActionButton: Builder(
-                builder:
-                    (context) => FloatingActionButton(
-                      tooltip: 'Add Herb',
-                      onPressed: () => _showAddEditDialog(context),
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: Theme.of(context).colorScheme.secondary,
-                          width: 4,
-                        ),
+                floatingActionButton: Builder(
+                  builder: (context) => FloatingActionButton(
+                    tooltip: 'Add Herb',
+                    onPressed: () => _showAddEditDialog(context),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.secondary,
+                        width: 4,
                       ),
-                      child: const Icon(Icons.add, color: Colors.white),
                     ),
-              ),
-              body: SafeArea(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).scaffoldBackgroundColor,
+                    child: const Icon(Icons.add, color: Colors.white),
                   ),
-                  child: Column(
-                    children: [
-                      // Header
-                      _buildHeader(context, rs),
+                ),
+                body: SafeArea(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                    ),
+                    child: Column(
+                      children: [
+                        // Header
+                        _buildHeader(context, rs),
 
-                      // Counter
-                      BlocBuilder<HerbBloc, HerbState>(
-                        builder: (context, state) {
-                          if (state is HerbLoaded) {
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                top: 8,
-                                right: 20,
-                                bottom: 0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    "Total: ${state.herbs.length}",
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withValues(alpha: 0.7),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-
-                      // Search Bar
-                      _buildSearchBar(context),
-
-                      // HERBS LIST (The cool part!)
-                      Expanded(
-                        // STEP 2: Use BlocBuilder to listen to our Chef
-                        child: BlocBuilder<HerbBloc, HerbState>(
+                        // Counter
+                        BlocBuilder<HerbBloc, HerbState>(
                           builder: (context, state) {
-                            // Case A: Chef is busy
-                            if (state is HerbLoading) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
+                            if (state is HerbLoaded) {
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  right: 20,
+                                  bottom: 0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      "Total: ${state.herbs.length}",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               );
                             }
-
-                            // Case B: Something went wrong
-                            if (state is HerbError) {
-                              return Center(child: Text(state.message));
-                            }
-
-                            // Case C: Success! We have herbs
-                            if (state is HerbLoaded) {
-                              if (state.herbs.isEmpty) {
-                                return _buildEmptyView(state.searchQuery);
-                              }
-
-                              // Just pass the list from the state to our widgets
-                              return Responsive.isMobile(context)
-                                  ? MobileHerbList(
-                                    filteredHerbs: state.herbs,
-                                    rs: rs,
-                                    onEdit:
-                                        (herb) => _showAddEditDialog(
-                                          context,
-                                          herb: herb,
-                                        ),
-                                    onDelete:
-                                        (herb) => _handleDelete(context, herb),
-                                  )
-                                  : DesktopHerbList(
-                                    filteredHerbs: state.herbs,
-                                    rs: rs,
-                                    onEdit:
-                                        (herb) => _showAddEditDialog(
-                                          context,
-                                          herb: herb,
-                                        ),
-                                    onDelete:
-                                        (herb) => _handleDelete(context, herb),
-                                  );
-                            }
-
                             return const SizedBox.shrink();
                           },
                         ),
-                      ),
-                    ],
+
+                        // Search Bar
+                        _buildSearchBar(context),
+
+                        // HERBS LIST
+                        Expanded(
+                          child: BlocBuilder<HerbBloc, HerbState>(
+                            builder: (context, state) {
+                              if (state is HerbLoading || state is HerbInitial) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+
+                              if (state is HerbError) {
+                                return Center(child: Text(state.message));
+                              }
+
+                              if (state is HerbLoaded) {
+                                if (state.herbs.isEmpty) {
+                                  return _buildEmptyView(state.searchQuery);
+                                }
+
+                                return Responsive.isMobile(context)
+                                    ? MobileHerbList(
+                                        filteredHerbs: state.herbs,
+                                        rs: rs,
+                                        onEdit: (herb) => _showAddEditDialog(
+                                          context,
+                                          herb: herb,
+                                        ),
+                                        onDelete: (herb) =>
+                                            _handleDelete(context, herb),
+                                      )
+                                    : DesktopHerbList(
+                                        filteredHerbs: state.herbs,
+                                        rs: rs,
+                                        onEdit: (herb) => _showAddEditDialog(
+                                          context,
+                                          herb: herb,
+                                        ),
+                                        onDelete: (herb) =>
+                                            _handleDelete(context, herb),
+                                      );
+                              }
+
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-      ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

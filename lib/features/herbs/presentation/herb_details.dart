@@ -69,7 +69,6 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                 treatmentRepository: TreatmentRepository(),
               )..loadHerb(widget.herbId),
         ),
-        BlocProvider.value(value: context.read<HerbBloc>()),
       ],
       child: MultiBlocListener(
         listeners: [

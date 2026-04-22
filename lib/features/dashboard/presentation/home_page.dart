@@ -63,13 +63,8 @@ class _HomePageState extends State<HomePage> {
                           color: Theme.of(context).colorScheme.secondary,
                         ),
                       ),
-                      actions: [
-                        const _OfflineBadge(),
-                        if (Responsive.isTablet(context))
-                          Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: _ProfileSection(rs: rs),
-                          ),
+                      actions: const [
+                        _OfflineBadge(),
                       ],
                       iconTheme: IconThemeData(
                         color: Theme.of(context).colorScheme.onPrimary,
@@ -122,10 +117,6 @@ class _HomePageState extends State<HomePage> {
                           const Spacer(),
 
                           const _OfflineBadge(),
-                          const SizedBox(width: 16),
-
-                          // Profile section (Desktop)
-                          _ProfileSection(rs: rs),
                         ],
                       ),
                     ),
@@ -195,53 +186,6 @@ class _BrandLogo extends StatelessWidget {
   }
 }
 
-class _ProfileSection extends StatelessWidget {
-  final ResponsiveSize rs;
-  const _ProfileSection({required this.rs});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondary,
-        borderRadius: const BorderRadius.only(
-          bottomRight: Radius.circular(10),
-          topLeft: Radius.circular(10),
-        ),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.person,
-            size: rs.appBarIcon * 0.8,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            "Desmond",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: rs.appBarSubtitleFont,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Icon(
-            Icons.keyboard_arrow_down,
-            color: Theme.of(context).colorScheme.primary,
-            size: rs.appBarIcon * 0.8,
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _OfflineBadge extends StatelessWidget {
   const _OfflineBadge();

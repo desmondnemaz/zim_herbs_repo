@@ -13,6 +13,8 @@ import 'package:zim_herbs_repo/features/store/data/repository/store_repository.d
 import 'package:zim_herbs_repo/features/store/bloc/store_bloc.dart';
 import 'package:zim_herbs_repo/features/store/bloc/store_event.dart';
 import 'package:zim_herbs_repo/features/store/bloc/cart_cubit.dart';
+import 'package:zim_herbs_repo/features/herbs/bloc/herb_bloc.dart';
+import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -48,6 +50,9 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create:
               (context) => StoreBloc(StoreRepository())..add(FetchProducts()),
+        ),
+        BlocProvider(
+          create: (context) => HerbBloc(HerbRepository()),
         ),
         BlocProvider(create: (context) => CartCubit()),
       ],

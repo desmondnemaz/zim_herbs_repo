@@ -106,9 +106,9 @@ class DashboardScreen extends StatelessWidget {
                         } else if (state is RecommendationsLoaded) {
                           return Column(
                             children: [
-                              // 2. Trending Herbs
+                              // 2. Featured Herbs
                               SectionHeader(
-                                title: "Trending Herbs",
+                                title: "Featured Herbs",
                                 onSeeAll: () {
                                   Navigator.push(
                                     context,
@@ -132,9 +132,9 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 20),
 
-                              // 3. New in Shop
+                              // 3. Featured Store Products
                               SectionHeader(
-                                title: "New in Shop",
+                                title: "Featured Store Products",
                                 onSeeAll: () {
                                   Navigator.push(
                                     context,
@@ -152,32 +152,6 @@ class DashboardScreen extends StatelessWidget {
                                   itemBuilder: (context, index) {
                                     return ProductHighlightCard(
                                       product: state.newStoreProducts[index],
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // 4. New in Repo
-                              SectionHeader(
-                                title: "Newest Additions (Repo)",
-                                onSeeAll: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const HerbsList(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              SizedBox(
-                                height: 220,
-                                child: ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: state.newRepoHerbs.length,
-                                  itemBuilder: (context, index) {
-                                    return HerbHighlightCard(
-                                      herb: state.newRepoHerbs[index],
                                     );
                                   },
                                 ),
