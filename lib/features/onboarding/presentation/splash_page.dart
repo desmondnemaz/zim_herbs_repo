@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/features/onboarding/presentation/onboarding_page.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
 
@@ -19,6 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    FlutterNativeSplash.remove();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -92,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen>
             FadeTransition(
               opacity: _fadeAnimation,
               child: Text(
-                "ZIM Herbal Pharmacy",
+                "ZIM Herbal Repository",
                 style: TextStyle(
                   fontSize: titleSize,
                   fontWeight: FontWeight.w900,

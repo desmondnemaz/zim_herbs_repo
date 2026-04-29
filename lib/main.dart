@@ -15,12 +15,15 @@ import 'package:zim_herbs_repo/features/store/bloc/store_event.dart';
 import 'package:zim_herbs_repo/features/store/bloc/cart_cubit.dart';
 import 'package:zim_herbs_repo/features/herbs/bloc/herb_bloc.dart';
 import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   await Hive.initFlutter();
 

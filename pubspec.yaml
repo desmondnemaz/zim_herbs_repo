@@ -48,6 +48,7 @@ dependencies:
   connectivity_plus: ^7.0.0
   url_launcher: ^6.3.1
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_test:
@@ -103,3 +104,16 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo/logo.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#0f5918"
+  image: assets/logo/logo.png
+  android_12:
+    image: assets/logo/logo.png
+    color: "#0f5918"
