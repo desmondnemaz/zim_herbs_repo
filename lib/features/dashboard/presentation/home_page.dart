@@ -54,21 +54,25 @@ class _HomePageState extends State<HomePage> {
                     ? AppBar(
                       toolbarHeight: rs.appBarHeight,
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      elevation: 0,
+                      elevation: 4,
+                      shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
                       title: const _BrandLogo(),
                       centerTitle: false,
-                      shape: Border(
-                        bottom: BorderSide(
-                          width: 2,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
                       actions: const [
                         _OfflineBadge(),
+                        SizedBox(width: 4),
+                        _ProfileAvatar(),
+                        SizedBox(width: 8),
                       ],
                       iconTheme: IconThemeData(
                         color: Theme.of(context).colorScheme.onPrimary,
                         size: rs.appBarIcon,
+                      ),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(20),
+                          bottomRight: Radius.circular(20),
+                        ),
                       ),
                     )
                     : null,
@@ -85,17 +89,24 @@ class _HomePageState extends State<HomePage> {
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary,
-                        border: Border(
-                          bottom: BorderSide(
-                            width: 2,
-                            color: Theme.of(context).colorScheme.secondary,
-                          ),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(20),
+                          bottomRight: Radius.circular(20),
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // Brand & Menu Toggle
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               GestureDetector(
                                 onTap: () {
@@ -117,6 +128,9 @@ class _HomePageState extends State<HomePage> {
                           const Spacer(),
 
                           const _OfflineBadge(),
+                          const SizedBox(width: 12),
+                          const _ProfileAvatar(),
+                          const SizedBox(width: 4),
                         ],
                       ),
                     ),
@@ -161,31 +175,41 @@ class _BrandLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
+    final logoSize = rs.appBarHeight * 0.65;
     return Row(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // Logo image
+        Image.asset(
+          'assets/logo/logo.png',
+          height: logoSize,
+          width: logoSize,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Icon(
+            Icons.grass,
+            size: logoSize,
+            color: Theme.of(context).colorScheme.secondary,
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Brand text
         Flexible(
           child: Text(
-            "ZIM Herbal Pharmacy",
+            "ZIM-HERBS",
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: rs.appBarTitleFont,
               fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
               color: Theme.of(context).colorScheme.secondary,
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Icon(
-          Icons.grass,
-          size: rs.appBarIcon,
-          color: Theme.of(context).colorScheme.secondary,
         ),
       ],
     );
   }
 }
-
 
 class _OfflineBadge extends StatelessWidget {
   const _OfflineBadge();
@@ -229,6 +253,58 @@ class _OfflineBadge extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    final rs = ResponsiveSize(context);
+    final theme = Theme.of(context);
+    final double radius = rs.pick(mobile: 17, tablet: 19, desktop: 21);
+
+    return GestureDetector(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: theme.colorScheme.primary,
+            content: Text(
+              "Profile section is coming soon!",
+              style: TextStyle(color: theme.colorScheme.onPrimary),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: theme.colorScheme.secondary.withValues(alpha: 0.7),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: CircleAvatar(
+          radius: radius,
+          backgroundColor: theme.colorScheme.secondary,
+          child: Icon(
+            Icons.person_outline,
+            color: theme.colorScheme.primary,
+            size: radius,
+          ),
+        ),
+      ),
     );
   }
 }

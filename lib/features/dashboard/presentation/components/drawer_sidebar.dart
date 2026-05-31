@@ -28,108 +28,120 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
         child: SafeArea(
           child: Column(
             children: [
-              // Drawer Header / Logo
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.secondary.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
+              // ── Scrollable content (header + menu) ──────────────────────
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Drawer Header / Logo
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24.0),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondary
+                                    .withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.grass,
+                                size: 64,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "ZIM HERBS",
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.secondary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Icon(
-                        Icons.grass,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.secondary,
+
+                      // Menu Items
+                      _buildMenuItem(
+                        title: "Dashboard",
+                        svgSrc: "assets/icons/menu_dashboard.svg",
+                        isActive: _activeRoute == "Dashboard",
+                        onTap: () =>
+                            setState(() => _activeRoute = "Dashboard"),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "ZIM HERBS",
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
+                      _buildMenuItem(
+                        title: "Profile",
+                        svgSrc: "assets/icons/menu_profile.svg",
+                        isActive: _activeRoute == "Profile",
+                        onTap: () =>
+                            setState(() => _activeRoute = "Profile"),
                       ),
-                    ),
-                  ],
+                      _buildMenuItem(
+                        title: "Notifications",
+                        icon: Icons.notifications_none,
+                        isActive: _activeRoute == "Notifications",
+                        onTap: () {
+                          if (!Responsive.isDesktop(context)) {
+                            Navigator.pop(context);
+                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NotificationsPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        title: "Settings",
+                        svgSrc: "assets/icons/menu_setting.svg",
+                        isActive: _activeRoute == "Settings",
+                        onTap: () {
+                          if (!Responsive.isDesktop(context)) {
+                            Navigator.pop(context);
+                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      if (kIsWeb)
+                        _buildMenuItem(
+                          title: "Download Android App",
+                          icon: Icons.android,
+                          isActive: false,
+                          onTap: () async {
+                            final url = Uri.parse('zim-herbs.apk');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            }
+                          },
+                        ),
+                    ],
+                  ),
                 ),
               ),
 
-              // Menu Items
-              _buildMenuItem(
-                title: "Dashboard",
-                svgSrc: "assets/icons/menu_dashboard.svg",
-                isActive: _activeRoute == "Dashboard",
-                onTap: () => setState(() => _activeRoute = "Dashboard"),
-              ),
-              _buildMenuItem(
-                title: "Profile",
-                svgSrc: "assets/icons/menu_profile.svg",
-                isActive: _activeRoute == "Profile",
-                onTap: () => setState(() => _activeRoute = "Profile"),
-              ),
-              _buildMenuItem(
-                title: "Notifications",
-                icon: Icons.notifications_none,
-                isActive: _activeRoute == "Notifications",
-                onTap: () {
-                  if (!Responsive.isDesktop(context)) {
-                    Navigator.pop(context); // Close drawer only on mobile
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NotificationsPage(),
-                    ),
-                  );
-                },
-              ),
-              _buildMenuItem(
-                title: "Settings",
-                svgSrc: "assets/icons/menu_setting.svg",
-                isActive: _activeRoute == "Settings",
-                onTap: () {
-                  if (!Responsive.isDesktop(context)) {
-                    Navigator.pop(context); // Close drawer only on mobile
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsPage(),
-                    ),
-                  );
-                },
-              ),
-              if (kIsWeb)
-                _buildMenuItem(
-                  title: "Download Android App",
-                  icon: Icons.android,
-                  isActive: false,
-                  onTap: () async {
-                    final url = Uri.parse('zim-herbs.apk');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url);
-                    }
-                  },
-                ),
-
-              const Spacer(),
-
-              // Footer
+              // ── Pinned Footer ────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.all(defaultPadding),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Divider(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withValues(alpha: 0.2),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onPrimary
+                          .withValues(alpha: 0.2),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -141,10 +153,10 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: CircleAvatar(
+                          child: const CircleAvatar(
                             radius: 12,
                             backgroundColor: Colors.transparent,
-                            backgroundImage: const AssetImage(
+                            backgroundImage: AssetImage(
                               'assets/images/zimbabwe-flag-rounded.png',
                             ),
                           ),
@@ -153,21 +165,24 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                         Text(
                           "ZIM HERBS",
                           style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withValues(alpha: 0.6),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimary
+                                .withValues(alpha: 0.6),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       "v1.0.0",
                       style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withValues(alpha: 0.4),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimary
+                            .withValues(alpha: 0.4),
                         fontSize: 10,
                       ),
                     ),
