@@ -274,7 +274,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: state.herbRows.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       return _buildHerbRow(
                         context,

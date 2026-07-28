@@ -7,7 +7,7 @@ import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
 import 'package:zim_herbs_repo/features/treatments/presentation/treatment_details.dart';
 import 'package:zim_herbs_repo/utils/enums.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
-import 'package:zim_herbs_repo/core/presentation/widgets/zimbabwe_widgets.dart';
+
 
 class MobileTreatmentList extends StatelessWidget {
   final List<TreatmentModel> treatments;
@@ -24,7 +24,7 @@ class MobileTreatmentList extends StatelessWidget {
     return ListView.separated(
       padding: EdgeInsets.all(rs.defaultPadding),
       itemCount: treatments.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final treatment = treatments[index];
         return Card(
@@ -40,9 +40,7 @@ class MobileTreatmentList extends StatelessWidget {
             ),
           ),
           clipBehavior: Clip.antiAlias,
-          child: ZimbabweWorkBackground(
-            patternColor: Colors.white.withValues(alpha: 0.05),
-            child: ListTile(
+          child: ListTile(
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 12,
@@ -148,7 +146,6 @@ class MobileTreatmentList extends StatelessWidget {
                   ),
                 );
               },
-            ),
           ),
         );
       },

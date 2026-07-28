@@ -32,7 +32,7 @@ class MobileConditionList extends StatelessWidget {
       child: ListView.separated(
         padding: EdgeInsets.all(rs.defaultPadding),
         itemCount: conditions.length,
-        separatorBuilder: (_, __) => SizedBox(height: rs.rowSpacing),
+        separatorBuilder: (_, _) => SizedBox(height: rs.rowSpacing),
         itemBuilder: (context, index) {
           final condition = conditions[index];
           return Card(

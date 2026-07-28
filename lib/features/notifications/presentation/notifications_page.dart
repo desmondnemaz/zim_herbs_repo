@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/core/presentation/widgets/zimbabwe_widgets.dart';
+
 import 'package:zim_herbs_repo/theme/spacing.dart';
 
 class NotificationsPage extends StatelessWidget {
@@ -40,8 +40,7 @@ class NotificationsPage extends StatelessWidget {
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
       ),
-      body: ZimbabweWorkBackground(
-        child: ListView.builder(
+      body: ListView.builder(
           padding: const EdgeInsets.all(defaultPadding),
           itemCount: notifications.length,
           itemBuilder: (context, index) {
@@ -108,7 +107,6 @@ class NotificationsPage extends StatelessWidget {
             );
           },
         ),
-      ),
     );
   }
 }

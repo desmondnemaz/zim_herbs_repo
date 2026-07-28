@@ -357,7 +357,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                                     Axis.horizontal,
                                                 itemCount: herb.images.length,
                                                 separatorBuilder:
-                                                    (_, __) => const SizedBox(
+                                                    (_, _) => const SizedBox(
                                                       width: 8,
                                                     ),
                                                 itemBuilder: (context, index) {

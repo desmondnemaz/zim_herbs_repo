@@ -77,90 +77,64 @@ class _HomePageState extends State<HomePage> {
                     )
                     : null,
 
-            body: SafeArea(
-              child: Column(
-                children: [
-                  // ================= Persistant Global Header (Desktop Only) =================
-                  if (isDesktop)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(20),
-                          bottomRight: Radius.circular(20),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+            body: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (isDesktop)
+                  DrawerSideBar(
+                    isExpanded: state.isSidebarVisible,
+                    onToggle: () {
+                      context.read<DashboardCubit>().toggleSidebar();
+                    },
+                  ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      // ================= Persistant Global Header (Desktop Only) =================
+                      if (isDesktop)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Brand & Menu Toggle
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  context
-                                      .read<DashboardCubit>()
-                                      .toggleSidebar();
-                                },
-                                child: Icon(
-                                  Icons.menu,
-                                  size: rs.appBarIcon,
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
-                              SizedBox(width: rs.defaultPadding),
-                              const _BrandLogo(),
                             ],
                           ),
-                          const Spacer(),
-
-                          const _OfflineBadge(),
-                          const SizedBox(width: 12),
-                          const _ProfileAvatar(),
-                          const SizedBox(width: 4),
-                        ],
-                      ),
-                    ),
-
-                  // ================= Main Layout (Sidebar + Content) =================
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (isDesktop && state.isSidebarVisible)
-                          const Expanded(flex: 1, child: DrawerSideBar()),
-
-                        // Dashboard Main
-                        Expanded(
-                          flex: 5,
-                          child: DashboardScreen(
-                            toogleDashbordSideBar: () {
-                              if (isDesktop) {
-                                context.read<DashboardCubit>().toggleSidebar();
-                              } else {
-                                _scaffoldKey.currentState?.openDrawer();
-                              }
-                            },
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Spacer(),
+                              _OfflineBadge(),
+                              SizedBox(width: 12),
+                              _ProfileAvatar(),
+                              SizedBox(width: 4),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+
+                      // ================= Main Layout (Dashboard Content) =================
+                      Expanded(
+                        child: DashboardScreen(
+                          toogleDashbordSideBar: () {
+                            if (isDesktop) {
+                              context.read<DashboardCubit>().toggleSidebar();
+                            } else {
+                              _scaffoldKey.currentState?.openDrawer();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
@@ -186,7 +160,7 @@ class _BrandLogo extends StatelessWidget {
           height: logoSize,
           width: logoSize,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Icon(
+          errorBuilder: (_, _, _) => Icon(
             Icons.grass,
             size: logoSize,
             color: Theme.of(context).colorScheme.secondary,

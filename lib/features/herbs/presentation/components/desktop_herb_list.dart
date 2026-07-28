@@ -71,7 +71,7 @@ class DesktopHerbList extends StatelessWidget {
                                     fit: BoxFit.cover,
                                     width: double.infinity,
                                     errorBuilder:
-                                        (_, __, ___) =>
+                                        (_, _, _) =>
                                             Container(color: Colors.grey),
                                   )
                                   : Container(

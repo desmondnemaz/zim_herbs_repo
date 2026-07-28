@@ -7,7 +7,7 @@ import 'package:zim_herbs_repo/features/treatments/data/treatment_models.dart';
 import 'package:zim_herbs_repo/features/treatments/presentation/treatment_details.dart';
 import 'package:zim_herbs_repo/utils/enums.dart';
 import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
-import 'package:zim_herbs_repo/core/presentation/widgets/zimbabwe_widgets.dart';
+
 
 class DesktopTreatmentList extends StatefulWidget {
   final List<TreatmentModel> treatments;
@@ -76,9 +76,7 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
                   ),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: ZimbabweWorkBackground(
-                  patternColor: Colors.white.withValues(alpha: 0.05),
-                  child: Padding(
+                child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,7 +189,6 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
                       ],
                     ),
                   ),
-                ),
               ),
             ),
           ),
