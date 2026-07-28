@@ -45,11 +45,14 @@ class SectionHeader extends StatelessWidget {
             onTap: onSeeAll,
             borderRadius: BorderRadius.circular(8),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 4.0,
+              ),
               child: Text(
                 "See All",
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w800,
                   fontSize: 13,
                 ),
@@ -94,22 +97,29 @@ class HerbHighlightCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(15),
+              ),
               child: AspectRatio(
                 aspectRatio: 1.2,
                 child: Hero(
                   tag: 'herb_${herb.id}',
-                  child: herb.primaryImageUrl != null
-                      ? Image.network(
-                          herb.primaryImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Center(child: Icon(Icons.grass, color: Colors.green)),
-                        )
-                      : Container(
-                          color: Colors.green.withValues(alpha: 0.1),
-                          child: const Center(child: Icon(Icons.grass, color: Colors.green)),
-                        ),
+                  child:
+                      herb.primaryImageUrl != null
+                          ? Image.network(
+                            herb.primaryImageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (context, error, stackTrace) => const Center(
+                                  child: Icon(Icons.grass, color: Colors.green),
+                                ),
+                          )
+                          : Container(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            child: const Center(
+                              child: Icon(Icons.grass, color: Colors.green),
+                            ),
+                          ),
                 ),
               ),
             ),
@@ -129,7 +139,7 @@ class HerbHighlightCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    herb.nameSn ?? herb.nameNd ?? "Zimbabwe",
+                    herb.nameSn ?? herb.nameNd ?? "",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -182,14 +192,18 @@ class ProductHighlightCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(15),
+              ),
               child: AspectRatio(
                 aspectRatio: 1.2,
                 child: Image.network(
                   product.imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Center(child: Icon(Icons.shopping_bag, color: Colors.orange)),
+                  errorBuilder:
+                      (context, error, stackTrace) => const Center(
+                        child: Icon(Icons.shopping_bag, color: Colors.orange),
+                      ),
                 ),
               ),
             ),
@@ -220,14 +234,21 @@ class ProductHighlightCard extends StatelessWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.star, size: 10, color: Colors.orange),
+                            const Icon(
+                              Icons.star,
+                              size: 10,
+                              color: Colors.orange,
+                            ),
                             const SizedBox(width: 2),
                             Text(
                               product.rating.toString(),
