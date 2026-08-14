@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/dashboard/bloc/dashboard_cubit.dart';
-import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/dashboard_screen.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/drawer_sidebar.dart';
 import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart'
     as conn;
-import 'package:zim_herbs_repo/utils/responsive.dart';
+import 'package:zim_herbs_repo/core/utils/responsive.dart';
 
 import 'package:zim_herbs_repo/features/dashboard/bloc/recommendations_bloc.dart';
-import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
-import 'package:zim_herbs_repo/features/store/data/repository/store_repository.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
+import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -240,45 +243,98 @@ class _ProfileAvatar extends StatelessWidget {
     final theme = Theme.of(context);
     final double radius = rs.pick(mobile: 17, tablet: 19, desktop: 21);
 
-    return GestureDetector(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: theme.colorScheme.primary,
-            content: Text(
-              "Profile section is coming soon!",
-              style: TextStyle(color: theme.colorScheme.onPrimary),
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, state) {
+        final userName = state is Authenticated ? state.user.name : 'User';
+        final userRole = state is Authenticated ? state.user.role.displayName : 'Customer';
+
+        return GestureDetector(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (_) => SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: theme.colorScheme.primary,
+                        child: Text(
+                          userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        userRole,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.logout, color: Colors.redAccent),
+                        title: const Text(
+                          'Sign Out',
+                          style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.read<AuthCubit>().signOut();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: theme.colorScheme.secondary.withValues(alpha: 0.7),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            duration: const Duration(seconds: 2),
+            child: CircleAvatar(
+              radius: radius,
+              backgroundColor: theme.colorScheme.secondary,
+              child: Icon(
+                Icons.person_outline,
+                color: theme.colorScheme.primary,
+                size: radius,
+              ),
+            ),
           ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: theme.colorScheme.secondary.withValues(alpha: 0.7),
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: CircleAvatar(
-          radius: radius,
-          backgroundColor: theme.colorScheme.secondary,
-          child: Icon(
-            Icons.person_outline,
-            color: theme.colorScheme.primary,
-            size: radius,
-          ),
-        ),
-      ),
     );
   }
 }
+

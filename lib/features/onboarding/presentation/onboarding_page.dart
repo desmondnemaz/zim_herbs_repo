@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/onboarding/bloc/onboarding_cubit.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
-import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 // --- Model ---
 

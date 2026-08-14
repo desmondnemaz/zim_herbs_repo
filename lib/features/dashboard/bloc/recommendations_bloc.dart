@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/herbs/data/herb_repository.dart';
-import 'package:zim_herbs_repo/features/herbs/data/models.dart';
-import 'package:zim_herbs_repo/features/store/data/models/product_model.dart';
-import 'package:zim_herbs_repo/features/store/data/repository/store_repository.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
+import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
+import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 
 // Events
 abstract class RecommendationsEvent {}

@@ -1,7 +1,7 @@
 //=====================Right Notifications Panel========================
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/theme/spacing.dart';
-import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/theme/spacing.dart';
+import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 
 class NotificationsSection extends StatelessWidget {

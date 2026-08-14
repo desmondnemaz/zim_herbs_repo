@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 
-import 'package:zim_herbs_repo/theme/spacing.dart';
-import 'package:zim_herbs_repo/utils/responsive.dart';
+import 'package:zim_herbs_repo/core/theme/spacing.dart';
+import 'package:zim_herbs_repo/core/utils/responsive.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
 import 'package:zim_herbs_repo/features/notifications/presentation/notifications_page.dart';
+
 
 class DrawerSideBar extends StatefulWidget {
   final bool isExpanded;
@@ -283,6 +286,18 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                       );
                     },
                   ),
+                  _buildMenuItem(
+                    title: "Sign Out",
+                    icon: Icons.logout,
+                    isActive: false,
+                    onTap: () {
+                      if (!Responsive.isDesktop(context)) {
+                        Navigator.pop(context);
+                      }
+                      context.read<AuthCubit>().signOut();
+                    },
+                  ),
+
                 ],
               ),
             ),

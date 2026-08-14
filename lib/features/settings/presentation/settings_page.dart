@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
 import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
-import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
-import 'package:zim_herbs_repo/utils/responsive.dart';
+import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/utils/responsive.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});

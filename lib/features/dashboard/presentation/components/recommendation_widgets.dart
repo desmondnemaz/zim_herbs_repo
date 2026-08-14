@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/features/herbs/data/models.dart';
-import 'package:zim_herbs_repo/features/herbs/presentation/herb_details.dart';
-import 'package:zim_herbs_repo/features/store/data/models/product_model.dart';
-import 'package:zim_herbs_repo/features/store/presentation/product_details.dart';
-import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/presentation/herb_details.dart';
+import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
+import 'package:zim_herbs_repo/features/marketplace/store/presentation/product_details.dart';
+import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;

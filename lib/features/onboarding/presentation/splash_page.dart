@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/features/onboarding/presentation/onboarding_page.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
-import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

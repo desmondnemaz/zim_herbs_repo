@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/features/dashboard/data/models/menu_item_model.dart';
-import 'package:zim_herbs_repo/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 // Screen Imports for Route Resolution
-import 'package:zim_herbs_repo/features/herbs/presentation/herbs_list.dart';
-import 'package:zim_herbs_repo/features/treatments/presentation/treatments_list.dart';
-import 'package:zim_herbs_repo/features/conditions/presentation/condition_list.dart';
-import 'package:zim_herbs_repo/features/store/presentation/store_page.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/presentation/herbs_list.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/treatments_list.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/presentation/condition_list.dart';
+import 'package:zim_herbs_repo/features/marketplace/store/presentation/store_page.dart';
 import 'package:zim_herbs_repo/features/telemedicine/presentation/telemedicine_page.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/coming_soon.dart';
 
