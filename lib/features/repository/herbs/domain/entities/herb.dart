@@ -4,6 +4,7 @@ class Herb {
   final String? nameSn;
   final String? nameNd;
   final String? description;
+  final String? primaryImageUrl;
 
   const Herb({
     required this.id,
@@ -11,5 +12,6 @@ class Herb {
     this.nameSn,
     this.nameNd,
     this.description,
+    this.primaryImageUrl,
   });
 }

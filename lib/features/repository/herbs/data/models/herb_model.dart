@@ -126,14 +126,15 @@ class HerbModel {
   ///     ↓
   /// Herb
   Herb toEntity() {
-    return Herb(
-      id: id,
-      nameEn: nameEn,
-      nameSn: nameSn,
-      nameNd: nameNd,
-      description: description,
-    );
-  }
+  return Herb(
+    id: id,
+    nameEn: nameEn,
+    nameSn: nameSn,
+    nameNd: nameNd,
+    description: description,
+    primaryImageUrl: primaryImageUrl,
+  );
+}
 
 
   /// ==========================================================

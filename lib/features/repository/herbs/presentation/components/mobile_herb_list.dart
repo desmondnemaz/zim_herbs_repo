@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/bloc/herb_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
-
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/herb_details.dart';
 
 class MobileHerbList extends StatelessWidget {
@@ -16,10 +13,10 @@ class MobileHerbList extends StatelessWidget {
     required this.onDelete,
   });
 
-  final List<HerbModel> filteredHerbs;
   final ResponsiveSize rs;
-  final Function(HerbModel) onEdit;
-  final Function(HerbModel) onDelete;
+  final List<Herb> filteredHerbs;
+  final Function(Herb) onEdit;
+  final Function(Herb) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -31,15 +28,10 @@ class MobileHerbList extends StatelessWidget {
 
         return InkWell(
           onTap: () {
-            final bloc = context.read<HerbBloc>();
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder:
-                    (context) => BlocProvider.value(
-                      value: bloc,
-                      child: HerbDetailsPage(herbId: herb.id),
-                    ),
+                builder: (context) => HerbDetailsPage(herbId: herb.id),
               ),
             );
           },
