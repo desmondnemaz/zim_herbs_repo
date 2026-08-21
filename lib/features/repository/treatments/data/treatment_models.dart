@@ -1,4 +1,4 @@
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 
 class TreatmentModel {

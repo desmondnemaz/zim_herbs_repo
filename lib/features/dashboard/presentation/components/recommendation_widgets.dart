@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/presentation/herb_details.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/presentation/pages/herb_details.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/presentation/product_details.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -66,7 +66,7 @@ class SectionHeader extends StatelessWidget {
 }
 
 class HerbHighlightCard extends StatelessWidget {
-  final HerbModel herb;
+  final Herb herb;
 
   const HerbHighlightCard({super.key, required this.herb});
 

@@ -1,7 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart'; // Keep herb repo for fetching herbs/conditions
+import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/domain/repositories/condition_repository.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/repositories/herb_repository.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_models.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
@@ -12,13 +15,16 @@ part 'treatment_form_state.dart';
 class TreatmentFormBloc extends Bloc<TreatmentFormEvent, TreatmentFormState> {
   final HerbRepository _herbRepository;
   final TreatmentRepository _treatmentRepository;
+  final ConditionRepository _conditionRepository;
 
   TreatmentFormBloc({
     required HerbRepository herbRepository,
     required TreatmentRepository treatmentRepository,
-  }) : _herbRepository = herbRepository,
-       _treatmentRepository = treatmentRepository,
-       super(const TreatmentFormState()) {
+    required ConditionRepository conditionRepository,
+  })  : _herbRepository = herbRepository,
+        _treatmentRepository = treatmentRepository,
+        _conditionRepository = conditionRepository,
+        super(const TreatmentFormState()) {
     on<LoadFormResources>(_onLoadFormResources);
     on<AddHerbRow>(_onAddHerbRow);
     on<RemoveHerbRow>(_onRemoveHerbRow);
@@ -33,9 +39,16 @@ class TreatmentFormBloc extends Bloc<TreatmentFormEvent, TreatmentFormState> {
     emit(state.copyWith(status: TreatmentFormStatus.loading));
     try {
       final results = await Future.wait([
-        _herbRepository.getAllConditions(),
+        _conditionRepository.getAllConditions(),
         _herbRepository.getAllHerbs(),
       ]);
+
+      final conditions = results[0] as List<Condition>;
+      final conditionModels =
+          conditions.map((c) => ConditionModel.fromEntity(c)).toList();
+      final herbs = results[1] as List<Herb>;
+      final availableHerbModels =
+          herbs.map((h) => HerbModel.fromEntity(h)).toList();
 
       final List<TreatmentHerbRow> herbRows = [];
       if (event.treatment != null) {
@@ -58,8 +71,8 @@ class TreatmentFormBloc extends Bloc<TreatmentFormEvent, TreatmentFormState> {
       emit(
         state.copyWith(
           status: TreatmentFormStatus.loaded,
-          conditions: results[0] as List<ConditionModel>,
-          availableHerbs: results[1] as List<HerbModel>,
+          conditions: conditionModels,
+          availableHerbs: availableHerbModels,
           herbRows: herbRows,
         ),
       );

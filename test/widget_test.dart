@@ -1,29 +1,32 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zim_herbs_repo/app.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('Herb entity creation test', () {
+    const herb = Herb(
+      id: '1',
+      nameEn: 'Moringa',
+      nameSn: 'Mupfumoti',
+      description: 'Medicinal herb',
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(herb.nameEn, 'Moringa');
+    expect(herb.displayName, 'Moringa');
+    expect(herb.primaryImageUrl, isNull);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('Condition entity creation test', () {
+    const condition = Condition(
+      id: '1',
+      name: 'Hypertension',
+      bodySystem: BodySystem.circulatory,
+      description: 'High blood pressure',
+    );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(condition.name, 'Hypertension');
+    expect(condition.displayName, 'Hypertension');
+    expect(condition.bodySystem, BodySystem.circulatory);
   });
 }

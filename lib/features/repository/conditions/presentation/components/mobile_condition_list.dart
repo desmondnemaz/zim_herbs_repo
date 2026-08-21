@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/condition_details.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -15,11 +15,11 @@ class MobileConditionList extends StatelessWidget {
     this.onDelete,
   });
 
-  final List<ConditionModel> conditions;
+  final List<Condition> conditions;
   final ResponsiveSize rs;
   final Future<void> Function() onRefresh;
-  final Function(ConditionModel)? onEdit;
-  final Function(ConditionModel)? onDelete;
+  final Function(Condition)? onEdit;
+  final Function(Condition)? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,7 @@ class MobileConditionList extends StatelessWidget {
         itemBuilder: (context, index) {
           final condition = conditions[index];
           return Card(
-            color: Theme.of(context).colorScheme.primary, // PRIMARY color
+            color: Theme.of(context).colorScheme.primary,
             elevation: 2,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(rs.borderRadius),
@@ -59,10 +59,10 @@ class MobileConditionList extends StatelessWidget {
                 ).withValues(alpha: 0.2),
                 child: SvgPicture.asset(
                   getBodySystemSvg(condition.bodySystem),
-                  width: rs.icon / 1.5,
-                  height: rs.icon / 1.5,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
+                  width: rs.icon / 2,
+                  height: rs.icon / 2,
+                  colorFilter: ColorFilter.mode(
+                    getBodySystemColor(condition.bodySystem),
                     BlendMode.srcIn,
                   ),
                 ),
@@ -70,36 +70,68 @@ class MobileConditionList extends StatelessWidget {
               title: Text(
                 condition.name,
                 style: TextStyle(
-                  fontSize: rs.titleFont,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  fontSize: rs.subtitleFont,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
               subtitle: Text(
                 bodySystemLabel(condition.bodySystem),
                 style: TextStyle(
-                  fontSize: rs.subtitleFont,
-                  color: Colors.white70,
+                  fontSize: rs.captionFont,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
-              trailing: PopupMenuButton<String>(
-                iconColor: Theme.of(context).colorScheme.onPrimary,
-                onSelected: (value) {
-                  if (value == 'edit') onEdit?.call(condition);
-                  if (value == 'delete') onDelete?.call(condition);
-                },
-                itemBuilder:
-                    (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Text(
-                          'Delete',
-                          style: TextStyle(color: Colors.red),
+              trailing:
+                  (onEdit != null || onDelete != null)
+                      ? PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: Theme.of(context).colorScheme.secondary,
                         ),
-                      ),
-                    ],
-              ),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            onEdit?.call(condition);
+                          } else if (value == 'delete') {
+                            onDelete?.call(condition);
+                          }
+                        },
+                        itemBuilder:
+                            (context) => [
+                              if (onEdit != null)
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Edit'),
+                                    ],
+                                  ),
+                                ),
+                              if (onDelete != null)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.delete,
+                                        size: 20,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                      )
+                      : null,
             ),
           );
         },

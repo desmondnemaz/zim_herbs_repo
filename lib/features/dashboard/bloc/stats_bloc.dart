@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/repositories/herb_repository.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/condition_repository.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/domain/repositories/condition_repository.dart';
 
 // Events
 abstract class StatsEvent {}

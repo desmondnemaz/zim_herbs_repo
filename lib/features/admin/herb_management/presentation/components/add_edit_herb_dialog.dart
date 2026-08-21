@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:flutter/foundation.dart';
 
@@ -26,7 +27,8 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
   final List<Uint8List> _selectedImageBytes = [];
   bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
-  final HerbRepository _repository = HerbRepository();
+  final HerbRemoteDataSource _repository =
+      HerbRemoteDataSource(Supabase.instance.client);
 
   @override
   void initState() {

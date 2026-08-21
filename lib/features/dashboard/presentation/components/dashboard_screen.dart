@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/dashboard/bloc/recommendations_bloc.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/recommendation_widgets.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/menu_section.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/presentation/herbs_list.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/presentation/pages/herbs_list.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/presentation/store_page.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 

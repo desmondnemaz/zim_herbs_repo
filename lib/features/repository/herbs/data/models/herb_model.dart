@@ -126,15 +126,17 @@ class HerbModel {
   ///     ↓
   /// Herb
   Herb toEntity() {
-  return Herb(
-    id: id,
-    nameEn: nameEn,
-    nameSn: nameSn,
-    nameNd: nameNd,
-    description: description,
-    primaryImageUrl: primaryImageUrl,
-  );
-}
+    return Herb(
+      id: id,
+      nameEn: nameEn,
+      nameSn: nameSn,
+      nameNd: nameNd,
+      description: description,
+      images: images.map((image) => image.toEntity()).toList(),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
 
 
   /// ==========================================================
@@ -162,6 +164,9 @@ class HerbModel {
       nameSn: herb.nameSn,
       nameNd: herb.nameNd,
       description: herb.description,
+      images: herb.images.map((img) => HerbImageModel.fromEntity(img)).toList(),
+      createdAt: herb.createdAt,
+      updatedAt: herb.updatedAt,
     );
   }
 
@@ -428,5 +433,27 @@ class HerbImageModel {
       'description': description,
       'order_index': orderIndex,
     };
+  }
+
+  /// Convert Data Model to Domain Entity
+  HerbImage toEntity() {
+    return HerbImage(
+      id: id,
+      herbId: herbId,
+      imageUrl: imageUrl,
+      description: description,
+      orderIndex: orderIndex,
+    );
+  }
+
+  /// Convert Domain Entity to Data Model
+  factory HerbImageModel.fromEntity(HerbImage image) {
+    return HerbImageModel(
+      id: image.id,
+      herbId: image.herbId,
+      imageUrl: image.imageUrl,
+      description: image.description,
+      orderIndex: image.orderIndex,
+    );
   }
 }

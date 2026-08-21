@@ -45,6 +45,11 @@ abstract class HerbRepository {
     Uint8List bytes,
   );
 
+  /// Add an image record for a herb.
+  Future<Herb> addHerbImage(
+    HerbImage image,
+  );
+
   /// Create a new herb.
   Future<Herb> createHerb(
     Herb herb,

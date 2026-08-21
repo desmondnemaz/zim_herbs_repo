@@ -8,8 +8,9 @@ import 'package:zim_herbs_repo/features/repository/treatments/presentation/compo
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/condition_repository.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 
 class TreatmentsList extends StatelessWidget {
   final String? initialConditionId;
@@ -37,7 +38,8 @@ class _TreatmentsListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
-    final conditionsFuture = ConditionRepository().getAllConditions();
+    final conditionsFuture =
+        ConditionRemoteDataSource(Supabase.instance.client).getAllConditions();
 
     return Scaffold(
       appBar:

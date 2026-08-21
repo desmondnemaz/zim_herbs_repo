@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/repositories/herb_repository.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 
@@ -17,8 +17,8 @@ class RecommendationsInitial extends RecommendationsState {}
 class RecommendationsLoading extends RecommendationsState {}
 
 class RecommendationsLoaded extends RecommendationsState {
-  final List<HerbModel> trendingHerbs;
-  final List<HerbModel> newRepoHerbs;
+  final List<Herb> trendingHerbs;
+  final List<Herb> newRepoHerbs;
   final List<ProductModel> newStoreProducts;
 
   RecommendationsLoaded({
@@ -53,8 +53,8 @@ class RecommendationsBloc extends Bloc<RecommendationsEvent, RecommendationsStat
 
         emit(
           RecommendationsLoaded(
-            trendingHerbs: results[0] as List<HerbModel>,
-            newRepoHerbs: results[1] as List<HerbModel>,
+            trendingHerbs: results[0] as List<Herb>,
+            newRepoHerbs: results[1] as List<Herb>,
             newStoreProducts: results[2] as List<ProductModel>,
           ),
         );

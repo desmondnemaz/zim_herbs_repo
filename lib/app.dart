@@ -8,6 +8,9 @@ import 'package:zim_herbs_repo/features/auth/presentation/auth_gate.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/repositories/condition_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_cubit.dart';
 import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
 import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
 import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart' as conn;
@@ -63,6 +66,16 @@ class MyApp extends StatelessWidget {
 
       // 4. Presentation layer
       return HerbCubit(repository)..loadHerbs();
+    },
+  ),
+
+  // CONDITION FEATURE
+  BlocProvider(
+    create: (context) {
+      final client = Supabase.instance.client;
+      final dataSource = ConditionRemoteDataSource(client);
+      final repository = ConditionRepositoryImpl(dataSource);
+      return ConditionCubit(repository)..loadConditions();
     },
   ),
 //_________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________

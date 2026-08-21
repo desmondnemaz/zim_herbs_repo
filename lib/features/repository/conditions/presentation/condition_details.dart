@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/condition_repository.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/bloc/condition_detail_cubit.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/repositories/condition_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_detail_cubit.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -55,10 +57,13 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
     final rs = ResponsiveSize(context);
 
     return BlocProvider(
-      create:
-          (context) =>
-              ConditionDetailCubit(ConditionRepository())
-                ..loadCondition(widget.conditionId),
+      create: (context) {
+        final client = Supabase.instance.client;
+        final dataSource = ConditionRemoteDataSource(client);
+        final repository = ConditionRepositoryImpl(dataSource);
+        return ConditionDetailCubit(repository)
+          ..loadCondition(widget.conditionId);
+      },
       child: BlocBuilder<ConditionDetailCubit, ConditionDetailState>(
         builder: (context, state) {
           if (state is ConditionDetailLoading ||
@@ -111,8 +116,10 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                     ),
                     flexibleSpace: FlexibleSpaceBar(
                       centerTitle: true,
-                      title: FittedBox(
-                        fit: BoxFit.scaleDown,
+                      title: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.7,
+                        ),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -122,27 +129,31 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                             color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(
-                            condition.name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: rs.appBarTitleFont,
-                              color: Theme.of(context).colorScheme.secondary,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              condition.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: rs.appBarTitleFont,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
                             ),
                           ),
                         ),
                       ),
                       background: Container(
-                        color: systemColor.withValues(alpha: 0.1),
+                        color: Theme.of(context).colorScheme.primary,
                         child: Center(
-                          child: Opacity(
-                            opacity: 0.2,
+                          child: CircleAvatar(
+                            radius: rs.icon * 1.5,
+                            backgroundColor: systemColor.withValues(alpha: 0.15),
                             child: SvgPicture.asset(
                               getBodySystemSvg(condition.bodySystem),
-                              width: 120,
-                              height: 120,
-                              colorFilter: const ColorFilter.mode(
-                                Colors.white,
+                              width: rs.icon * 1.8,
+                              height: rs.icon * 1.8,
+                              colorFilter: ColorFilter.mode(
+                                systemColor,
                                 BlendMode.srcIn,
                               ),
                             ),
@@ -162,6 +173,8 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                               maxWidth:
                                   Responsive.isMobile(context)
                                       ? double.infinity
+                                      : Responsive.isTablet(context)
+                                      ? 750
                                       : 800,
                             ),
                             child: Padding(
@@ -172,62 +185,69 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                                   _buildHeaderChips(condition, rs),
                                   const SizedBox(height: 24),
                                   if (condition.description != null &&
-                                      condition.description!.isNotEmpty)
+                                      condition.description!.isNotEmpty) ...[
                                     _buildSectionCard(
-                                      icon: Icons.description_outlined,
-                                      title: "Description",
+                                      icon: Icons.info_outline_rounded,
+                                      title: 'Description',
                                       content: Text(
                                         condition.description!,
                                         style: TextStyle(
                                           fontSize: rs.bodyFont,
-                                          height: 1.5,
-                                          color: Colors.black,
+                                          height: 1.6,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.8),
                                         ),
                                       ),
                                       rs: rs,
-                                      accentColor: systemColor,
                                     ),
+                                    const SizedBox(height: 20),
+                                  ],
                                   if (condition.symptoms.isNotEmpty) ...[
-                                    const SizedBox(height: 24),
                                     _buildSectionCard(
-                                      icon: Icons.list_alt,
-                                      title: "Common Symptoms",
+                                      icon: Icons.warning_amber_rounded,
+                                      title: 'Common Symptoms',
                                       content: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children:
                                             condition.symptoms
                                                 .map(
-                                                  (s) =>
-                                                      _buildBulletPoint(s, rs),
+                                                  (s) => _buildBulletPoint(
+                                                    s,
+                                                    rs,
+                                                    context,
+                                                  ),
                                                 )
                                                 .toList(),
                                       ),
                                       rs: rs,
-                                      accentColor: systemColor,
                                     ),
+                                    const SizedBox(height: 20),
                                   ],
                                   if (condition.precautions.isNotEmpty) ...[
-                                    const SizedBox(height: 24),
                                     _buildSectionCard(
-                                      icon: Icons.warning_amber_rounded,
-                                      title: "Precautions",
+                                      icon: Icons.health_and_safety_outlined,
+                                      title: 'Precautions & Care',
                                       content: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children:
                                             condition.precautions
                                                 .map(
-                                                  (p) =>
-                                                      _buildBulletPoint(p, rs),
+                                                  (p) => _buildBulletPoint(
+                                                    p,
+                                                    rs,
+                                                    context,
+                                                  ),
                                                 )
                                                 .toList(),
                                       ),
                                       rs: rs,
-                                      accentColor: Colors.orange,
                                     ),
+                                    const SizedBox(height: 20),
                                   ],
-                                  const SizedBox(height: 32),
                                 ],
                               ),
                             ),
@@ -247,61 +267,38 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
     );
   }
 
-  Widget _buildHeaderChips(ConditionModel condition, ResponsiveSize rs) {
+  Widget _buildHeaderChips(Condition condition, ResponsiveSize rs) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        Chip(
-          avatar: Icon(
-            Icons.info_outline,
-            size: 16,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-          label: Text(
-            bodySystemLabel(condition.bodySystem),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: rs.labelFont,
-            ),
-          ),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          side: BorderSide.none,
-          shape: RoundedRectangleBorder(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.category_outlined,
+                size: 16,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                bodySystemLabel(condition.bodySystem),
+                style: TextStyle(
+                  fontSize: rs.labelFont,
+                  color: Theme.of(context).colorScheme.secondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBulletPoint(String text, ResponsiveSize rs) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: rs.bodyFont, color: Colors.black),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -310,20 +307,20 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
     required String title,
     required Widget content,
     required ResponsiveSize rs,
-    Color? accentColor,
   }) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(rs.defaultPadding),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.onPrimary,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(rs.borderRadius),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+        ),
         boxShadow: [
           BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
-            color: Colors.black.withValues(alpha: 0.08),
             offset: const Offset(0, 4),
           ),
         ],
@@ -333,27 +330,61 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 20, color: primaryColor),
+              Icon(
+                icon,
+                color: Theme.of(context).colorScheme.primary,
+                size: rs.titleFont * 1.2,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: rs.titleFont,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           content,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBulletPoint(
+    String text,
+    ResponsiveSize rs,
+    BuildContext context,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: rs.bodyFont,
+                height: 1.4,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+          ),
         ],
       ),
     );

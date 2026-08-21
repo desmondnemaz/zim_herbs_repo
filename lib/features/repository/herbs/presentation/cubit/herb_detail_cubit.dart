@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
+import '../../domain/entities/herb.dart';
+import '../../domain/repositories/herb_repository.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_models.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
 
@@ -17,7 +17,7 @@ class HerbDetailInitial extends HerbDetailState {}
 class HerbDetailLoading extends HerbDetailState {}
 
 class HerbDetailLoaded extends HerbDetailState {
-  final HerbModel herb;
+  final Herb herb;
   final List<TreatmentModel> treatments;
 
   const HerbDetailLoaded({required this.herb, required this.treatments});
@@ -42,9 +42,9 @@ class HerbDetailCubit extends Cubit<HerbDetailState> {
   HerbDetailCubit({
     required HerbRepository herbRepository,
     required TreatmentRepository treatmentRepository,
-  }) : _herbRepository = herbRepository,
-       _treatmentRepository = treatmentRepository,
-       super(HerbDetailInitial());
+  })  : _herbRepository = herbRepository,
+        _treatmentRepository = treatmentRepository,
+        super(HerbDetailInitial());
 
   Future<void> loadHerb(String id) async {
     emit(HerbDetailLoading());
@@ -54,7 +54,7 @@ class HerbDetailCubit extends Cubit<HerbDetailState> {
         _treatmentRepository.getTreatmentsByHerbId(id),
       ]);
 
-      final herb = results[0] as HerbModel?;
+      final herb = results[0] as Herb?;
       final treatments = results[1] as List<TreatmentModel>;
 
       if (herb == null) {

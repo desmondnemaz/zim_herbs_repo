@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb_detail_cubit.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 
 import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/presentation/treatments_list.dart';
@@ -74,10 +76,15 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
     final rs = ResponsiveSize(context);
 
     return BlocProvider(
-      create: (context) => HerbDetailCubit(
-        herbRepository: HerbRepository(),
-        treatmentRepository: TreatmentRepository(),
-      )..loadHerb(widget.herbId),
+      create: (context) {
+        final client = Supabase.instance.client;
+        final dataSource = HerbRemoteDataSource(client);
+        final herbRepository = HerbRepositoryImpl(dataSource);
+        return HerbDetailCubit(
+          herbRepository: herbRepository,
+          treatmentRepository: TreatmentRepository(client: client),
+        )..loadHerb(widget.herbId);
+      },
       child: BlocBuilder<HerbDetailCubit, HerbDetailState>(
         builder: (context, state) {
           // ============================================================
@@ -729,7 +736,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
   // ========================================================================
 
   Widget _buildNamesSection(
-    HerbModel herb,
+    Herb herb,
     ResponsiveSize rs,
   ) {
     return Wrap(

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/repositories/condition_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_models.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
@@ -18,11 +22,18 @@ class AddEditTreatmentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create:
-          (context) => TreatmentFormBloc(
-            herbRepository: HerbRepository(),
-            treatmentRepository: TreatmentRepository(),
-          )..add(LoadFormResources(treatment: treatment)),
+      create: (context) {
+        final client = Supabase.instance.client;
+        final herbDataSource = HerbRemoteDataSource(client);
+        final herbRepository = HerbRepositoryImpl(herbDataSource);
+        final conditionDataSource = ConditionRemoteDataSource(client);
+        final conditionRepository = ConditionRepositoryImpl(conditionDataSource);
+        return TreatmentFormBloc(
+          herbRepository: herbRepository,
+          treatmentRepository: TreatmentRepository(client: client),
+          conditionRepository: conditionRepository,
+        )..add(LoadFormResources(treatment: treatment));
+      },
       child: _TreatmentFormView(treatment: treatment),
     );
   }

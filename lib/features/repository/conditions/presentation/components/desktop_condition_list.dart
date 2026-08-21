@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/condition_details.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -15,11 +15,11 @@ class DesktopConditionList extends StatelessWidget {
     this.onDelete,
   });
 
-  final List<ConditionModel> conditions;
+  final List<Condition> conditions;
   final ResponsiveSize rs;
   final Future<void> Function() onRefresh;
-  final Function(ConditionModel)? onEdit;
-  final Function(ConditionModel)? onDelete;
+  final Function(Condition)? onEdit;
+  final Function(Condition)? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -54,88 +54,112 @@ class DesktopConditionList extends StatelessWidget {
               );
             },
             child: Card(
-              color: Theme.of(context).colorScheme.primary, // PRIMARY color
+              color: Theme.of(context).colorScheme.primary,
               elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(rs.borderRadius),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: getBodySystemColor(
-                          condition.bodySystem,
-                        ).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(rs.borderRadius),
-                        ),
-                      ),
-                      child: Center(
-                        child: SvgPicture.asset(
-                          getBodySystemSvg(condition.bodySystem),
-                          width: rs.icon,
-                          height: rs.icon,
-                          colorFilter: const ColorFilter.mode(
-                            Colors.white,
-                            BlendMode.srcIn,
-                          ),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child:
+                          (onEdit != null || onDelete != null)
+                              ? PopupMenuButton<String>(
+                                padding: EdgeInsets.zero,
+                                icon: Icon(
+                                  Icons.more_vert,
+                                  size: 18,
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                ),
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    onEdit?.call(condition);
+                                  } else if (value == 'delete') {
+                                    onDelete?.call(condition);
+                                  }
+                                },
+                                itemBuilder:
+                                    (context) => [
+                                      if (onEdit != null)
+                                        const PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit, size: 18),
+                                              SizedBox(width: 8),
+                                              Text('Edit'),
+                                            ],
+                                          ),
+                                        ),
+                                      if (onDelete != null)
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.delete,
+                                                size: 18,
+                                                color: Colors.red,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                              )
+                              : const SizedBox(height: 18),
+                    ),
+                    CircleAvatar(
+                      radius: rs.icon / 2,
+                      backgroundColor: getBodySystemColor(
+                        condition.bodySystem,
+                      ).withValues(alpha: 0.2),
+                      child: SvgPicture.asset(
+                        getBodySystemSvg(condition.bodySystem),
+                        width: rs.icon / 1.5,
+                        height: rs.icon / 1.5,
+                        colorFilter: ColorFilter.mode(
+                          getBodySystemColor(condition.bodySystem),
+                          BlendMode.srcIn,
                         ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(rs.padding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          condition.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: rs.titleFont,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white, // text in white
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          bodySystemLabel(condition.bodySystem),
-                          style: TextStyle(
-                            fontSize: rs.subtitleFont,
-                            color: Colors.white70,
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: PopupMenuButton<String>(
-                            iconColor: Theme.of(context).colorScheme.onPrimary,
-                            onSelected: (value) {
-                              if (value == 'edit') onEdit?.call(condition);
-                              if (value == 'delete') onDelete?.call(condition);
-                            },
-                            itemBuilder:
-                                (_) => const [
-                                  PopupMenuItem(
-                                    value: 'edit',
-                                    child: Text('Edit'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text(
-                                      'Delete',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ],
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 12),
+                    Text(
+                      condition.name,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: rs.bodyFont,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      bodySystemLabel(condition.bodySystem),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: rs.captionFont,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

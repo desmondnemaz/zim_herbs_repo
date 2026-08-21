@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/presentation/herb_details.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/presentation/pages/herb_details.dart';
 
 class MobileHerbList extends StatelessWidget {
   const MobileHerbList({

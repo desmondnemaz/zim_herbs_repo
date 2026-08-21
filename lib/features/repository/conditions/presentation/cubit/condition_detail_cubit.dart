@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/condition_repository.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/condition.dart';
+import '../../domain/repositories/condition_repository.dart';
 
 abstract class ConditionDetailState extends Equatable {
   const ConditionDetailState();
@@ -14,7 +14,7 @@ class ConditionDetailInitial extends ConditionDetailState {}
 class ConditionDetailLoading extends ConditionDetailState {}
 
 class ConditionDetailLoaded extends ConditionDetailState {
-  final ConditionModel condition;
+  final Condition condition;
   const ConditionDetailLoaded(this.condition);
   @override
   List<Object?> get props => [condition];

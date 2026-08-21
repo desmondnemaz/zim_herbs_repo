@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/repository/model.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 

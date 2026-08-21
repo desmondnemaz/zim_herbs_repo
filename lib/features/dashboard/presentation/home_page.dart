@@ -10,8 +10,10 @@ import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart'
     as conn;
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:zim_herbs_repo/features/dashboard/bloc/recommendations_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 
 
@@ -35,11 +37,15 @@ class _HomePageState extends State<HomePage> {
       providers: [
         BlocProvider(create: (context) => DashboardCubit()),
         BlocProvider(
-          create:
-              (context) => RecommendationsBloc(
-                herbRepository: HerbRepository(),
-                storeRepository: StoreRepository(),
-              )..add(FetchRecommendations()),
+          create: (context) {
+            final client = Supabase.instance.client;
+            final dataSource = HerbRemoteDataSource(client);
+            final herbRepository = HerbRepositoryImpl(dataSource);
+            return RecommendationsBloc(
+              herbRepository: herbRepository,
+              storeRepository: StoreRepository(),
+            )..add(FetchRecommendations());
+          },
         ),
       ],
       child: BlocBuilder<DashboardCubit, DashboardState>(

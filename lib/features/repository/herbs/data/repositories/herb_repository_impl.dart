@@ -85,6 +85,13 @@ Future<List<Herb>> searchHerbs(String query) async {
   }
 
   @override
+  Future<Herb> addHerbImage(HerbImage image) async {
+    final model = HerbImageModel.fromEntity(image);
+    final updatedModel = await dataSource.addHerbImage(model);
+    return updatedModel.toEntity();
+  }
+
+  @override
   Future<Herb> createHerb(Herb herb) async {
   final model = HerbModel.fromEntity(herb);
 
