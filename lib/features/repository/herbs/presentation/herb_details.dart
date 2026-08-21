@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:zim_herbs_repo/features/repository/herbs/bloc/herb_detail_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb_detail_cubit.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/herb_repository.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 
