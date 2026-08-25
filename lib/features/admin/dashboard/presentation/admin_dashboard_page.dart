@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart' as conn;
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -22,6 +24,55 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _activeIndex = 0;
 
+  Future<bool> _onWillPop(BuildContext context) async {
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: Icon(
+          Icons.exit_to_app_rounded,
+          size: 40,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        title: const Text(
+          'Exit Zim Herbs?',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Are you sure you want to exit the application?',
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: OutlinedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Stay'),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    );
+    return shouldExit ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
@@ -31,7 +82,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       create: (_) => DashboardCubit(),
       child: BlocBuilder<DashboardCubit, DashboardState>(
         builder: (context, state) {
-          return Scaffold(
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) async {
+              if (didPop) return;
+              final shouldExit = await _onWillPop(context);
+              if (shouldExit) {
+                if (Platform.isAndroid) {
+                  SystemNavigator.pop();
+                } else {
+                  exit(0);
+                }
+              }
+            },
+            child: Scaffold(
             key: _scaffoldKey,
             backgroundColor: Theme.of(context).colorScheme.surface,
 
@@ -173,6 +237,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                 ),
               ],
+            ),
             ),
           );
         },

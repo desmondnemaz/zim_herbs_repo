@@ -1,15 +1,22 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_models.dart';
+import '../models/treatment_model.dart';
 
-class TreatmentRepository {
-  final SupabaseClient _client;
+/// Communicates directly with the Supabase `treatments` table.
+///
+/// This is the DATA layer — it knows about Supabase.
+/// All other layers receive data through this class.
+class TreatmentRemoteDataSource {
+  final SupabaseClient client;
 
-  TreatmentRepository({SupabaseClient? client})
-    : _client = client ?? Supabase.instance.client;
+  TreatmentRemoteDataSource(this.client);
 
-  /// Fetch all treatments with their conditions and herbs
+  // ============================================================
+  // GET ALL TREATMENTS
+  // ============================================================
+
+  /// Fetch all treatments with their conditions and herbs.
   Future<List<TreatmentModel>> getAllTreatments() async {
-    final response = await _client
+    final response = await client
         .from('treatments')
         .select('''
           *,
@@ -23,10 +30,14 @@ class TreatmentRepository {
         .toList();
   }
 
-  /// Fetch a single treatment by ID with its conditions and herbs
+  // ============================================================
+  // GET SINGLE TREATMENT
+  // ============================================================
+
+  /// Fetch one treatment by its ID.
   Future<TreatmentModel?> getTreatmentById(String id) async {
     final response =
-        await _client
+        await client
             .from('treatments')
             .select('''
           *,
@@ -37,13 +48,16 @@ class TreatmentRepository {
             .maybeSingle();
 
     if (response == null) return null;
-
     return TreatmentModel.fromJson(response);
   }
 
-  /// Search treatments by name or condition
+  // ============================================================
+  // SEARCH TREATMENTS
+  // ============================================================
+
+  /// Search treatments by name or condition name.
   Future<List<TreatmentModel>> searchTreatments(String query) async {
-    final response = await _client
+    final response = await client
         .from('treatments')
         .select('''
           *,
@@ -58,11 +72,15 @@ class TreatmentRepository {
         .toList();
   }
 
-  /// Get treatments filtered by a specific condition
+  // ============================================================
+  // GET TREATMENTS BY CONDITION
+  // ============================================================
+
+  /// Get treatments for a specific condition.
   Future<List<TreatmentModel>> getTreatmentsByCondition(
     String conditionId,
   ) async {
-    final response = await _client
+    final response = await client
         .from('treatments')
         .select('''
           *,
@@ -77,11 +95,13 @@ class TreatmentRepository {
         .toList();
   }
 
-  /// Get treatments that use a specific herb
+  // ============================================================
+  // GET TREATMENTS BY HERB
+  // ============================================================
+
+  /// Get treatments that use a specific herb.
   Future<List<TreatmentModel>> getTreatmentsByHerbId(String herbId) async {
-    // We want treatments where ANY of the treatment_herbs match the herbId.
-    // Using !inner on treatment_herbs forces an inner join, filtering out treatments with no matching herbs.
-    final response = await _client
+    final response = await client
         .from('treatments')
         .select('''
           *,
@@ -95,23 +115,34 @@ class TreatmentRepository {
         .toList();
   }
 
-  /// Create a new treatment with herbs
+  // ============================================================
+  // GET TREATMENT COUNT
+  // ============================================================
+
+  /// Get the total number of treatments.
+  Future<int> getTreatmentsCount() async {
+    return await client.from('treatments').count(CountOption.exact);
+  }
+
+  // ============================================================
+  // CREATE TREATMENT
+  // ============================================================
+
+  /// Create a new treatment and its associated herb entries.
   Future<TreatmentModel> createTreatment(
     TreatmentModel treatment,
     List<TreatmentHerbModel> herbs,
   ) async {
-    // 1. Insert Treatment
+    // 1. Insert Treatment core data.
     final treatmentData = treatment.toJson();
     treatmentData.remove('id');
     treatmentData.remove('created_at');
     treatmentData.remove('updated_at');
-
-    // Remove complex nested objects before insert
     treatmentData.remove('treatment_herbs');
     treatmentData.remove('conditions');
 
     final treatmentResponse =
-        await _client
+        await client
             .from('treatments')
             .insert(treatmentData)
             .select()
@@ -119,7 +150,7 @@ class TreatmentRepository {
 
     final newTreatmentId = treatmentResponse['id'] as String;
 
-    // 2. Insert Treatment Herbs
+    // 2. Insert Treatment Herbs.
     List<Map<String, dynamic>> insertedHerbs = [];
     if (herbs.isNotEmpty) {
       final herbsData =
@@ -129,30 +160,29 @@ class TreatmentRepository {
             data.remove('id');
             data.remove('created_at');
             data.remove('updated_at');
-            data.remove('herbs'); // Remove nested herb model
+            data.remove('herbs');
             return data;
           }).toList();
 
       final herbsResponse =
-          await _client.from('treatment_herbs').insert(herbsData).select();
+          await client.from('treatment_herbs').insert(herbsData).select();
       insertedHerbs = List<Map<String, dynamic>>.from(herbsResponse);
     }
 
-    // 3. Construct and return full object (partial, usually we'd re-fetch)
+    // 3. Return partial model (caller may re-fetch for full data).
     return TreatmentModel.fromJson({
       ...treatmentResponse,
       'treatment_herbs': insertedHerbs,
     });
   }
 
-  /// Get total count of treatments
-  Future<int> getTreatmentsCount() async {
-    return await _client.from('treatments').count(CountOption.exact);
-  }
+  // ============================================================
+  // UPDATE TREATMENT
+  // ============================================================
 
-  /// Update an existing treatment
+  /// Update an existing treatment and refresh its herb associations.
   Future<TreatmentModel> updateTreatment(TreatmentModel treatment) async {
-    // 1. Update Treatment core data
+    // 1. Update core treatment data.
     final treatmentData = treatment.toJson();
     treatmentData.remove('id');
     treatmentData.remove('created_at');
@@ -160,13 +190,13 @@ class TreatmentRepository {
     treatmentData.remove('treatment_herbs');
     treatmentData.remove('conditions');
 
-    await _client
+    await client
         .from('treatments')
         .update(treatmentData)
         .eq('id', treatment.id);
 
-    // 2. Refresh Treatment Herbs: Delete old and insert new
-    await _client
+    // 2. Refresh herb associations: delete old, insert new.
+    await client
         .from('treatment_herbs')
         .delete()
         .eq('treatment_id', treatment.id);
@@ -183,21 +213,29 @@ class TreatmentRepository {
             return data;
           }).toList();
 
-      await _client.from('treatment_herbs').insert(herbsData);
+      await client.from('treatment_herbs').insert(herbsData);
     }
 
-    // 3. Re-fetch current state to ensure full object is returned
-    return await getTreatmentById(treatment.id) ?? treatment;
+    // 3. Re-fetch updated state.
+    return (await getTreatmentById(treatment.id)) ?? treatment;
   }
 
-  /// Delete a treatment
+  // ============================================================
+  // DELETE TREATMENT
+  // ============================================================
+
+  /// Delete a treatment by its ID.
   Future<void> deleteTreatment(String id) async {
-    await _client.from('treatments').delete().eq('id', id);
+    await client.from('treatments').delete().eq('id', id);
   }
 
-  /// Approve or disapprove a treatment
+  // ============================================================
+  // APPROVE TREATMENT
+  // ============================================================
+
+  /// Approve or disapprove a treatment.
   Future<void> approveTreatment(String id, {bool approved = true}) async {
-    await _client
+    await client
         .from('treatments')
         .update({'is_approved': approved})
         .eq('id', id);

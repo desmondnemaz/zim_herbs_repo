@@ -2,8 +2,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/herb.dart';
 import '../../domain/repositories/herb_repository.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_models.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/domain/entities/treatment.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/domain/repositories/treatment_repository.dart';
 
 abstract class HerbDetailState extends Equatable {
   const HerbDetailState();
@@ -18,7 +18,7 @@ class HerbDetailLoading extends HerbDetailState {}
 
 class HerbDetailLoaded extends HerbDetailState {
   final Herb herb;
-  final List<TreatmentModel> treatments;
+  final List<Treatment> treatments;
 
   const HerbDetailLoaded({required this.herb, required this.treatments});
 
@@ -55,7 +55,7 @@ class HerbDetailCubit extends Cubit<HerbDetailState> {
       ]);
 
       final herb = results[0] as Herb?;
-      final treatments = results[1] as List<TreatmentModel>;
+      final treatments = results[1] as List<Treatment>;
 
       if (herb == null) {
         emit(const HerbDetailError("Herb not found"));

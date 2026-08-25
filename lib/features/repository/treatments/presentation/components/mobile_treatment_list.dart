@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/bloc/treatment_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_models.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/treatment_details.dart';
+
+import 'package:zim_herbs_repo/features/repository/treatments/domain/entities/treatment.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/pages/treatment_details.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 
 class MobileTreatmentList extends StatelessWidget {
-  final List<TreatmentModel> treatments;
+  final List<Treatment> treatments;
   final ResponsiveSize rs;
 
   const MobileTreatmentList({
@@ -46,7 +47,7 @@ class MobileTreatmentList extends StatelessWidget {
                 vertical: 12,
               ),
               leading:
-                  treatment.condition != null
+                  treatment.conditionBodySystem != null
                       ? Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -54,7 +55,7 @@ class MobileTreatmentList extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: SvgPicture.asset(
-                          getBodySystemSvg(treatment.condition!.bodySystem),
+                          getBodySystemSvg(treatment.conditionBodySystem!),
                           width: 24,
                           height: 24,
                           colorFilter: ColorFilter.mode(
@@ -65,7 +66,7 @@ class MobileTreatmentList extends StatelessWidget {
                       )
                       : null,
               title: Text(
-                treatment.name,
+                treatment.displayName,
                 style: GoogleFonts.philosopher(
                   fontWeight: FontWeight.bold,
                   fontSize: 17,
@@ -76,7 +77,7 @@ class MobileTreatmentList extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
-                  if (treatment.condition != null)
+                  if (treatment.conditionName != null)
                     Row(
                       children: [
                         Container(
@@ -94,7 +95,7 @@ class MobileTreatmentList extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            treatment.condition!.name.toUpperCase(),
+                            treatment.conditionName!.toUpperCase(),
                             style: GoogleFonts.outfit(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
@@ -132,13 +133,13 @@ class MobileTreatmentList extends StatelessWidget {
                 ).colorScheme.onPrimary.withValues(alpha: 0.4),
               ),
               onTap: () {
-                final bloc = context.read<TreatmentBloc>();
+                final cubit = context.read<TreatmentCubit>();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
                         (context) => BlocProvider.value(
-                          value: bloc,
+                          value: cubit,
                           child: TreatmentDetailsPage(
                             treatmentId: treatment.id,
                           ),

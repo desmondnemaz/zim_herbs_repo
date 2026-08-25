@@ -18,7 +18,7 @@
 /// Domain / Cubit
 library;
 
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_models.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/data/models/treatment_model.dart';
 
 /// Import the DOMAIN entity.
 ///

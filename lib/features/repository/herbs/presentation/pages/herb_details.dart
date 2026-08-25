@@ -7,8 +7,9 @@ import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_
 import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb_detail_cubit.dart';
 
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/treatments_list.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/data/datasources/treatment_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/data/repositories/treatment_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/pages/treatments_list.dart';
 
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -82,7 +83,9 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
         final herbRepository = HerbRepositoryImpl(dataSource);
         return HerbDetailCubit(
           herbRepository: herbRepository,
-          treatmentRepository: TreatmentRepository(client: client),
+          treatmentRepository: TreatmentRepositoryImpl(
+            TreatmentRemoteDataSource(client),
+          ),
         )..loadHerb(widget.herbId);
       },
       child: BlocBuilder<HerbDetailCubit, HerbDetailState>(
@@ -658,34 +661,20 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                         spacing: 8,
                                         runSpacing: 8,
                                         children: treatments
-                                            .map(
-                                              (treatment) =>
-                                                  treatment.condition,
-                                            )
-                                            .where(
-                                              (condition) =>
-                                                  condition !=
-                                                  null,
-                                            )
+                                            .where((treatment) => treatment.conditionName != null)
+                                            .map((treatment) => (id: treatment.conditionId, name: treatment.conditionName!))
                                             .toSet()
                                             .map(
-                                              (condition) {
+                                              (cond) {
                                                 return _ConditionBadge(
-                                                  name:
-                                                      condition!
-                                                          .name,
+                                                  name: cond.name,
                                                   onTap: () {
                                                     Navigator.push(
                                                       context,
                                                       MaterialPageRoute(
                                                         builder:
-                                                            (
-                                                              context,
-                                                            ) =>
-                                                                TreatmentsList(
-                                                          initialConditionId:
-                                                              condition
-                                                                  .id,
+                                                            (context) => TreatmentsList(
+                                                          initialConditionId: cond.id,
                                                         ),
                                                       ),
                                                     );

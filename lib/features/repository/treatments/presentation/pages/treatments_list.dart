@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/bloc/treatment_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:zim_herbs_repo/features/admin/treatment_management/presentation/add_edit_treatment_page.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/data/datasources/treatment_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/data/repositories/treatment_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/presentation/components/desktop_treatment_list.dart';
 import 'package:zim_herbs_repo/features/repository/treatments/presentation/components/mobile_treatment_list.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_state.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 
 class TreatmentsList extends StatelessWidget {
   final String? initialConditionId;
@@ -19,13 +22,21 @@ class TreatmentsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final client = Supabase.instance.client;
+    final repository = TreatmentRepositoryImpl(
+      TreatmentRemoteDataSource(client),
+    );
+
     return BlocProvider(
-      create:
-          (context) => TreatmentBloc(TreatmentRepository())..add(
-            initialConditionId != null
-                ? FilterTreatmentsByCondition(initialConditionId)
-                : LoadTreatments(),
-          ),
+      create: (context) {
+        final cubit = TreatmentCubit(repository);
+        if (initialConditionId != null) {
+          cubit.filterByCondition(initialConditionId);
+        } else {
+          cubit.loadTreatments();
+        }
+        return cubit;
+      },
       child: _TreatmentsListView(initialConditionId: initialConditionId),
     );
   }
@@ -61,7 +72,7 @@ class _TreatmentsListView extends StatelessWidget {
           );
           if (!context.mounted) return;
           if (result == true) {
-            context.read<TreatmentBloc>().add(RefreshTreatments());
+            context.read<TreatmentCubit>().refreshTreatments();
           }
         },
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -79,7 +90,7 @@ class _TreatmentsListView extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
           ),
-          child: BlocListener<TreatmentBloc, TreatmentState>(
+          child: BlocListener<TreatmentCubit, TreatmentState>(
             listener: (context, state) {
               if (state is TreatmentOperationSuccess) {
                 ScaffoldMessenger.of(
@@ -100,7 +111,7 @@ class _TreatmentsListView extends StatelessWidget {
                 _buildHeader(context, rs),
 
                 // Counter
-                BlocBuilder<TreatmentBloc, TreatmentState>(
+                BlocBuilder<TreatmentCubit, TreatmentState>(
                   builder: (context, state) {
                     if (state is TreatmentLoaded) {
                       return Padding(
@@ -151,16 +162,12 @@ class _TreatmentsListView extends StatelessWidget {
                               );
                             } catch (_) {}
                           }
-                          return BlocBuilder<TreatmentBloc, TreatmentState>(
-                            builder: (context, state) {
-                              return _ConditionFilterDropdown(
-                                conditions: conditions,
-                                initialValue: initialCondition,
-                                onConditionSelected: (c) {
-                                  context.read<TreatmentBloc>().add(
-                                    FilterTreatmentsByCondition(c?.id),
-                                  );
-                                },
+                          return _ConditionFilterDropdown(
+                            conditions: conditions,
+                            initialValue: initialCondition,
+                            onConditionSelected: (c) {
+                              context.read<TreatmentCubit>().filterByCondition(
+                                c?.id,
                               );
                             },
                           );
@@ -171,13 +178,11 @@ class _TreatmentsListView extends StatelessWidget {
                 ),
 
                 Expanded(
-                  child: BlocBuilder<TreatmentBloc, TreatmentState>(
+                  child: BlocBuilder<TreatmentCubit, TreatmentState>(
                     builder: (context, state) {
                       if (state is TreatmentLoading) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      // Note: Errors are handled by Listener snackbar,
-                      // but we still show the list if we have one.
                       if (state is TreatmentLoaded) {
                         if (state.treatments.isEmpty) {
                           return const Center(
@@ -187,9 +192,9 @@ class _TreatmentsListView extends StatelessWidget {
 
                         return RefreshIndicator(
                           onRefresh: () async {
-                            context.read<TreatmentBloc>().add(
-                              RefreshTreatments(),
-                            );
+                            context
+                                .read<TreatmentCubit>()
+                                .refreshTreatments();
                           },
                           child:
                               (Responsive.isMobile(context)

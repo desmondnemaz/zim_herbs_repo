@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_models.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/treatment_repository.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/bloc/treatment_bloc.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/bloc/treatment_detail_cubit.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/domain/entities/treatment.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/data/datasources/treatment_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/data/repositories/treatment_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_state.dart';
+import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_detail_cubit.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/features/admin/treatment_management/presentation/add_edit_treatment_page.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -44,22 +47,23 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     _animationController.forward();
   }
 
-  void _handleApprove(BuildContext context, TreatmentModel treatment) {
-    context.read<TreatmentBloc>().add(
-      ApproveTreatment(treatment.id, !treatment.isApproved),
+  void _handleApprove(BuildContext context, Treatment treatment) {
+    context.read<TreatmentCubit>().approveTreatment(
+      treatment.id,
+      approved: !treatment.isApproved,
     );
   }
 
   Future<void> _handleDelete(
     BuildContext context,
-    TreatmentModel treatment,
+    Treatment treatment,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
             title: const Text('Delete Treatment'),
-            content: Text('Are you sure you want to delete ${treatment.name}?'),
+            content: Text('Are you sure you want to delete ${treatment.displayName}?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -75,7 +79,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     );
 
     if (confirmed == true && context.mounted) {
-      context.read<TreatmentBloc>().add(DeleteTreatment(treatment.id));
+      context.read<TreatmentCubit>().deleteTreatment(treatment.id);
     }
   }
 
@@ -89,19 +93,24 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
 
+    final client = Supabase.instance.client;
+    final repository = TreatmentRepositoryImpl(
+      TreatmentRemoteDataSource(client),
+    );
+
     return MultiBlocProvider(
       providers: [
         BlocProvider(
           create:
               (context) =>
-                  TreatmentDetailCubit(TreatmentRepository())
+                  TreatmentDetailCubit(repository)
                     ..loadTreatment(widget.treatmentId),
         ),
-        BlocProvider.value(value: context.read<TreatmentBloc>()),
+        BlocProvider.value(value: context.read<TreatmentCubit>()),
       ],
       child: MultiBlocListener(
         listeners: [
-          BlocListener<TreatmentBloc, TreatmentState>(
+          BlocListener<TreatmentCubit, TreatmentState>(
             listener: (context, state) {
               if (state is TreatmentOperationSuccess) {
                 ScaffoldMessenger.of(
@@ -226,9 +235,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                               context
                                   .read<TreatmentDetailCubit>()
                                   .loadTreatment(widget.treatmentId);
-                              context.read<TreatmentBloc>().add(
-                                RefreshTreatments(),
-                              );
+                              context.read<TreatmentCubit>().refreshTreatments();
                             }
                           },
                           tooltip: 'Edit',
@@ -265,7 +272,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              treatment.name,
+                              treatment.displayName,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: rs.appBarTitleFont,
@@ -531,12 +538,12 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     );
   }
 
-  Widget _buildHeaderChips(TreatmentModel treatment, ResponsiveSize rs) {
+  Widget _buildHeaderChips(Treatment treatment, ResponsiveSize rs) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        if (treatment.condition != null)
+        if (treatment.conditionName != null)
           Chip(
             avatar: const Icon(
               Icons.health_and_safety,
@@ -544,7 +551,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
               color: Colors.white,
             ),
             label: Text(
-              treatment.condition!.name,
+              treatment.conditionName!,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -581,9 +588,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     );
   }
 
-  Widget _buildHerbItem(TreatmentHerbModel th, ResponsiveSize rs) {
-    final imageUrl = th.herb?.primaryImageUrl;
-
+  Widget _buildHerbItem(TreatmentHerb th, ResponsiveSize rs) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -603,7 +608,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          key: PageStorageKey<String>(th.herb?.id ?? 'herb_tile'),
+          key: PageStorageKey<String>(th.herbId),
           tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           leading: Container(
@@ -614,24 +619,22 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                 context,
               ).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              image:
-                  imageUrl != null
-                      ? DecorationImage(
-                        image: NetworkImage(imageUrl),
-                        fit: BoxFit.cover,
-                      )
-                      : null,
-            ),
-            child:
-                imageUrl == null
-                    ? Icon(
-                      Icons.spa,
-                      color: Theme.of(context).colorScheme.primary,
+              image: th.herbImageUrl != null
+                  ? DecorationImage(
+                      image: NetworkImage(th.herbImageUrl!),
+                      fit: BoxFit.cover,
                     )
-                    : null,
+                  : null,
+            ),
+            child: th.herbImageUrl == null
+                ? Icon(
+                    Icons.spa,
+                    color: Theme.of(context).colorScheme.primary,
+                  )
+                : null,
           ),
           title: Text(
-            th.herb?.nameEn ?? 'Unknown Herb',
+            th.herbName ?? 'Unknown Herb',
             style: TextStyle(
               fontSize: rs.subtitleFont,
               fontWeight: FontWeight.bold,
