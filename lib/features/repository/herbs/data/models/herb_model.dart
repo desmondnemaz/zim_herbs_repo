@@ -18,7 +18,7 @@
 /// Domain / Cubit
 library;
 
-import 'package:zim_herbs_repo/features/repository/treatments/data/models/treatment_model.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/models/remedy_model.dart';
 
 /// Import the DOMAIN entity.
 ///
@@ -73,19 +73,13 @@ class HerbModel {
   /// HerbImageModel
   final List<HerbImageModel> images;
 
-  /// Treatments associated with this herb.
-  ///
-  /// TreatmentModel belongs to the DATA layer
-  /// because it represents database data.
-  final List<TreatmentModel> treatments;
+  /// Remedies associated with this herb.
+  final List<RemedyModel> remedies;
 
+  /// Backwards-compatible alias for remedies.
+  List<RemedyModel> get treatments => remedies;
 
   /// Constructor for creating a HerbModel manually.
-  ///
-  /// `required` means these values must be provided.
-  ///
-  /// Images and treatments default to empty lists
-  /// when no values are provided.
   HerbModel({
     required this.id,
     required this.nameEn,
@@ -95,8 +89,9 @@ class HerbModel {
     this.createdAt,
     this.updatedAt,
     this.images = const [],
-    this.treatments = const [],
-  });
+    List<RemedyModel>? remedies,
+    List<RemedyModel>? treatments,
+  }) : remedies = remedies ?? treatments ?? const [];
 
 
   /// ==========================================================
@@ -253,42 +248,32 @@ class HerbModel {
       /// Attach the images we extracted above.
       images: images,
 
-      /// Extract treatment information.
+      /// Extract remedy information.
       ///
       /// Supabase returns:
       ///
-      /// treatment_herbs
+      /// remedy_herbs
       ///       ↓
-      /// treatments
+      /// remedies
       ///
       /// Therefore we go inside the relationship
-      /// to get the actual treatment object.
-      treatments:
-          (json['treatment_herbs'] as List<dynamic>?)
+      /// to get the actual remedy object.
+      remedies:
+          ((json['remedy_herbs'] ?? json['treatment_herbs']) as List<dynamic>?)
               ?.map((e) {
-
-                /// Get the nested treatment object.
-                final treatmentJson =
-                    e['treatments']
+                final remedyJson =
+                    (e['remedies'] ?? e['treatments'])
                         as Map<String, dynamic>?;
 
-                /// If there is no treatment,
-                /// return null.
-                if (treatmentJson == null) {
+                if (remedyJson == null) {
                   return null;
                 }
 
-                /// Convert the JSON treatment into
-                /// a TreatmentModel.
-                return TreatmentModel.fromJson(
-                  treatmentJson,
+                return RemedyModel.fromJson(
+                  remedyJson,
                 );
               })
-
-              /// Remove null values from the list.
-              .whereType<TreatmentModel>()
-
-              /// Convert the result into a List.
+              .whereType<RemedyModel>()
               .toList() ??
           [],
     );

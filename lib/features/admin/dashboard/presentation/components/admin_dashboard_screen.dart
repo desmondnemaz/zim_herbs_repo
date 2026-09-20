@@ -18,7 +18,7 @@ class AdminDashboardScreen extends StatelessWidget {
     'Overview',
     'Herb Management',
     'Condition Management',
-    'Treatment Management',
+    'Remedy Management',
     'Marketplace',
     'User Management',
     'Reports',

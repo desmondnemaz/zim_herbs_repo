@@ -7,9 +7,9 @@ import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_
 import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb_detail_cubit.dart';
 
-import 'package:zim_herbs_repo/features/repository/treatments/data/datasources/treatment_remote_datasource.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/repositories/treatment_repository_impl.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/pages/treatments_list.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/remedy_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedies_list.dart';
 
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -83,8 +83,8 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
         final herbRepository = HerbRepositoryImpl(dataSource);
         return HerbDetailCubit(
           herbRepository: herbRepository,
-          treatmentRepository: TreatmentRepositoryImpl(
-            TreatmentRemoteDataSource(client),
+          remedyRepository: RemedyRepositoryImpl(
+            RemedyRemoteDataSource(client),
           ),
         )..loadHerb(widget.herbId);
       },
@@ -673,7 +673,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                                       context,
                                                       MaterialPageRoute(
                                                         builder:
-                                                            (context) => TreatmentsList(
+                                                            (context) => RemediesList(
                                                           initialConditionId: cond.id,
                                                         ),
                                                       ),

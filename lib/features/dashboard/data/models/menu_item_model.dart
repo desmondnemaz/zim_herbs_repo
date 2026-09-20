@@ -26,15 +26,15 @@ const List<MenuItemModel> zimHerbalMenuItems = [
       category: MenuCategory.core,
       routeName: '/herbs'),
   MenuItemModel(
-      title: "Treatments",
+      title: "Remedies",
       icon: Icons.healing,
       category: MenuCategory.core,
-      routeName: '/treatments'),
+      routeName: '/remedies'),
   MenuItemModel(
-      title: "Diseases",
+      title: "Conditions",
       icon: Icons.sick_outlined,
       category: MenuCategory.core,
-      routeName: '/diseases'),
+      routeName: '/conditions'),
   MenuItemModel(
       title: "Herbal Store",
       icon: Icons.storefront_outlined,

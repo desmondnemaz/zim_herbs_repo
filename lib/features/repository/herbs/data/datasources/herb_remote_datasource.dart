@@ -23,9 +23,9 @@ class HerbRemoteDataSource {
         .select('''
           *,
           herb_images(*),
-          treatment_herbs(
+          remedy_herbs(
             *,
-            treatments(
+            remedies(
               *,
               conditions(*)
             )
@@ -55,9 +55,9 @@ class HerbRemoteDataSource {
         .select('''
           *,
           herb_images(*),
-          treatment_herbs(
+          remedy_herbs(
             *,
-            treatments(
+            remedies(
               *,
               conditions(*)
             )
@@ -94,9 +94,9 @@ class HerbRemoteDataSource {
         .select('''
           *,
           herb_images(*),
-          treatment_herbs(
+          remedy_herbs(
             *,
-            treatments(
+            remedies(
               *,
               conditions(*)
             )
@@ -141,9 +141,9 @@ class HerbRemoteDataSource {
         .select('''
           *,
           herb_images(*),
-          treatment_herbs(
+          remedy_herbs(
             *,
-            treatments(
+            remedies(
               *,
               conditions(*)
             )
@@ -172,9 +172,9 @@ class HerbRemoteDataSource {
         .select('''
           *,
           herb_images(*),
-          treatment_herbs(
+          remedy_herbs(
             *,
-            treatments(
+            remedies(
               *,
               conditions(*)
             )
@@ -209,16 +209,16 @@ class HerbRemoteDataSource {
         .select('''
           *,
           herb_images(*),
-          treatment_herbs!inner(
+          remedy_herbs!inner(
             *,
-            treatments(
+            remedies(
               *,
               conditions(*)
             )
           )
         ''')
         .eq(
-          'treatment_herbs.treatments.condition_id',
+          'remedy_herbs.remedies.condition_id',
           conditionId,
         )
         .order('name_en');

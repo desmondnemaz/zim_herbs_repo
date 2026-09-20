@@ -3,20 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'package:zim_herbs_repo/features/repository/treatments/domain/entities/treatment.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_cubit.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/pages/treatment_details.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedy_details.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
-
-class MobileTreatmentList extends StatelessWidget {
-  final List<Treatment> treatments;
+class MobileRemedyList extends StatelessWidget {
+  final List<Remedy> remedies;
   final ResponsiveSize rs;
 
-  const MobileTreatmentList({
+  const MobileRemedyList({
     super.key,
-    required this.treatments,
+    required this.remedies,
     required this.rs,
   });
 
@@ -24,10 +23,10 @@ class MobileTreatmentList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: EdgeInsets.all(rs.defaultPadding),
-      itemCount: treatments.length,
+      itemCount: remedies.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final treatment = treatments[index];
+        final remedy = remedies[index];
         return Card(
           color: Theme.of(context).colorScheme.primary,
           elevation: 2,
@@ -47,7 +46,7 @@ class MobileTreatmentList extends StatelessWidget {
                 vertical: 12,
               ),
               leading:
-                  treatment.conditionBodySystem != null
+                  remedy.conditionBodySystem != null
                       ? Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -55,7 +54,7 @@ class MobileTreatmentList extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: SvgPicture.asset(
-                          getBodySystemSvg(treatment.conditionBodySystem!),
+                          getBodySystemSvg(remedy.conditionBodySystem!),
                           width: 24,
                           height: 24,
                           colorFilter: ColorFilter.mode(
@@ -66,7 +65,7 @@ class MobileTreatmentList extends StatelessWidget {
                       )
                       : null,
               title: Text(
-                treatment.displayName,
+                remedy.displayName,
                 style: GoogleFonts.philosopher(
                   fontWeight: FontWeight.bold,
                   fontSize: 17,
@@ -77,7 +76,7 @@ class MobileTreatmentList extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
-                  if (treatment.conditionName != null)
+                  if (remedy.conditionName != null)
                     Row(
                       children: [
                         Container(
@@ -95,7 +94,7 @@ class MobileTreatmentList extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            treatment.conditionName!.toUpperCase(),
+                            remedy.conditionName!.toUpperCase(),
                             style: GoogleFonts.outfit(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
@@ -112,7 +111,7 @@ class MobileTreatmentList extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${treatment.treatmentHerbs.length} Herbs',
+                          '${remedy.remedyHerbs.length} Herbs',
                           style: GoogleFonts.inter(
                             color: Theme.of(
                               context,
@@ -133,15 +132,15 @@ class MobileTreatmentList extends StatelessWidget {
                 ).colorScheme.onPrimary.withValues(alpha: 0.4),
               ),
               onTap: () {
-                final cubit = context.read<TreatmentCubit>();
+                final cubit = context.read<RemedyCubit>();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
                         (context) => BlocProvider.value(
                           value: cubit,
-                          child: TreatmentDetailsPage(
-                            treatmentId: treatment.id,
+                          child: RemedyDetailsPage(
+                            remedyId: remedy.id,
                           ),
                         ),
                   ),

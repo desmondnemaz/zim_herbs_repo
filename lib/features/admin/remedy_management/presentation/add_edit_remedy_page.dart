@@ -7,18 +7,18 @@ import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/co
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/datasources/treatment_remote_datasource.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/repositories/treatment_repository_impl.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/domain/entities/treatment.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/remedy_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_form_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_form_cubit.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
-/// Page for Creating and Editing Treatments.
-/// Uses [TreatmentFormBloc] to manage state.
-class AddEditTreatmentPage extends StatelessWidget {
-  final Treatment? treatment;
-  const AddEditTreatmentPage({super.key, this.treatment});
+/// Page for Creating and Editing Remedies.
+/// Uses [RemedyFormCubit] to manage state.
+class AddEditRemedyPage extends StatelessWidget {
+  final Remedy? remedy;
+  const AddEditRemedyPage({super.key, this.remedy});
 
   @override
   Widget build(BuildContext context) {
@@ -29,29 +29,29 @@ class AddEditTreatmentPage extends StatelessWidget {
         final herbRepository = HerbRepositoryImpl(herbDataSource);
         final conditionDataSource = ConditionRemoteDataSource(client);
         final conditionRepository = ConditionRepositoryImpl(conditionDataSource);
-        final treatmentRepository = TreatmentRepositoryImpl(
-          TreatmentRemoteDataSource(client),
+        final remedyRepository = RemedyRepositoryImpl(
+          RemedyRemoteDataSource(client),
         );
-        return TreatmentFormCubit(
+        return RemedyFormCubit(
           herbRepository: herbRepository,
-          treatmentRepository: treatmentRepository,
+          remedyRepository: remedyRepository,
           conditionRepository: conditionRepository,
-        )..loadFormResources(treatment);
+        )..loadFormResources(remedy);
       },
-      child: _TreatmentFormView(treatment: treatment),
+      child: _RemedyFormView(remedy: remedy),
     );
   }
 }
 
-class _TreatmentFormView extends StatefulWidget {
-  final Treatment? treatment;
-  const _TreatmentFormView({this.treatment});
+class _RemedyFormView extends StatefulWidget {
+  final Remedy? remedy;
+  const _RemedyFormView({this.remedy});
 
   @override
-  State<_TreatmentFormView> createState() => _TreatmentFormViewState();
+  State<_RemedyFormView> createState() => _RemedyFormViewState();
 }
 
-class _TreatmentFormViewState extends State<_TreatmentFormView> {
+class _RemedyFormViewState extends State<_RemedyFormView> {
   final _formKey = GlobalKey<FormState>();
 
   // core controllers
@@ -74,18 +74,17 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
   @override
   void initState() {
     super.initState();
-    if (widget.treatment != null) {
-      _methodController.text = widget.treatment!.methodOfUse;
-      _preparationController.text = widget.treatment!.preparation;
-      _dosageInfantController.text = widget.treatment!.dosageInfants ?? '';
-      _dosageAdultController.text = widget.treatment!.dosageAdults ?? '';
-      _durationController.text = widget.treatment!.duration ?? '';
-      _frequencyController.text = widget.treatment!.frequency ?? '';
-      _notesController.text = widget.treatment!.notes ?? '';
-      _precautionsController.text = widget.treatment!.precautions ?? '';
-      _sideEffectsController.text = widget.treatment!.sideEffects ?? '';
-      _disclaimerController.text = widget.treatment!.disclaimer ?? '';
-      // Conditions and herbs will be handled by the Bloc listener once loaded
+    if (widget.remedy != null) {
+      _methodController.text = widget.remedy!.methodOfUse;
+      _preparationController.text = widget.remedy!.preparation;
+      _dosageInfantController.text = widget.remedy!.dosageInfants ?? '';
+      _dosageAdultController.text = widget.remedy!.dosageAdults ?? '';
+      _durationController.text = widget.remedy!.duration ?? '';
+      _frequencyController.text = widget.remedy!.frequency ?? '';
+      _notesController.text = widget.remedy!.notes ?? '';
+      _precautionsController.text = widget.remedy!.precautions ?? '';
+      _sideEffectsController.text = widget.remedy!.sideEffects ?? '';
+      _disclaimerController.text = widget.remedy!.disclaimer ?? '';
     }
   }
 
@@ -107,7 +106,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
     super.dispose();
   }
 
-  void _onSubmit(BuildContext context, TreatmentFormState state) {
+  void _onSubmit(BuildContext context, RemedyFormState state) {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCondition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,7 +115,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
       return;
     }
 
-    List<TreatmentHerb> treatmentHerbs = [];
+    List<RemedyHerb> remedyHerbs = [];
 
     for (int i = 0; i < state.herbRows.length; i++) {
       final rowState = state.herbRows[i];
@@ -126,10 +125,10 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
         continue;
       }
 
-      treatmentHerbs.add(
-        TreatmentHerb(
+      remedyHerbs.add(
+        RemedyHerb(
           id: '',
-          treatmentId: '',
+          remedyId: '',
           herbId: rowState.selectedHerb!.id,
           quantity: controllers.quantity.text.isEmpty ? null : controllers.quantity.text,
           unit: controllers.unit.text.isEmpty ? null : controllers.unit.text,
@@ -140,7 +139,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
       );
     }
 
-    if (treatmentHerbs.isEmpty) {
+    if (remedyHerbs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please add at least one herb')),
       );
@@ -149,17 +148,17 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
 
     // Auto-generate name from the selected herbs (e.g. "Aloe vera + Moringa").
     // This keeps the DB column populated without requiring manual input.
-    final generatedName = treatmentHerbs
-        .map((th) => th.herbName ?? '')
+    final generatedName = remedyHerbs
+        .map((rh) => rh.herbName ?? '')
         .where((n) => n.isNotEmpty)
         .join(' + ');
 
-    final treatment = Treatment(
-      id: widget.treatment?.id ?? '',
+    final remedy = Remedy(
+      id: widget.remedy?.id ?? '',
       conditionId: _selectedCondition!.id,
       name: generatedName.isNotEmpty
           ? generatedName
-          : widget.treatment?.name ?? 'Treatment',
+          : widget.remedy?.name ?? 'Remedy',
       methodOfUse: _methodController.text,
       preparation: _preparationController.text,
       dosageInfants:
@@ -187,13 +186,13 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
           _disclaimerController.text.isEmpty
               ? null
               : _disclaimerController.text,
-      treatmentHerbs: treatmentHerbs,
-      isApproved: widget.treatment?.isApproved ?? false,
-      approvedAt: widget.treatment?.approvedAt,
-      approvedBy: widget.treatment?.approvedBy,
+      remedyHerbs: remedyHerbs,
+      isApproved: widget.remedy?.isApproved ?? false,
+      approvedAt: widget.remedy?.approvedAt,
+      approvedBy: widget.remedy?.approvedBy,
     );
 
-    context.read<TreatmentFormCubit>().submitTreatment(treatment);
+    context.read<RemedyFormCubit>().submitRemedy(remedy);
   }
 
   @override
@@ -203,32 +202,32 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.treatment == null ? 'New Treatment' : 'Edit Treatment',
+          widget.remedy == null ? 'New Remedy' : 'Edit Remedy',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.secondary,
       ),
-      body: BlocConsumer<TreatmentFormCubit, TreatmentFormState>(
+      body: BlocConsumer<RemedyFormCubit, RemedyFormState>(
         listener: (context, state) {
-          if (state.status == TreatmentFormStatus.success) {
+          if (state.status == RemedyFormStatus.success) {
             Navigator.pop(context, true);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Treatment saved successfully!')),
+              const SnackBar(content: Text('Remedy saved successfully!')),
             );
           }
-          if (state.status == TreatmentFormStatus.error) {
+          if (state.status == RemedyFormStatus.error) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Error: ${state.errorMessage}')),
             );
           }
         },
         builder: (context, state) {
-          if (state.status == TreatmentFormStatus.loaded) {
-            if (widget.treatment != null && _selectedCondition == null) {
+          if (state.status == RemedyFormStatus.loaded) {
+            if (widget.remedy != null && _selectedCondition == null) {
               try {
                 _selectedCondition = state.conditions.firstWhere(
-                  (c) => c.id == widget.treatment!.conditionId,
+                  (c) => c.id == widget.remedy!.conditionId,
                 );
               } catch (_) {}
             }
@@ -247,7 +246,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
             _rowControllers.removeLast().dispose();
           }
 
-          if (state.status == TreatmentFormStatus.loading) {
+          if (state.status == RemedyFormStatus.loading) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -275,7 +274,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                   const SizedBox(height: 20),
                   _buildSectionTitle('Herbs & Ingredients', rs),
                   Text(
-                    'Add herbs and their specific quantities for this treatment.',
+                    'Add herbs and their specific quantities for this remedy.',
                     style: TextStyle(
                       color: Theme.of(
                         context,
@@ -307,7 +306,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       onPressed:
-                          () => context.read<TreatmentFormCubit>().addHerbRow(),
+                          () => context.read<RemedyFormCubit>().addHerbRow(),
                       icon: const Icon(Icons.add),
                       label: const Text('Add Another Herb'),
                       style: TextButton.styleFrom(
@@ -345,7 +344,6 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                   const SizedBox(height: 20),
                   _buildSectionTitle('Dosage & Details', rs),
                   const SizedBox(height: 10),
-                  // Use Column for mobile, Row for tablet/desktop
                   rs.isMobile
                       ? Column(
                         children: [
@@ -382,7 +380,6 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                         ],
                       ),
                   const SizedBox(height: 10),
-                  // Use Column for mobile, Row for tablet/desktop
                   rs.isMobile
                       ? Column(
                         children: [
@@ -439,7 +436,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                     height: 50,
                     child: ElevatedButton(
                       onPressed:
-                          state.status == TreatmentFormStatus.submitting
+                          state.status == RemedyFormStatus.submitting
                               ? null
                               : () => _onSubmit(context, state),
                       style: ElevatedButton.styleFrom(
@@ -451,13 +448,13 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                         ),
                       ),
                       child:
-                          state.status == TreatmentFormStatus.submitting
+                          state.status == RemedyFormStatus.submitting
                               ? const CircularProgressIndicator(
                                 color: Colors.white,
                               )
                               : Text(
-                                widget.treatment == null
-                                    ? 'CREATE TREATMENT'
+                                widget.remedy == null
+                                    ? 'CREATE REMEDY'
                                     : 'SAVE CHANGES',
                                 style: TextStyle(
                                   fontSize: rs.subtitleFont,
@@ -560,7 +557,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
     BuildContext context,
     int index,
     List<Herb> herbs,
-    TreatmentHerbRow rowState,
+    RemedyHerbRow rowState,
     _HerbRowControllers controllers,
     ResponsiveSize rs,
   ) {
@@ -592,7 +589,7 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
                   itemLabelBuilder: (h) => h.nameEn,
                   onChanged: (val) {
                     if (val != null) {
-                      context.read<TreatmentFormCubit>().selectHerb(index, val);
+                      context.read<RemedyFormCubit>().selectHerb(index, val);
                     }
                   },
                 ),
@@ -600,13 +597,12 @@ class _TreatmentFormViewState extends State<_TreatmentFormView> {
               IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () {
-                  context.read<TreatmentFormCubit>().removeHerbRow(index);
+                  context.read<RemedyFormCubit>().removeHerbRow(index);
                 },
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Use Column for mobile, Row for tablet/desktop
           rs.isMobile
               ? Column(
                 children: [

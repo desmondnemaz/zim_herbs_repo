@@ -1,15 +1,15 @@
-/// Domain Entities for the Treatment Feature.
+/// Domain Entities for the Remedy Feature.
 ///
 /// Pure business entities independent of any database or framework.
 library;
 
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 
-/// Represents a single herb used within a treatment,
+/// Represents a single herb used within a remedy,
 /// including its role, quantity, and preparation info.
-class TreatmentHerb {
+class RemedyHerb {
   final String id;
-  final String treatmentId;
+  final String remedyId;
   final String herbId;
   final bool isMain;
   final String? quantity;
@@ -22,9 +22,9 @@ class TreatmentHerb {
   /// Denormalised herb image URL for display convenience.
   final String? herbImageUrl;
 
-  const TreatmentHerb({
+  const RemedyHerb({
     required this.id,
-    required this.treatmentId,
+    required this.remedyId,
     required this.herbId,
     this.isMain = false,
     this.quantity,
@@ -35,10 +35,10 @@ class TreatmentHerb {
   });
 }
 
-/// Pure domain entity representing a Treatment.
+/// Pure domain entity representing a Remedy.
 ///
 /// Independent of database or serialisation concerns.
-class Treatment {
+class Remedy {
   final String id;
   final String conditionId;
   final String name;
@@ -74,10 +74,10 @@ class Treatment {
   /// Denormalised condition body system for display/icon convenience.
   final BodySystem? conditionBodySystem;
 
-  /// Herbs used in this treatment (domain sub-entities).
-  final List<TreatmentHerb> treatmentHerbs;
+  /// Herbs used in this remedy (domain sub-entities).
+  final List<RemedyHerb> remedyHerbs;
 
-  const Treatment({
+  const Remedy({
     required this.id,
     required this.conditionId,
     required this.name,
@@ -101,20 +101,20 @@ class Treatment {
     this.updatedAt,
     this.conditionName,
     this.conditionBodySystem,
-    this.treatmentHerbs = const [],
+    this.remedyHerbs = const [],
   });
 
-  /// User-facing display name generated from the herbs in this treatment.
+  /// User-facing display name generated from the herbs in this remedy.
   ///
   /// 1 herb  → "Aloe vera"
   /// 2 herbs → "Aloe vera + Lippia javanica"
   /// 3 herbs → "Aloe vera + Lippia javanica + Moringa"
   ///
   /// Falls back to the stored [name] if no herb names are available yet
-  /// (e.g. when the treatment_herbs join hasn't been loaded).
+  /// (e.g. when the remedy_herbs join hasn't been loaded).
   String get displayName {
-    final herbNames = treatmentHerbs
-        .map((th) => th.herbName)
+    final herbNames = remedyHerbs
+        .map((rh) => rh.herbName)
         .whereType<String>()
         .where((n) => n.isNotEmpty)
         .toList();

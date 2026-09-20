@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/domain/entities/treatment.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/datasources/treatment_remote_datasource.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/repositories/treatment_repository_impl.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_cubit.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_state.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_detail_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/remedy_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_state.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_detail_cubit.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
-import 'package:zim_herbs_repo/features/admin/treatment_management/presentation/add_edit_treatment_page.dart';
+import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
-class TreatmentDetailsPage extends StatefulWidget {
-  final String treatmentId;
+class RemedyDetailsPage extends StatefulWidget {
+  final String remedyId;
 
-  const TreatmentDetailsPage({super.key, required this.treatmentId});
+  const RemedyDetailsPage({super.key, required this.remedyId});
 
   @override
-  State<TreatmentDetailsPage> createState() => _TreatmentDetailsPageState();
+  State<RemedyDetailsPage> createState() => _RemedyDetailsPageState();
 }
 
-class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
+class _RemedyDetailsPageState extends State<RemedyDetailsPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -47,23 +47,23 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     _animationController.forward();
   }
 
-  void _handleApprove(BuildContext context, Treatment treatment) {
-    context.read<TreatmentCubit>().approveTreatment(
-      treatment.id,
-      approved: !treatment.isApproved,
+  void _handleApprove(BuildContext context, Remedy remedy) {
+    context.read<RemedyCubit>().approveRemedy(
+      remedy.id,
+      approved: !remedy.isApproved,
     );
   }
 
   Future<void> _handleDelete(
     BuildContext context,
-    Treatment treatment,
+    Remedy remedy,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Delete Treatment'),
-            content: Text('Are you sure you want to delete ${treatment.displayName}?'),
+            title: const Text('Delete Remedy'),
+            content: Text('Are you sure you want to delete ${remedy.displayName}?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -79,7 +79,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     );
 
     if (confirmed == true && context.mounted) {
-      context.read<TreatmentCubit>().deleteTreatment(treatment.id);
+      context.read<RemedyCubit>().deleteRemedy(remedy.id);
     }
   }
 
@@ -94,8 +94,8 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     final rs = ResponsiveSize(context);
 
     final client = Supabase.instance.client;
-    final repository = TreatmentRepositoryImpl(
-      TreatmentRemoteDataSource(client),
+    final repository = RemedyRepositoryImpl(
+      RemedyRemoteDataSource(client),
     );
 
     return MultiBlocProvider(
@@ -103,16 +103,16 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
         BlocProvider(
           create:
               (context) =>
-                  TreatmentDetailCubit(repository)
-                    ..loadTreatment(widget.treatmentId),
+                  RemedyDetailCubit(repository)
+                    ..loadRemedy(widget.remedyId),
         ),
-        BlocProvider.value(value: context.read<TreatmentCubit>()),
+        BlocProvider.value(value: context.read<RemedyCubit>()),
       ],
       child: MultiBlocListener(
         listeners: [
-          BlocListener<TreatmentCubit, TreatmentState>(
+          BlocListener<RemedyCubit, RemedyState>(
             listener: (context, state) {
-              if (state is TreatmentOperationSuccess) {
+              if (state is RemedyOperationSuccess) {
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(SnackBar(content: Text(state.message)));
@@ -121,11 +121,11 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                   Navigator.pop(context);
                 } else {
                   // If it was an approval, refresh the detail view
-                  context.read<TreatmentDetailCubit>().loadTreatment(
-                    widget.treatmentId,
+                  context.read<RemedyDetailCubit>().loadRemedy(
+                    widget.remedyId,
                   );
                 }
-              } else if (state is TreatmentError) {
+              } else if (state is RemedyError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.message),
@@ -136,16 +136,16 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
             },
           ),
         ],
-        child: BlocBuilder<TreatmentDetailCubit, TreatmentDetailState>(
+        child: BlocBuilder<RemedyDetailCubit, RemedyDetailState>(
           builder: (context, state) {
-            if (state is TreatmentDetailLoading ||
-                state is TreatmentDetailInitial) {
+            if (state is RemedyDetailLoading ||
+                state is RemedyDetailInitial) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            if (state is TreatmentDetailError) {
+            if (state is RemedyDetailError) {
               return Scaffold(
                 appBar: AppBar(
                   backgroundColor: Theme.of(context).colorScheme.primary,
@@ -158,8 +158,8 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
               );
             }
 
-            if (state is TreatmentDetailLoaded) {
-              final treatment = state.treatment;
+            if (state is RemedyDetailLoaded) {
+              final remedy = state.remedy;
 
               return Scaffold(
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -194,19 +194,19 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              treatment.isApproved
+                              remedy.isApproved
                                   ? Icons.check_circle
                                   : Icons.check_circle_outline,
                               color:
-                                  treatment.isApproved
+                                  remedy.isApproved
                                       ? Colors.green
                                       : Theme.of(context).colorScheme.secondary,
                               size: rs.appBarIcon * 0.8,
                             ),
                           ),
-                          onPressed: () => _handleApprove(context, treatment),
+                          onPressed: () => _handleApprove(context, remedy),
                           tooltip:
-                              treatment.isApproved ? 'Unapprove' : 'Approve',
+                              remedy.isApproved ? 'Unapprove' : 'Approve',
                         ),
                         IconButton(
                           icon: Container(
@@ -226,16 +226,16 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                               context,
                               MaterialPageRoute(
                                 builder:
-                                    (context) => AddEditTreatmentPage(
-                                      treatment: treatment,
+                                    (context) => AddEditRemedyPage(
+                                      remedy: remedy,
                                     ),
                               ),
                             );
                             if (updated == true && context.mounted) {
                               context
-                                  .read<TreatmentDetailCubit>()
-                                  .loadTreatment(widget.treatmentId);
-                              context.read<TreatmentCubit>().refreshTreatments();
+                                  .read<RemedyDetailCubit>()
+                                  .loadRemedy(widget.remedyId);
+                              context.read<RemedyCubit>().refreshRemedies();
                             }
                           },
                           tooltip: 'Edit',
@@ -253,7 +253,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                               size: rs.appBarIcon * 0.8,
                             ),
                           ),
-                          onPressed: () => _handleDelete(context, treatment),
+                          onPressed: () => _handleDelete(context, remedy),
                           tooltip: 'Delete',
                         ),
                         const SizedBox(width: 8),
@@ -272,7 +272,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              treatment.displayName,
+                              remedy.displayName,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: rs.appBarTitleFont,
@@ -317,11 +317,11 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildHeaderChips(treatment, rs),
+                                    _buildHeaderChips(remedy, rs),
                                     const SizedBox(height: 24),
 
                                     // Herbs Section
-                                    if (treatment.treatmentHerbs.isNotEmpty)
+                                    if (remedy.remedyHerbs.isNotEmpty)
                                       _buildSectionCard(
                                         icon: Icons.spa_outlined,
                                         title: "Herbs & Ingredients",
@@ -329,10 +329,10 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children:
-                                              treatment.treatmentHerbs
+                                              remedy.remedyHerbs
                                                   .map(
-                                                    (th) =>
-                                                        _buildHerbItem(th, rs),
+                                                    (rh) =>
+                                                        _buildHerbItem(rh, rs),
                                                   )
                                                   .toList(),
                                         ),
@@ -350,7 +350,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                       icon: Icons.science_outlined,
                                       title: "Preparation",
                                       content: Text(
-                                        treatment.preparation,
+                                        remedy.preparation,
                                         style: TextStyle(
                                           fontSize: rs.bodyFont,
                                           height: 1.5,
@@ -370,7 +370,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                       icon: Icons.local_hospital_outlined,
                                       title: "Method of Use",
                                       content: Text(
-                                        treatment.methodOfUse,
+                                        remedy.methodOfUse,
                                         style: TextStyle(
                                           fontSize: rs.bodyFont,
                                           height: 1.5,
@@ -386,8 +386,8 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                     const SizedBox(height: 24),
 
                                     // Dosage Section
-                                    if (treatment.dosageAdults != null ||
-                                        treatment.dosageInfants != null)
+                                    if (remedy.dosageAdults != null ||
+                                        remedy.dosageInfants != null)
                                       _buildSectionCard(
                                         icon: Icons.medication_outlined,
                                         title: "Dosage Details",
@@ -395,19 +395,19 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            if (treatment.dosageAdults !=
+                                            if (remedy.dosageAdults !=
                                                 null) ...[
                                               _buildInfoRow(
                                                 "Adults",
-                                                treatment.dosageAdults!,
+                                                remedy.dosageAdults!,
                                                 rs,
                                               ),
                                               const SizedBox(height: 8),
                                             ],
-                                            if (treatment.dosageInfants != null)
+                                            if (remedy.dosageInfants != null)
                                               _buildInfoRow(
                                                 "Infants",
-                                                treatment.dosageInfants!,
+                                                remedy.dosageInfants!,
                                                 rs,
                                               ),
                                           ],
@@ -419,8 +419,8 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                     const SizedBox(height: 24),
 
                                     // Frequency & Duration
-                                    if (treatment.frequency != null ||
-                                        treatment.duration != null)
+                                    if (remedy.frequency != null ||
+                                        remedy.duration != null)
                                       _buildSectionCard(
                                         icon: Icons.schedule_outlined,
                                         title: "Schedule & Timing",
@@ -428,19 +428,19 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            if (treatment.frequency !=
+                                            if (remedy.frequency !=
                                                 null) ...[
                                               _buildInfoRow(
                                                 "Usage Frequency",
-                                                treatment.frequency!,
+                                                remedy.frequency!,
                                                 rs,
                                               ),
                                               const SizedBox(height: 8),
                                             ],
-                                            if (treatment.duration != null)
+                                            if (remedy.duration != null)
                                               _buildInfoRow(
-                                                "Treatment Duration",
-                                                treatment.duration!,
+                                                "Remedy Duration",
+                                                remedy.duration!,
                                                 rs,
                                               ),
                                           ],
@@ -452,13 +452,13 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                     const SizedBox(height: 24),
 
                                     // Precautions Section
-                                    if (treatment.precautions != null &&
-                                        treatment.precautions!.isNotEmpty)
+                                    if (remedy.precautions != null &&
+                                        remedy.precautions!.isNotEmpty)
                                       _buildSectionCard(
                                         icon: Icons.warning_amber_rounded,
                                         title: "Precautions",
                                         content: Text(
-                                          treatment.precautions!,
+                                          remedy.precautions!,
                                           style: TextStyle(
                                             fontSize: rs.bodyFont,
                                             height: 1.5,
@@ -475,13 +475,13 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                     const SizedBox(height: 24),
 
                                     // Side Effects Section
-                                    if (treatment.sideEffects != null &&
-                                        treatment.sideEffects!.isNotEmpty)
+                                    if (remedy.sideEffects != null &&
+                                        remedy.sideEffects!.isNotEmpty)
                                       _buildSectionCard(
                                         icon: Icons.error_outline,
                                         title: "Possible Side Effects",
                                         content: Text(
-                                          treatment.sideEffects!,
+                                          remedy.sideEffects!,
                                           style: TextStyle(
                                             fontSize: rs.bodyFont,
                                             height: 1.5,
@@ -498,13 +498,13 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                                     const SizedBox(height: 24),
 
                                     // Notes Section
-                                    if (treatment.notes != null &&
-                                        treatment.notes!.isNotEmpty)
+                                    if (remedy.notes != null &&
+                                        remedy.notes!.isNotEmpty)
                                       _buildSectionCard(
                                         icon: Icons.note_outlined,
                                         title: "Additional Notes",
                                         content: Text(
-                                          treatment.notes!,
+                                          remedy.notes!,
                                           style: TextStyle(
                                             fontSize: rs.bodyFont,
                                             height: 1.5,
@@ -538,12 +538,12 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     );
   }
 
-  Widget _buildHeaderChips(Treatment treatment, ResponsiveSize rs) {
+  Widget _buildHeaderChips(Remedy remedy, ResponsiveSize rs) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        if (treatment.conditionName != null)
+        if (remedy.conditionName != null)
           Chip(
             avatar: const Icon(
               Icons.health_and_safety,
@@ -551,7 +551,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
               color: Colors.white,
             ),
             label: Text(
-              treatment.conditionName!,
+              remedy.conditionName!,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -571,7 +571,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
             color: Colors.white,
           ),
           label: Text(
-            "${treatment.treatmentHerbs.length} Herb${treatment.treatmentHerbs.length != 1 ? 's' : ''}",
+            "${remedy.remedyHerbs.length} Herb${remedy.remedyHerbs.length != 1 ? 's' : ''}",
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -588,7 +588,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
     );
   }
 
-  Widget _buildHerbItem(TreatmentHerb th, ResponsiveSize rs) {
+  Widget _buildHerbItem(RemedyHerb rh, ResponsiveSize rs) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -608,7 +608,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          key: PageStorageKey<String>(th.herbId),
+          key: PageStorageKey<String>(rh.herbId),
           tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           leading: Container(
@@ -619,14 +619,14 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                 context,
               ).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              image: th.herbImageUrl != null
+              image: rh.herbImageUrl != null
                   ? DecorationImage(
-                      image: NetworkImage(th.herbImageUrl!),
+                      image: NetworkImage(rh.herbImageUrl!),
                       fit: BoxFit.cover,
                     )
                   : null,
             ),
-            child: th.herbImageUrl == null
+            child: rh.herbImageUrl == null
                 ? Icon(
                     Icons.spa,
                     color: Theme.of(context).colorScheme.primary,
@@ -634,7 +634,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
                 : null,
           ),
           title: Text(
-            th.herbName ?? 'Unknown Herb',
+            rh.herbName ?? 'Unknown Herb',
             style: TextStyle(
               fontSize: rs.subtitleFont,
               fontWeight: FontWeight.bold,
@@ -653,20 +653,20 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (th.quantity != null && th.quantity!.isNotEmpty)
+                  if (rh.quantity != null && rh.quantity!.isNotEmpty)
                     _buildHerbDetailRow(
                       Icons.scale_outlined,
                       "Quantity",
-                      "${th.quantity} ${th.unit ?? ''}",
+                      "${rh.quantity} ${rh.unit ?? ''}",
                       rs,
                     ),
-                  if (th.preparation != null && th.preparation!.isNotEmpty) ...[
-                    if (th.quantity != null && th.quantity!.isNotEmpty)
+                  if (rh.preparation != null && rh.preparation!.isNotEmpty) ...[
+                    if (rh.quantity != null && rh.quantity!.isNotEmpty)
                       const SizedBox(height: 8),
                     _buildHerbDetailRow(
                       Icons.cut_outlined,
                       "Preparation",
-                      th.preparation!,
+                      rh.preparation!,
                       rs,
                     ),
                   ],

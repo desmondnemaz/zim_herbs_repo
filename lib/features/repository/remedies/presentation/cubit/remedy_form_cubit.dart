@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/treatment.dart';
-import '../../domain/repositories/treatment_repository.dart';
+import '../../domain/entities/remedy.dart';
+import '../../domain/repositories/remedy_repository.dart';
 import '../../../conditions/domain/entities/condition.dart';
 import '../../../conditions/domain/repositories/condition_repository.dart';
 import '../../../herbs/domain/entities/herb.dart';
@@ -11,7 +11,7 @@ import '../../../herbs/domain/repositories/herb_repository.dart';
 // STATES
 // ============================================================
 
-enum TreatmentFormStatus {
+enum RemedyFormStatus {
   initial,
   loading,
   loaded,
@@ -20,26 +20,26 @@ enum TreatmentFormStatus {
   error,
 }
 
-class TreatmentHerbRow extends Equatable {
+class RemedyHerbRow extends Equatable {
   final Herb? selectedHerb;
   final String quantity;
   final String unit;
   final String preparation;
 
-  const TreatmentHerbRow({
+  const RemedyHerbRow({
     this.selectedHerb,
     this.quantity = '',
     this.unit = '',
     this.preparation = '',
   });
 
-  TreatmentHerbRow copyWith({
+  RemedyHerbRow copyWith({
     Herb? selectedHerb,
     String? quantity,
     String? unit,
     String? preparation,
   }) {
-    return TreatmentHerbRow(
+    return RemedyHerbRow(
       selectedHerb: selectedHerb ?? this.selectedHerb,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
@@ -51,29 +51,29 @@ class TreatmentHerbRow extends Equatable {
   List<Object?> get props => [selectedHerb, quantity, unit, preparation];
 }
 
-class TreatmentFormState extends Equatable {
-  final TreatmentFormStatus status;
+class RemedyFormState extends Equatable {
+  final RemedyFormStatus status;
   final List<Condition> conditions;
   final List<Herb> availableHerbs;
-  final List<TreatmentHerbRow> herbRows;
+  final List<RemedyHerbRow> herbRows;
   final String? errorMessage;
 
-  const TreatmentFormState({
-    this.status = TreatmentFormStatus.initial,
+  const RemedyFormState({
+    this.status = RemedyFormStatus.initial,
     this.conditions = const [],
     this.availableHerbs = const [],
     this.herbRows = const [],
     this.errorMessage,
   });
 
-  TreatmentFormState copyWith({
-    TreatmentFormStatus? status,
+  RemedyFormState copyWith({
+    RemedyFormStatus? status,
     List<Condition>? conditions,
     List<Herb>? availableHerbs,
-    List<TreatmentHerbRow>? herbRows,
+    List<RemedyHerbRow>? herbRows,
     String? errorMessage,
   }) {
-    return TreatmentFormState(
+    return RemedyFormState(
       status: status ?? this.status,
       conditions: conditions ?? this.conditions,
       availableHerbs: availableHerbs ?? this.availableHerbs,
@@ -96,24 +96,24 @@ class TreatmentFormState extends Equatable {
 // CUBIT
 // ============================================================
 
-class TreatmentFormCubit extends Cubit<TreatmentFormState> {
+class RemedyFormCubit extends Cubit<RemedyFormState> {
   final HerbRepository _herbRepository;
-  final TreatmentRepository _treatmentRepository;
+  final RemedyRepository _remedyRepository;
   final ConditionRepository _conditionRepository;
 
-  TreatmentFormCubit({
+  RemedyFormCubit({
     required HerbRepository herbRepository,
-    required TreatmentRepository treatmentRepository,
+    required RemedyRepository remedyRepository,
     required ConditionRepository conditionRepository,
   })  : _herbRepository = herbRepository,
-        _treatmentRepository = treatmentRepository,
+        _remedyRepository = remedyRepository,
         _conditionRepository = conditionRepository,
-        super(const TreatmentFormState());
+        super(const RemedyFormState());
 
   /// Load necessary form resources (all conditions and herbs),
-  /// and parse the initial treatment's herbs if editing.
-  Future<void> loadFormResources(Treatment? treatment) async {
-    emit(state.copyWith(status: TreatmentFormStatus.loading));
+  /// and parse the initial remedy's herbs if editing.
+  Future<void> loadFormResources(Remedy? remedy) async {
+    emit(state.copyWith(status: RemedyFormStatus.loading));
     try {
       final results = await Future.wait([
         _conditionRepository.getAllConditions(),
@@ -123,32 +123,32 @@ class TreatmentFormCubit extends Cubit<TreatmentFormState> {
       final conditions = results[0] as List<Condition>;
       final herbs = results[1] as List<Herb>;
 
-      final List<TreatmentHerbRow> herbRows = [];
-      if (treatment != null) {
-        for (var th in treatment.treatmentHerbs) {
+      final List<RemedyHerbRow> herbRows = [];
+      if (remedy != null) {
+        for (var rh in remedy.remedyHerbs) {
           Herb? selectedHerb;
           try {
-            selectedHerb = herbs.firstWhere((h) => h.id == th.herbId);
+            selectedHerb = herbs.firstWhere((h) => h.id == rh.herbId);
           } catch (_) {}
 
           herbRows.add(
-            TreatmentHerbRow(
+            RemedyHerbRow(
               selectedHerb: selectedHerb,
-              quantity: th.quantity ?? '',
-              unit: th.unit ?? '',
-              preparation: th.preparation ?? '',
+              quantity: rh.quantity ?? '',
+              unit: rh.unit ?? '',
+              preparation: rh.preparation ?? '',
             ),
           );
         }
       }
 
       if (herbRows.isEmpty) {
-        herbRows.add(const TreatmentHerbRow());
+        herbRows.add(const RemedyHerbRow());
       }
 
       emit(
         state.copyWith(
-          status: TreatmentFormStatus.loaded,
+          status: RemedyFormStatus.loaded,
           conditions: conditions,
           availableHerbs: herbs,
           herbRows: herbRows,
@@ -157,7 +157,7 @@ class TreatmentFormCubit extends Cubit<TreatmentFormState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TreatmentFormStatus.error,
+          status: RemedyFormStatus.error,
           errorMessage: e.toString(),
         ),
       );
@@ -166,14 +166,14 @@ class TreatmentFormCubit extends Cubit<TreatmentFormState> {
 
   /// Add a new empty row for selecting a herb and its options.
   void addHerbRow() {
-    final updatedRows = List<TreatmentHerbRow>.from(state.herbRows)
-      ..add(const TreatmentHerbRow());
+    final updatedRows = List<RemedyHerbRow>.from(state.herbRows)
+      ..add(const RemedyHerbRow());
     emit(state.copyWith(herbRows: updatedRows));
   }
 
   /// Remove a herb row at the given index.
   void removeHerbRow(int index) {
-    final updatedRows = List<TreatmentHerbRow>.from(state.herbRows);
+    final updatedRows = List<RemedyHerbRow>.from(state.herbRows);
     if (index >= 0 && index < updatedRows.length) {
       updatedRows.removeAt(index);
       emit(state.copyWith(herbRows: updatedRows));
@@ -184,7 +184,7 @@ class TreatmentFormCubit extends Cubit<TreatmentFormState> {
   void selectHerb(int index, Herb herb) {
     if (index < 0 || index >= state.herbRows.length) return;
 
-    final updatedRows = List<TreatmentHerbRow>.from(state.herbRows);
+    final updatedRows = List<RemedyHerbRow>.from(state.herbRows);
     final currentRow = updatedRows[index];
 
     updatedRows[index] = currentRow.copyWith(selectedHerb: herb);
@@ -192,20 +192,20 @@ class TreatmentFormCubit extends Cubit<TreatmentFormState> {
     emit(state.copyWith(herbRows: updatedRows));
   }
 
-  /// Submit the completed treatment form to create/update the database.
-  Future<void> submitTreatment(Treatment treatment) async {
-    emit(state.copyWith(status: TreatmentFormStatus.submitting));
+  /// Submit the completed remedy form to create/update the database.
+  Future<void> submitRemedy(Remedy remedy) async {
+    emit(state.copyWith(status: RemedyFormStatus.submitting));
     try {
-      if (treatment.id.isEmpty) {
-        await _treatmentRepository.createTreatment(treatment);
+      if (remedy.id.isEmpty) {
+        await _remedyRepository.createRemedy(remedy);
       } else {
-        await _treatmentRepository.updateTreatment(treatment);
+        await _remedyRepository.updateRemedy(remedy);
       }
-      emit(state.copyWith(status: TreatmentFormStatus.success));
+      emit(state.copyWith(status: RemedyFormStatus.success));
     } catch (e) {
       emit(
         state.copyWith(
-          status: TreatmentFormStatus.error,
+          status: RemedyFormStatus.error,
           errorMessage: e.toString(),
         ),
       );

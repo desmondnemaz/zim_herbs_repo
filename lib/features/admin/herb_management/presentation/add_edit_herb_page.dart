@@ -94,7 +94,7 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
           createdAt: widget.herb?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
           images: widget.herb?.images ?? [],
-          treatments: widget.herb?.treatments ?? [],
+          remedies: widget.herb?.remedies ?? [],
         );
 
         // 2. Save Herb Record (Create or Update)

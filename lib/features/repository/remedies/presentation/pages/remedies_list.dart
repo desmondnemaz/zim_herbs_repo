@@ -2,49 +2,49 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:zim_herbs_repo/features/admin/treatment_management/presentation/add_edit_treatment_page.dart';
+import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/datasources/treatment_remote_datasource.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/data/repositories/treatment_repository_impl.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/components/desktop_treatment_list.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/components/mobile_treatment_list.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_cubit.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_state.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/remedy_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/components/desktop_remedy_list.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/components/mobile_remedy_list.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_state.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
 
-class TreatmentsList extends StatelessWidget {
+class RemediesList extends StatelessWidget {
   final String? initialConditionId;
 
-  const TreatmentsList({super.key, this.initialConditionId});
+  const RemediesList({super.key, this.initialConditionId});
 
   @override
   Widget build(BuildContext context) {
     final client = Supabase.instance.client;
-    final repository = TreatmentRepositoryImpl(
-      TreatmentRemoteDataSource(client),
+    final repository = RemedyRepositoryImpl(
+      RemedyRemoteDataSource(client),
     );
 
     return BlocProvider(
       create: (context) {
-        final cubit = TreatmentCubit(repository);
+        final cubit = RemedyCubit(repository);
         if (initialConditionId != null) {
           cubit.filterByCondition(initialConditionId);
         } else {
-          cubit.loadTreatments();
+          cubit.loadRemedies();
         }
         return cubit;
       },
-      child: _TreatmentsListView(initialConditionId: initialConditionId),
+      child: _RemediesListView(initialConditionId: initialConditionId),
     );
   }
 }
 
-class _TreatmentsListView extends StatelessWidget {
+class _RemediesListView extends StatelessWidget {
   final String? initialConditionId;
-  const _TreatmentsListView({this.initialConditionId});
+  const _RemediesListView({this.initialConditionId});
 
   @override
   Widget build(BuildContext context) {
@@ -62,17 +62,17 @@ class _TreatmentsListView extends StatelessWidget {
                 backgroundColor: Theme.of(context).colorScheme.primary,
               ),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Add Treatment',
+        tooltip: 'Add Remedy',
         onPressed: () async {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const AddEditTreatmentPage(),
+              builder: (context) => const AddEditRemedyPage(),
             ),
           );
           if (!context.mounted) return;
           if (result == true) {
-            context.read<TreatmentCubit>().refreshTreatments();
+            context.read<RemedyCubit>().refreshRemedies();
           }
         },
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -90,13 +90,13 @@ class _TreatmentsListView extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
           ),
-          child: BlocListener<TreatmentCubit, TreatmentState>(
+          child: BlocListener<RemedyCubit, RemedyState>(
             listener: (context, state) {
-              if (state is TreatmentOperationSuccess) {
+              if (state is RemedyOperationSuccess) {
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(SnackBar(content: Text(state.message)));
-              } else if (state is TreatmentError) {
+              } else if (state is RemedyError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.message),
@@ -111,9 +111,9 @@ class _TreatmentsListView extends StatelessWidget {
                 _buildHeader(context, rs),
 
                 // Counter
-                BlocBuilder<TreatmentCubit, TreatmentState>(
+                BlocBuilder<RemedyCubit, RemedyState>(
                   builder: (context, state) {
-                    if (state is TreatmentLoaded) {
+                    if (state is RemedyLoaded) {
                       return Padding(
                         padding: const EdgeInsets.only(
                           top: 8,
@@ -124,7 +124,7 @@ class _TreatmentsListView extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             Text(
-                              "Total: ${state.treatments.length}",
+                              "Total: ${state.remedies.length}",
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -141,33 +141,62 @@ class _TreatmentsListView extends StatelessWidget {
                   },
                 ),
 
-                // Filter & Search Section
+                // Search & Filter
                 Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: rs.defaultPadding,
+                    vertical: 8.0,
+                  ),
                   child: Column(
                     children: [
-                      // Condition Filter
+                      // Search field
+                      TextField(
+                        onChanged:
+                            (value) =>
+                                context.read<RemedyCubit>().searchRemedies(
+                                  value,
+                                ),
+                        decoration: InputDecoration(
+                          hintText: 'Search remedies by herb or condition...',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 0,
+                            horizontal: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Condition dropdown filter
                       FutureBuilder<List<ConditionModel>>(
                         future: conditionsFuture,
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) {
                             return const SizedBox.shrink();
                           }
-                          final conditions = snapshot.data!;
-                          ConditionModel? initialCondition;
+                          ConditionModel? initialSelected;
                           if (initialConditionId != null) {
                             try {
-                              initialCondition = conditions.firstWhere(
+                              initialSelected = snapshot.data!.firstWhere(
                                 (c) => c.id == initialConditionId,
                               );
                             } catch (_) {}
                           }
+
                           return _ConditionFilterDropdown(
-                            conditions: conditions,
-                            initialValue: initialCondition,
-                            onConditionSelected: (c) {
-                              context.read<TreatmentCubit>().filterByCondition(
-                                c?.id,
+                            conditions: snapshot.data!,
+                            initialValue: initialSelected,
+                            onConditionSelected: (selected) {
+                              context.read<RemedyCubit>().filterByCondition(
+                                selected?.id,
                               );
                             },
                           );
@@ -177,34 +206,67 @@ class _TreatmentsListView extends StatelessWidget {
                   ),
                 ),
 
+                // Content
                 Expanded(
-                  child: BlocBuilder<TreatmentCubit, TreatmentState>(
+                  child: BlocBuilder<RemedyCubit, RemedyState>(
                     builder: (context, state) {
-                      if (state is TreatmentLoading) {
+                      if (state is RemedyLoading) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      if (state is TreatmentLoaded) {
-                        if (state.treatments.isEmpty) {
-                          return const Center(
-                            child: Text('No treatments found.'),
+
+                      if (state is RemedyError) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                state.message,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed:
+                                    () =>
+                                        context
+                                            .read<RemedyCubit>()
+                                            .refreshRemedies(),
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      if (state is RemedyLoaded) {
+                        if (state.remedies.isEmpty) {
+                          return Center(
+                            child: Text(
+                              state.searchQuery.isNotEmpty
+                                  ? 'No remedies matching "${state.searchQuery}"'
+                                  : 'No remedies found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
                           );
                         }
 
                         return RefreshIndicator(
-                          onRefresh: () async {
-                            context
-                                .read<TreatmentCubit>()
-                                .refreshTreatments();
-                          },
+                          onRefresh:
+                              () =>
+                                  context.read<RemedyCubit>().refreshRemedies(),
                           child:
                               (Responsive.isMobile(context)
-                                  ? MobileTreatmentList(
-                                        treatments: state.treatments,
+                                  ? MobileRemedyList(
+                                        remedies: state.remedies,
                                         rs: rs,
                                       )
                                       as Widget
-                                  : DesktopTreatmentList(
-                                        treatments: state.treatments,
+                                  : DesktopRemedyList(
+                                        remedies: state.remedies,
                                         rs: rs,
                                       )
                                       as Widget),
@@ -238,7 +300,7 @@ class _TreatmentsListView extends StatelessWidget {
           ),
           SizedBox(width: rs.defaultPadding),
           Text(
-            "All Treatments",
+            "All Remedies",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.secondary,

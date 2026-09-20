@@ -272,7 +272,7 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
           createdAt: widget.herb?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
           images: widget.herb?.images ?? [],
-          treatments: widget.herb?.treatments ?? [],
+          remedies: widget.herb?.remedies ?? [],
         );
 
         // 2. Pass the herb to the parent to save (Create/Update Herb Record)

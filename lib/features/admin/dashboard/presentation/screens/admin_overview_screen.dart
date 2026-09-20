@@ -6,7 +6,7 @@ import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/admin/condition_management/presentation/components/add_edit_condition_dialog.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
-import 'package:zim_herbs_repo/features/admin/treatment_management/presentation/add_edit_treatment_page.dart';
+import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 
 /// The Overview landing screen for admin — mirrors the rich content style
 /// of the customer dashboard with a welcome banner, stat cards and quick actions.
@@ -96,7 +96,7 @@ class AdminOverviewScreen extends StatelessWidget {
             children: const [
               _StatCard(title: 'Total Herbs', value: '42', icon: Icons.local_florist, color: Colors.green),
               _StatCard(title: 'Conditions', value: '18', icon: Icons.sick_outlined, color: Colors.teal),
-              _StatCard(title: 'Treatments', value: '35', icon: Icons.healing, color: Colors.blue),
+              _StatCard(title: 'Remedies', value: '35', icon: Icons.healing, color: Colors.blue),
               _StatCard(title: 'Store Orders', value: '124', icon: Icons.shopping_bag_outlined, color: Colors.orange),
               _StatCard(title: 'Consultations', value: '8', icon: Icons.medical_services_outlined, color: Colors.purple),
               _StatCard(title: 'Users', value: '2,104', icon: Icons.people_alt_outlined, color: Colors.blueGrey),
@@ -136,12 +136,12 @@ class AdminOverviewScreen extends StatelessWidget {
                 ),
               ),
               _QuickActionCard(
-                title: 'Add Treatment',
+                title: 'Add Remedy',
                 icon: Icons.healing,
                 color: Colors.blue,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const AddEditTreatmentPage()),
+                  MaterialPageRoute(builder: (_) => const AddEditRemedyPage()),
                 ),
               ),
               _QuickActionCard(

@@ -11,21 +11,21 @@
 ///    ↓
 /// RemoteDataSource
 ///    ↓
-/// TreatmentModel  ← this file
+/// RemedyModel  ← this file
 ///    ↓
-/// Treatment Entity
+/// Remedy Entity
 ///    ↓
 /// Domain / Cubit
 library;
 
 import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
-import '../../domain/entities/treatment.dart';
+import '../../domain/entities/remedy.dart';
 
 // ============================================================
-// TREATMENT MODEL
+// REMEDY MODEL
 // ============================================================
-class TreatmentModel {
+class RemedyModel {
   final String id;
   final String conditionId;
   final String name;
@@ -52,9 +52,9 @@ class TreatmentModel {
   final DateTime? updatedAt;
 
   final ConditionModel? condition;
-  final List<TreatmentHerbModel> treatmentHerbs;
+  final List<RemedyHerbModel> remedyHerbs;
 
-  TreatmentModel({
+  RemedyModel({
     required this.id,
     required this.conditionId,
     required this.name,
@@ -77,17 +77,20 @@ class TreatmentModel {
     this.createdAt,
     this.updatedAt,
     this.condition,
-    this.treatmentHerbs = const [],
+    this.remedyHerbs = const [],
   });
 
   // ==========================================================
   // JSON → MODEL
   // ==========================================================
-  factory TreatmentModel.fromJson(Map<String, dynamic> json) {
-    return TreatmentModel(
+  factory RemedyModel.fromJson(Map<String, dynamic> json) {
+    // Check for 'remedy_herbs' first, fallback to 'treatment_herbs'
+    final rawHerbs = (json['remedy_herbs'] ?? json['treatment_herbs']) as List<dynamic>?;
+
+    return RemedyModel(
       id: json['id'] as String,
       conditionId: json['condition_id'] as String,
-      name: json['name'] as String? ?? 'Unnamed Treatment',
+      name: json['name'] as String? ?? 'Unnamed Remedy',
       methodOfUse: json['method_of_use'] as String? ?? '',
       preparation: json['preparation'] as String? ?? '',
       dosageInfants: json['dosage_infants'] as String?,
@@ -124,11 +127,11 @@ class TreatmentModel {
                 json['conditions'] as Map<String, dynamic>,
               )
               : null,
-      treatmentHerbs:
-          (json['treatment_herbs'] as List<dynamic>?)
+      remedyHerbs:
+          rawHerbs
               ?.map(
                 (e) =>
-                    TreatmentHerbModel.fromJson(e as Map<String, dynamic>),
+                    RemedyHerbModel.fromJson(e as Map<String, dynamic>),
               )
               .toList() ??
           [],
@@ -162,8 +165,8 @@ class TreatmentModel {
   // ==========================================================
   // MODEL → ENTITY
   // ==========================================================
-  Treatment toEntity() {
-    return Treatment(
+  Remedy toEntity() {
+    return Remedy(
       id: id,
       conditionId: conditionId,
       name: name,
@@ -187,9 +190,9 @@ class TreatmentModel {
       updatedAt: updatedAt,
       conditionName: condition?.name,
       conditionBodySystem: condition?.bodySystem,
-      treatmentHerbs:
-          treatmentHerbs
-              .map((th) => th.toEntity())
+      remedyHerbs:
+          remedyHerbs
+              .map((rh) => rh.toEntity())
               .toList(),
     );
   }
@@ -197,43 +200,43 @@ class TreatmentModel {
   // ==========================================================
   // ENTITY → MODEL
   // ==========================================================
-  factory TreatmentModel.fromEntity(Treatment treatment) {
-    return TreatmentModel(
-      id: treatment.id,
-      conditionId: treatment.conditionId,
-      name: treatment.name,
-      methodOfUse: treatment.methodOfUse,
-      preparation: treatment.preparation,
-      dosageInfants: treatment.dosageInfants,
-      dosageAdults: treatment.dosageAdults,
-      duration: treatment.duration,
-      frequency: treatment.frequency,
-      notes: treatment.notes,
-      precautions: treatment.precautions,
-      sideEffects: treatment.sideEffects,
-      disclaimer: treatment.disclaimer,
-      isApproved: treatment.isApproved,
-      approvedBy: treatment.approvedBy,
-      approvedAt: treatment.approvedAt,
-      moderationComments: treatment.moderationComments,
-      rejectedAt: treatment.rejectedAt,
-      rejectedBy: treatment.rejectedBy,
-      createdAt: treatment.createdAt,
-      updatedAt: treatment.updatedAt,
-      treatmentHerbs:
-          treatment.treatmentHerbs
-              .map((th) => TreatmentHerbModel.fromEntity(th))
+  factory RemedyModel.fromEntity(Remedy remedy) {
+    return RemedyModel(
+      id: remedy.id,
+      conditionId: remedy.conditionId,
+      name: remedy.name,
+      methodOfUse: remedy.methodOfUse,
+      preparation: remedy.preparation,
+      dosageInfants: remedy.dosageInfants,
+      dosageAdults: remedy.dosageAdults,
+      duration: remedy.duration,
+      frequency: remedy.frequency,
+      notes: remedy.notes,
+      precautions: remedy.precautions,
+      sideEffects: remedy.sideEffects,
+      disclaimer: remedy.disclaimer,
+      isApproved: remedy.isApproved,
+      approvedBy: remedy.approvedBy,
+      approvedAt: remedy.approvedAt,
+      moderationComments: remedy.moderationComments,
+      rejectedAt: remedy.rejectedAt,
+      rejectedBy: remedy.rejectedBy,
+      createdAt: remedy.createdAt,
+      updatedAt: remedy.updatedAt,
+      remedyHerbs:
+          remedy.remedyHerbs
+              .map((rh) => RemedyHerbModel.fromEntity(rh))
               .toList(),
     );
   }
 }
 
 // ============================================================
-// TREATMENT HERB MODEL
+// REMEDY HERB MODEL
 // ============================================================
-class TreatmentHerbModel {
+class RemedyHerbModel {
   final String id;
-  final String treatmentId;
+  final String remedyId;
   final String herbId;
   final bool isMain;
   final String? quantity;
@@ -245,9 +248,9 @@ class TreatmentHerbModel {
   /// Nested herb data from Supabase join.
   final HerbModel? herb;
 
-  TreatmentHerbModel({
+  RemedyHerbModel({
     required this.id,
-    required this.treatmentId,
+    required this.remedyId,
     required this.herbId,
     this.isMain = false,
     this.quantity,
@@ -261,10 +264,10 @@ class TreatmentHerbModel {
   // ==========================================================
   // JSON → MODEL
   // ==========================================================
-  factory TreatmentHerbModel.fromJson(Map<String, dynamic> json) {
-    return TreatmentHerbModel(
+  factory RemedyHerbModel.fromJson(Map<String, dynamic> json) {
+    return RemedyHerbModel(
       id: json['id'] as String,
-      treatmentId: json['treatment_id'] as String,
+      remedyId: (json['remedy_id'] ?? json['treatment_id'] ?? '') as String,
       herbId: json['herb_id'] as String,
       isMain: json['is_main'] as bool? ?? false,
       quantity: json['quantity'] as String?,
@@ -291,7 +294,7 @@ class TreatmentHerbModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'treatment_id': treatmentId,
+      'remedy_id': remedyId,
       'herb_id': herbId,
       'is_main': isMain,
       'quantity': quantity,
@@ -303,10 +306,10 @@ class TreatmentHerbModel {
   // ==========================================================
   // MODEL → ENTITY
   // ==========================================================
-  TreatmentHerb toEntity() {
-    return TreatmentHerb(
+  RemedyHerb toEntity() {
+    return RemedyHerb(
       id: id,
-      treatmentId: treatmentId,
+      remedyId: remedyId,
       herbId: herbId,
       isMain: isMain,
       quantity: quantity,
@@ -320,15 +323,15 @@ class TreatmentHerbModel {
   // ==========================================================
   // ENTITY → MODEL
   // ==========================================================
-  factory TreatmentHerbModel.fromEntity(TreatmentHerb treatmentHerb) {
-    return TreatmentHerbModel(
-      id: treatmentHerb.id,
-      treatmentId: treatmentHerb.treatmentId,
-      herbId: treatmentHerb.herbId,
-      isMain: treatmentHerb.isMain,
-      quantity: treatmentHerb.quantity,
-      unit: treatmentHerb.unit,
-      preparation: treatmentHerb.preparation,
+  factory RemedyHerbModel.fromEntity(RemedyHerb remedyHerb) {
+    return RemedyHerbModel(
+      id: remedyHerb.id,
+      remedyId: remedyHerb.remedyId,
+      herbId: remedyHerb.herbId,
+      isMain: remedyHerb.isMain,
+      quantity: remedyHerb.quantity,
+      unit: remedyHerb.unit,
+      preparation: remedyHerb.preparation,
     );
   }
 }

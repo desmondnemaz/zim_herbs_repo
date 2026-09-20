@@ -28,7 +28,7 @@ class OnboardingModel {
     OnboardingModel(
       title: "Natural Healing",
       description:
-          "Find natural treatments and preparations for various health conditions.",
+          "Find natural remedies and preparations for various health conditions.",
       image: "assets/images/medicines.png",
     ),
     OnboardingModel(

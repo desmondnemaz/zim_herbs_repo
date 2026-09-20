@@ -1,9 +1,9 @@
-import '../../domain/entities/treatment.dart';
+import '../../domain/entities/remedy.dart';
 
-/// Base state for the Treatment feature.
+/// Base state for the Remedy feature.
 ///
-/// Every state emitted by TreatmentCubit extends TreatmentState.
-abstract class TreatmentState {}
+/// Every state emitted by RemedyCubit extends RemedyState.
+abstract class RemedyState {}
 
 // ------------------------------------------------------------
 // INITIAL STATE
@@ -11,47 +11,47 @@ abstract class TreatmentState {}
 /// The first state of the Cubit.
 ///
 /// Nothing has happened yet.
-class TreatmentInitial extends TreatmentState {}
+class RemedyInitial extends RemedyState {}
 
 // ------------------------------------------------------------
 // LOADING STATE
 // ------------------------------------------------------------
-/// The Cubit is currently fetching or processing treatments.
-class TreatmentLoading extends TreatmentState {}
+/// The Cubit is currently fetching or processing remedies.
+class RemedyLoading extends RemedyState {}
 
 // ------------------------------------------------------------
 // LOADED STATE
 // ------------------------------------------------------------
-/// Contains the treatments that should currently be displayed.
+/// Contains the remedies that should currently be displayed.
 ///
 /// Notice that we use:
 ///
-///     List<Treatment>
+///     List<Remedy>
 ///
 /// NOT:
 ///
-///     List<TreatmentModel>
+///     List<RemedyModel>
 ///
 /// because the presentation layer works with DOMAIN ENTITIES.
-class TreatmentLoaded extends TreatmentState {
-  final List<Treatment> treatments;
+class RemedyLoaded extends RemedyState {
+  final List<Remedy> remedies;
 
   /// The current search text.
   ///
   /// This allows the UI to know whether an empty list means:
   ///
-  /// "There are no treatments"
+  /// "There are no remedies"
   ///
   /// or:
   ///
-  /// "There are no treatments matching this search."
+  /// "There are no remedies matching this search."
   final String searchQuery;
 
   /// The currently applied condition filter ID (if any).
   final String? filteredConditionId;
 
-  TreatmentLoaded(
-    this.treatments, {
+  RemedyLoaded(
+    this.remedies, {
     this.searchQuery = '',
     this.filteredConditionId,
   });
@@ -61,10 +61,10 @@ class TreatmentLoaded extends TreatmentState {
 // ERROR STATE
 // ------------------------------------------------------------
 /// Something went wrong while performing an operation.
-class TreatmentError extends TreatmentState {
+class RemedyError extends RemedyState {
   final String message;
 
-  TreatmentError(this.message);
+  RemedyError(this.message);
 }
 
 // ------------------------------------------------------------
@@ -72,16 +72,16 @@ class TreatmentError extends TreatmentState {
 // ------------------------------------------------------------
 /// Used after an operation such as:
 ///
-/// - Creating a treatment
-/// - Updating a treatment
-/// - Deleting a treatment
-/// - Approving a treatment
+/// - Creating a remedy
+/// - Updating a remedy
+/// - Deleting a remedy
+/// - Approving a remedy
 ///
 /// succeeds.
 ///
 /// The UI can listen to this state and display a SnackBar.
-class TreatmentOperationSuccess extends TreatmentState {
+class RemedyOperationSuccess extends RemedyState {
   final String message;
 
-  TreatmentOperationSuccess(this.message);
+  RemedyOperationSuccess(this.message);
 }

@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/domain/repositories/herb_repository.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/domain/repositories/treatment_repository.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/domain/repositories/remedy_repository.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/domain/repositories/condition_repository.dart';
 
 // Events
@@ -17,12 +17,15 @@ class StatsLoading extends StatsState {}
 
 class StatsLoaded extends StatsState {
   final int herbCount;
-  final int treatmentCount;
+  final int remedyCount;
   final int conditionCount;
+
+  /// Backwards-compatible alias for remedyCount.
+  int get treatmentCount => remedyCount;
 
   StatsLoaded({
     required this.herbCount,
-    required this.treatmentCount,
+    required this.remedyCount,
     required this.conditionCount,
   });
 }
@@ -35,12 +38,12 @@ class StatsError extends StatsState {
 // BLoC
 class StatsBloc extends Bloc<StatsEvent, StatsState> {
   final HerbRepository herbRepository;
-  final TreatmentRepository treatmentRepository;
+  final RemedyRepository remedyRepository;
   final ConditionRepository conditionRepository;
 
   StatsBloc({
     required this.herbRepository,
-    required this.treatmentRepository,
+    required this.remedyRepository,
     required this.conditionRepository,
   }) : super(StatsInitial()) {
     on<FetchStats>((event, emit) async {
@@ -48,14 +51,14 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
       try {
         final results = await Future.wait([
           herbRepository.getHerbsCount(),
-          treatmentRepository.getTreatmentsCount(),
+          remedyRepository.getRemediesCount(),
           conditionRepository.getConditionsCount(),
         ]);
 
         emit(
           StatsLoaded(
             herbCount: results[0],
-            treatmentCount: results[1],
+            remedyCount: results[1],
             conditionCount: results[2],
           ),
         );

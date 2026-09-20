@@ -28,7 +28,7 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
     _AdminNavItem(label: 'Overview', icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard),
     _AdminNavItem(label: 'Herb Mgmt', icon: Icons.local_florist_outlined, activeIcon: Icons.local_florist),
     _AdminNavItem(label: 'Conditions', icon: Icons.sick_outlined, activeIcon: Icons.sick),
-    _AdminNavItem(label: 'Treatments', icon: Icons.healing_outlined, activeIcon: Icons.healing),
+    _AdminNavItem(label: 'Remedies', icon: Icons.healing_outlined, activeIcon: Icons.healing),
     _AdminNavItem(label: 'Marketplace', icon: Icons.storefront_outlined, activeIcon: Icons.storefront),
     _AdminNavItem(label: 'Users', icon: Icons.people_outline, activeIcon: Icons.people),
     _AdminNavItem(label: 'Reports', icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart),

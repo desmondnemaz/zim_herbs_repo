@@ -1,101 +1,97 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/entities/treatment.dart';
-import '../../domain/repositories/treatment_repository.dart';
-import 'treatment_state.dart';
-
+import '../../domain/entities/remedy.dart';
+import '../../domain/repositories/remedy_repository.dart';
+import 'remedy_state.dart';
 
 /// Cubit responsible for controlling the state
-/// of the Treatment feature.
+/// of the Remedy feature.
 ///
 /// IMPORTANT:
 ///
-/// TreatmentCubit does NOT know about:
+/// RemedyCubit does NOT know about:
 /// - Supabase
-/// - TreatmentRemoteDataSource
-/// - TreatmentModel
+/// - RemedyRemoteDataSource
+/// - RemedyModel
 ///
 /// It only communicates with the DOMAIN repository.
-class TreatmentCubit extends Cubit<TreatmentState> {
+class RemedyCubit extends Cubit<RemedyState> {
   /// Domain repository.
-  final TreatmentRepository repository;
+  final RemedyRepository repository;
 
-  /// Keeps the complete list of treatments.
+  /// Keeps the complete list of remedies.
   ///
   /// We keep this inside the Cubit so that searching
   /// and filtering do not require fetching from Supabase every time.
-  List<Treatment> _allTreatments = [];
+  List<Remedy> _allRemedies = [];
 
   /// The currently applied condition filter ID.
   String? _currentConditionId;
 
-
   /// Constructor.
   ///
   /// The repository is injected from the widget tree.
-  TreatmentCubit(this.repository) : super(TreatmentInitial());
-
+  RemedyCubit(this.repository) : super(RemedyInitial());
 
   // ============================================================
-  // LOAD TREATMENTS
+  // LOAD REMEDIES
   // ============================================================
 
-  /// Fetches all treatments from the repository.
+  /// Fetches all remedies from the repository.
   ///
   /// Flow:
   ///
   /// UI
   ///  ↓
-  /// TreatmentCubit
+  /// RemedyCubit
   ///  ↓
-  /// TreatmentRepository
+  /// RemedyRepository
   ///  ↓
-  /// TreatmentRepositoryImpl
+  /// RemedyRepositoryImpl
   ///  ↓
-  /// TreatmentRemoteDataSource
+  /// RemedyRemoteDataSource
   ///  ↓
   /// Supabase
-  Future<void> loadTreatments() async {
+  Future<void> loadRemedies() async {
     try {
-      emit(TreatmentLoading());
+      emit(RemedyLoading());
 
-      final treatments = await repository.getAllTreatments();
+      final remedies = await repository.getAllRemedies();
 
-      _allTreatments = treatments;
+      _allRemedies = remedies;
       _currentConditionId = null;
 
       emit(
-        TreatmentLoaded(
-          treatments,
+        RemedyLoaded(
+          remedies,
           searchQuery: '',
           filteredConditionId: null,
         ),
       );
     } catch (e) {
-      emit(TreatmentError('Failed to load treatments: $e'));
+      emit(RemedyError('Failed to load remedies: $e'));
     }
   }
 
-
   // ============================================================
-  // SEARCH TREATMENTS
+  // SEARCH REMEDIES
   // ============================================================
 
-  /// Searches the treatments already loaded into memory.
+  /// Searches the remedies already loaded into memory.
   ///
   /// This is a local UI/business operation.
   ///
   /// We don't need to call Supabase for every character
   /// typed into the search box.
-  void searchTreatments(String query) {
+  void searchRemedies(String query) {
     final trimmedQuery = query.trim().toLowerCase();
 
-    var filtered = _allTreatments;
+    var filtered = _allRemedies;
 
     // Apply condition filter first (if active).
     if (_currentConditionId != null) {
       filtered = filtered
-          .where((t) => t.conditionId == _currentConditionId)
+          .where((r) => r.conditionId == _currentConditionId)
           .toList();
     }
 
@@ -103,15 +99,15 @@ class TreatmentCubit extends Cubit<TreatmentState> {
     if (trimmedQuery.isNotEmpty) {
       filtered = filtered
           .where(
-            (t) =>
-                t.displayName.toLowerCase().contains(trimmedQuery) ||
-                (t.conditionName?.toLowerCase().contains(trimmedQuery) ?? false),
+            (r) =>
+                r.displayName.toLowerCase().contains(trimmedQuery) ||
+                (r.conditionName?.toLowerCase().contains(trimmedQuery) ?? false),
           )
           .toList();
     }
 
     emit(
-      TreatmentLoaded(
+      RemedyLoaded(
         filtered,
         searchQuery: query,
         filteredConditionId: _currentConditionId,
@@ -119,109 +115,105 @@ class TreatmentCubit extends Cubit<TreatmentState> {
     );
   }
 
-
   // ============================================================
   // FILTER BY CONDITION
   // ============================================================
 
-  /// Filters treatments by a specific condition.
+  /// Filters remedies by a specific condition.
   ///
-  /// Pass null to show all treatments.
+  /// Pass null to show all remedies.
   Future<void> filterByCondition(String? conditionId) async {
     try {
-      emit(TreatmentLoading());
+      emit(RemedyLoading());
 
       _currentConditionId = conditionId;
 
       if (conditionId == null) {
-        final treatments = await repository.getAllTreatments();
-        _allTreatments = treatments;
+        final remedies = await repository.getAllRemedies();
+        _allRemedies = remedies;
         emit(
-          TreatmentLoaded(
-            treatments,
+          RemedyLoaded(
+            remedies,
             searchQuery: '',
             filteredConditionId: null,
           ),
         );
       } else {
-        final treatments = await repository.getTreatmentsByCondition(
+        final remedies = await repository.getRemediesByCondition(
           conditionId,
         );
         emit(
-          TreatmentLoaded(
-            treatments,
+          RemedyLoaded(
+            remedies,
             searchQuery: '',
             filteredConditionId: conditionId,
           ),
         );
       }
     } catch (e) {
-      emit(TreatmentError('Failed to filter treatments: $e'));
+      emit(RemedyError('Failed to filter remedies: $e'));
     }
   }
 
-
   // ============================================================
-  // DELETE TREATMENT
+  // DELETE REMEDY
   // ============================================================
 
-  /// Deletes a treatment.
+  /// Deletes a remedy.
   ///
   /// Notice:
   ///
   /// The Cubit does NOT directly call Supabase.
   ///
   /// It asks the repository to perform the operation.
-  Future<void> deleteTreatment(String id) async {
+  Future<void> deleteRemedy(String id) async {
     try {
-      emit(TreatmentLoading());
+      emit(RemedyLoading());
 
-      await repository.deleteTreatment(id);
+      await repository.deleteRemedy(id);
 
-      _allTreatments.removeWhere((t) => t.id == id);
+      _allRemedies.removeWhere((r) => r.id == id);
 
-      emit(TreatmentOperationSuccess('Treatment deleted successfully'));
+      emit(RemedyOperationSuccess('Remedy deleted successfully'));
 
       emit(
-        TreatmentLoaded(
-          _allTreatments,
+        RemedyLoaded(
+          _allRemedies,
           searchQuery: '',
           filteredConditionId: _currentConditionId,
         ),
       );
     } catch (e) {
-      emit(TreatmentError('Failed to delete treatment: $e'));
+      emit(RemedyError('Failed to delete remedy: $e'));
     }
   }
 
-
   // ============================================================
-  // APPROVE TREATMENT
+  // APPROVE REMEDY
   // ============================================================
 
-  /// Approves or disapproves a treatment.
-  Future<void> approveTreatment(String id, {bool approved = true}) async {
+  /// Approves or disapproves a remedy.
+  Future<void> approveRemedy(String id, {bool approved = true}) async {
     try {
-      emit(TreatmentLoading());
+      emit(RemedyLoading());
 
-      await repository.approveTreatment(id, approved: approved);
+      await repository.approveRemedy(id, approved: approved);
 
-      final message = approved ? 'Treatment approved' : 'Treatment unapproved';
-      emit(TreatmentOperationSuccess(message));
+      final message = approved ? 'Remedy approved' : 'Remedy unapproved';
+      emit(RemedyOperationSuccess(message));
 
-      await refreshTreatments();
+      await refreshRemedies();
     } catch (e) {
-      emit(TreatmentError('Failed to update approval status: $e'));
+      emit(RemedyError('Failed to update approval status: $e'));
     }
   }
 
-
   // ============================================================
-  // REFRESH TREATMENTS
+  // REFRESH REMEDIES
   // ============================================================
 
-  /// Reloads treatments from the database.
-  Future<void> refreshTreatments() async {
-    await loadTreatments();
+  /// Reloads remedies from the database.
+  Future<void> refreshRemedies() async {
+    await loadRemedies();
   }
 }

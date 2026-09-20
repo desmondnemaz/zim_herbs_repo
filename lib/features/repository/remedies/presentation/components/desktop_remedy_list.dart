@@ -3,28 +3,27 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'package:zim_herbs_repo/features/repository/treatments/domain/entities/treatment.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/cubit/treatment_cubit.dart';
-import 'package:zim_herbs_repo/features/repository/treatments/presentation/pages/treatment_details.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_cubit.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedy_details.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
-
-class DesktopTreatmentList extends StatefulWidget {
-  final List<Treatment> treatments;
+class DesktopRemedyList extends StatefulWidget {
+  final List<Remedy> remedies;
   final ResponsiveSize rs;
 
-  const DesktopTreatmentList({
+  const DesktopRemedyList({
     super.key,
-    required this.treatments,
+    required this.remedies,
     required this.rs,
   });
 
   @override
-  State<DesktopTreatmentList> createState() => _DesktopTreatmentListState();
+  State<DesktopRemedyList> createState() => _DesktopRemedyListState();
 }
 
-class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
+class _DesktopRemedyListState extends State<DesktopRemedyList> {
   int? hoveredIndex;
 
   @override
@@ -37,9 +36,9 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
         mainAxisSpacing: 20,
         childAspectRatio: 1.1,
       ),
-      itemCount: widget.treatments.length,
+      itemCount: widget.remedies.length,
       itemBuilder: (context, index) {
-        final treatment = widget.treatments[index];
+        final remedy = widget.remedies[index];
         final isHovered = hoveredIndex == index;
 
         return MouseRegion(
@@ -50,15 +49,15 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
             duration: const Duration(milliseconds: 200),
             child: InkWell(
               onTap: () {
-                final cubit = context.read<TreatmentCubit>();
+                final cubit = context.read<RemedyCubit>();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
                         (context) => BlocProvider.value(
                           value: cubit,
-                          child: TreatmentDetailsPage(
-                            treatmentId: treatment.id,
+                          child: RemedyDetailsPage(
+                            remedyId: remedy.id,
                           ),
                         ),
                   ),
@@ -86,7 +85,7 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            if (treatment.conditionName != null)
+                            if (remedy.conditionName != null)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -102,7 +101,7 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
                                   ),
                                 ),
                                 child: Text(
-                                  treatment.conditionName!.toUpperCase(),
+                                  remedy.conditionName!.toUpperCase(),
                                   style: GoogleFonts.outfit(
                                     fontSize: 10,
                                     color:
@@ -112,7 +111,7 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
                                   ),
                                 ),
                               ),
-                            if (treatment.conditionBodySystem != null)
+                            if (remedy.conditionBodySystem != null)
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
@@ -121,7 +120,7 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
                                 ),
                                 child: SvgPicture.asset(
                                   getBodySystemSvg(
-                                    treatment.conditionBodySystem!,
+                                    remedy.conditionBodySystem!,
                                   ),
                                   width: 22,
                                   height: 22,
@@ -136,10 +135,10 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
 
                         const SizedBox(height: 20),
 
-                        // Treatment Name
+                        // Remedy Name
                         Expanded(
                           child: Text(
-                            treatment.displayName,
+                            remedy.displayName,
                             style: GoogleFonts.philosopher(
                               fontWeight: FontWeight.bold,
                               fontSize: 22,
@@ -168,7 +167,7 @@ class _DesktopTreatmentListState extends State<DesktopTreatmentList> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '${treatment.treatmentHerbs.length} Healing Herbs',
+                              '${remedy.remedyHerbs.length} Healing Herbs',
                               style: GoogleFonts.inter(
                                 color: Theme.of(
                                   context,
