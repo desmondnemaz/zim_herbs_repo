@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/core/config/supabase_config.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/remedy_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
 
 void main() {
   test('Live fetch herbs test from Supabase', () async {
@@ -54,6 +55,40 @@ void main() {
       expect(remedyCount, greaterThanOrEqualTo(0));
     } catch (e, stack) {
       print('>>> Fetch remedies failed with error: $e\n$stack');
+      rethrow;
+    }
+  });
+
+  test('Live fetch conditions and body parts test from Supabase', () async {
+    final client = SupabaseClient(
+      SupabaseConfig.supabaseUrl,
+      SupabaseConfig.supabaseAnonKey,
+    );
+
+    final conditionDataSource = ConditionRemoteDataSource(client);
+
+    try {
+      final conditionCount = await conditionDataSource.getConditionsCount();
+      print('>>> Total conditions in database: $conditionCount');
+
+      final conditions = await conditionDataSource.getAllConditions();
+      print('>>> Successfully fetched ${conditions.length} conditions!');
+      for (final condition in conditions.take(5)) {
+        print(
+          ' - Condition: ${condition.name} (Body parts: ${condition.bodyParts.map((b) => b.nameEn).join(', ')})',
+        );
+      }
+
+      final bodyParts = await conditionDataSource.getAllBodyParts();
+      print('>>> Successfully fetched ${bodyParts.length} body parts!');
+      for (final bp in bodyParts.take(5)) {
+        print(' - Body Part: ${bp.nameEn} (Code: ${bp.code})');
+      }
+
+      expect(conditionCount, greaterThanOrEqualTo(0));
+      expect(bodyParts.length, greaterThanOrEqualTo(0));
+    } catch (e, stack) {
+      print('>>> Fetch conditions/body parts failed with error: $e\n$stack');
       rethrow;
     }
   });

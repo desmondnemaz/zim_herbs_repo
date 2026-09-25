@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/models/body_part_model.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 
 class AddEditConditionDialog extends StatefulWidget {
   final ConditionModel? condition;
@@ -26,6 +29,10 @@ class _AddEditConditionDialogState extends State<AddEditConditionDialog> {
   late TextEditingController _precautionsController;
   BodySystem _selectedBodySystem = BodySystem.circulatory;
 
+  List<BodyPartModel> _allBodyParts = [];
+  final Set<String> _selectedBodyPartIds = {};
+  bool _isLoadingBodyParts = true;
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +48,29 @@ class _AddEditConditionDialogState extends State<AddEditConditionDialog> {
     );
     if (widget.condition != null) {
       _selectedBodySystem = widget.condition!.bodySystem;
+      _selectedBodyPartIds.addAll(
+        widget.condition!.bodyParts.map((bp) => bp.id),
+      );
+    }
+    _loadBodyParts();
+  }
+
+  Future<void> _loadBodyParts() async {
+    try {
+      final dataSource = ConditionRemoteDataSource(Supabase.instance.client);
+      final bodyParts = await dataSource.getAllBodyParts();
+      if (mounted) {
+        setState(() {
+          _allBodyParts = bodyParts;
+          _isLoadingBodyParts = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingBodyParts = false;
+        });
+      }
     }
   }
 
@@ -56,110 +86,191 @@ class _AddEditConditionDialogState extends State<AddEditConditionDialog> {
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
+    final theme = Theme.of(context);
+
     return AlertDialog(
       title: Text(
         widget.condition == null ? 'Add Condition' : 'Edit Condition',
         style: TextStyle(fontSize: rs.titleFont, fontWeight: FontWeight.bold),
       ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.onPrimary,
-                  labelStyle: TextStyle(
+      content: SizedBox(
+        width: 500,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: theme.colorScheme.onPrimary,
+                    labelStyle: TextStyle(
+                      fontSize: rs.labelFont,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<BodySystem>(
+                  initialValue: _selectedBodySystem,
+                  decoration: InputDecoration(
+                    labelText: 'Body System',
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: theme.colorScheme.onPrimary,
+                    labelStyle: TextStyle(
+                      fontSize: rs.labelFont,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  items:
+                      BodySystem.values.map((system) {
+                        return DropdownMenuItem(
+                          value: system,
+                          child: Text(bodySystemLabel(system)),
+                        );
+                      }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedBodySystem = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Body Parts Affected section
+                Text(
+                  'Affected Body Parts',
+                  style: TextStyle(
                     fontSize: rs.labelFont,
-                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<BodySystem>(
-                initialValue: _selectedBodySystem,
-                decoration: InputDecoration(
-                  labelText: 'Body System',
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.onPrimary,
-                  labelStyle: TextStyle(
-                    fontSize: rs.labelFont,
-                    color: Theme.of(context).colorScheme.primary,
+                const SizedBox(height: 8),
+                if (_isLoadingBodyParts)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Center(
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                else if (_allBodyParts.isEmpty)
+                  Text(
+                    'No body parts found in database.',
+                    style: TextStyle(
+                      fontSize: rs.bodyFont * 0.9,
+                      color: Colors.grey,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children:
+                        _allBodyParts.map((bp) {
+                          final isSelected = _selectedBodyPartIds.contains(
+                            bp.id,
+                          );
+                          final label =
+                              bp.nameSn != null && bp.nameSn!.isNotEmpty
+                                  ? '${bp.nameEn} (${bp.nameSn})'
+                                  : bp.nameEn;
+
+                          return FilterChip(
+                            label: Text(label),
+                            selected: isSelected,
+                            selectedColor:
+                                theme.colorScheme.primary.withValues(alpha: 0.2),
+                            checkmarkColor: theme.colorScheme.primary,
+                            labelStyle: TextStyle(
+                              fontSize: rs.bodyFont * 0.85,
+                              color:
+                                  isSelected
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurface,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                            ),
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  _selectedBodyPartIds.add(bp.id);
+                                } else {
+                                  _selectedBodyPartIds.remove(bp.id);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
                   ),
-                ),
-                items:
-                    BodySystem.values.map((system) {
-                      return DropdownMenuItem(
-                        value: system,
-                        child: Text(bodySystemLabel(system)),
-                      );
-                    }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedBodySystem = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.onPrimary,
-                  labelStyle: TextStyle(
-                    fontSize: rs.labelFont,
-                    color: Theme.of(context).colorScheme.primary,
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: theme.colorScheme.onPrimary,
+                    labelStyle: TextStyle(
+                      fontSize: rs.labelFont,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
+                  maxLines: 3,
                 ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _symptomsController,
-                decoration: InputDecoration(
-                  labelText: 'Symptoms (comma separated)',
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.onPrimary,
-                  labelStyle: TextStyle(
-                    fontSize: rs.labelFont,
-                    color: Theme.of(context).colorScheme.primary,
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _symptomsController,
+                  decoration: InputDecoration(
+                    labelText: 'Symptoms (comma separated)',
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: theme.colorScheme.onPrimary,
+                    labelStyle: TextStyle(
+                      fontSize: rs.labelFont,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
+                  maxLines: 2,
                 ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _precautionsController,
-                decoration: InputDecoration(
-                  labelText: 'Precautions (comma separated)',
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.onPrimary,
-                  labelStyle: TextStyle(
-                    fontSize: rs.labelFont,
-                    color: Theme.of(context).colorScheme.primary,
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _precautionsController,
+                  decoration: InputDecoration(
+                    labelText: 'Precautions (comma separated)',
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: theme.colorScheme.onPrimary,
+                    labelStyle: TextStyle(
+                      fontSize: rs.labelFont,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
+                  maxLines: 2,
                 ),
-                maxLines: 2,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -171,8 +282,8 @@ class _AddEditConditionDialogState extends State<AddEditConditionDialog> {
         ElevatedButton(
           onPressed: _submit,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
           ),
           child: Text(
             'Save',
@@ -201,6 +312,11 @@ class _AddEditConditionDialogState extends State<AddEditConditionDialog> {
               .where((e) => e.isNotEmpty)
               .toList();
 
+      final selectedBodyParts =
+          _allBodyParts
+              .where((bp) => _selectedBodyPartIds.contains(bp.id))
+              .toList();
+
       final newCondition = ConditionModel(
         id: widget.condition?.id ?? const Uuid().v4(),
         name: _nameController.text,
@@ -211,6 +327,7 @@ class _AddEditConditionDialogState extends State<AddEditConditionDialog> {
                 : _descriptionController.text,
         symptoms: symptoms,
         precautions: precautions,
+        bodyParts: selectedBodyParts,
       );
 
       widget.onSave(newCondition);

@@ -1,4 +1,5 @@
 import 'package:zim_herbs_repo/core/utils/enums.dart';
+import '../../domain/entities/body_part.dart';
 import '../../domain/entities/condition.dart';
 
 abstract class ConditionState {}
@@ -9,13 +10,17 @@ class ConditionLoading extends ConditionState {}
 
 class ConditionLoaded extends ConditionState {
   final List<Condition> conditions;
+  final List<BodyPart> allBodyParts;
   final String searchQuery;
   final BodySystem? selectedBodySystem;
+  final String? selectedBodyPartId;
 
   ConditionLoaded(
     this.conditions, {
+    this.allBodyParts = const [],
     this.searchQuery = '',
     this.selectedBodySystem,
+    this.selectedBodyPartId,
   });
 }
 

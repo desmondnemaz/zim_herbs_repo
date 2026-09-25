@@ -38,42 +38,38 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
   Widget _buildHeader(BuildContext context, bool isDesktop) {
     if (isDesktop) {
       if (widget.isExpanded) {
-        return ClipRect(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.admin_panel_settings,
-                          size: 28, color: Theme.of(context).colorScheme.secondary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "ADMIN",
-                          overflow: TextOverflow.clip,
-                          softWrap: false,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.secondary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                          ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.admin_panel_settings,
+                        size: 28, color: Theme.of(context).colorScheme.secondary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "ADMIN",
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.menu_open, color: Colors.white),
-                  onPressed: widget.onToggle,
-                  tooltip: "Collapse Sidebar",
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.menu_open, color: Colors.white),
+                onPressed: widget.onToggle,
+                tooltip: "Collapse Sidebar",
+              ),
+            ],
           ),
         );
       } else {
@@ -132,22 +128,20 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
     final isDesktop = Responsive.isDesktop(context);
     final showCollapsed = isDesktop && !widget.isExpanded;
 
-    return ClipRect(
-      child: Padding(
-        padding: const EdgeInsets.all(defaultPadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Divider(
-              color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.2),
-            ),
-            const SizedBox(height: 8),
-            if (showCollapsed)
-              _buildNavItem(context, 6, const _AdminNavItem(label: 'Sign Out', icon: Icons.logout, activeIcon: Icons.logout), isSignOut: true, forceCollapsed: true)
-            else
-              _buildNavItem(context, 6, const _AdminNavItem(label: 'Sign Out', icon: Icons.logout, activeIcon: Icons.logout), isSignOut: true),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.all(defaultPadding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Divider(
+            color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.2),
+          ),
+          const SizedBox(height: 8),
+          if (showCollapsed)
+            _buildNavItem(context, -1, const _AdminNavItem(label: 'Sign Out', icon: Icons.logout, activeIcon: Icons.logout), isSignOut: true, forceCollapsed: true)
+          else
+            _buildNavItem(context, -1, const _AdminNavItem(label: 'Sign Out', icon: Icons.logout, activeIcon: Icons.logout), isSignOut: true),
+        ],
       ),
     );
   }
@@ -184,24 +178,24 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
         message: item.label,
         preferBelow: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
-          child: InkWell(
-            onTap: handleTap,
+          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+          child: Material(
+            color: isActive
+                ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Icon(
-                  isActive ? item.activeIcon : item.icon,
-                  color: iconColor,
-                  size: 24,
+            child: InkWell(
+              onTap: handleTap,
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Icon(
+                    isActive ? item.activeIcon : item.icon,
+                    color: iconColor,
+                    size: 22,
+                  ),
                 ),
               ),
             ),
@@ -212,32 +206,44 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isActive
-              ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ListTile(
-          dense: true,
+      child: Material(
+        color: isActive
+            ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
           onTap: handleTap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          leading: Icon(
-            isActive ? item.activeIcon : item.icon,
-            color: iconColor,
-            size: 22,
-          ),
-          title: Text(
-            item.label,
-            style: TextStyle(
-              color: isSignOut
-                  ? Colors.redAccent
-                  : isActive
-                      ? Theme.of(context).colorScheme.secondary
-                      : Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.85),
-              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-              fontSize: 14,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  isActive ? item.activeIcon : item.icon,
+                  color: iconColor,
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isSignOut
+                          ? Colors.redAccent
+                          : isActive
+                              ? Theme.of(context).colorScheme.secondary
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onPrimary
+                                  .withValues(alpha: 0.85),
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -248,9 +254,11 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
+    final double targetWidth = widget.isExpanded ? 230 : 68;
 
     Widget content = SafeArea(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(context, isDesktop),
           Expanded(
@@ -272,13 +280,23 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
       return AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
-        width: widget.isExpanded ? 230 : 68,
+        width: targetWidth,
         height: double.infinity,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primary,
           borderRadius: BorderRadius.zero,
         ),
-        child: content,
+        child: ClipRect(
+          child: OverflowBox(
+            minWidth: targetWidth,
+            maxWidth: targetWidth,
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: targetWidth,
+              child: content,
+            ),
+          ),
+        ),
       );
     } else {
       return Drawer(

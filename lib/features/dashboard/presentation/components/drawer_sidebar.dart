@@ -5,8 +5,10 @@ import 'package:flutter_svg/svg.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
 import 'package:zim_herbs_repo/features/notifications/presentation/notifications_page.dart';
+import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
 
 
 class DrawerSideBar extends StatefulWidget {
@@ -25,55 +27,51 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
   Widget _buildHeader(BuildContext context, bool isDesktop) {
     if (isDesktop) {
       if (widget.isExpanded) {
-        return ClipRect(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 16.0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/logo/logo.png',
-                        height: 32,
-                        width: 32,
-                        fit: BoxFit.contain,
-                        errorBuilder:
-                            (_, _, _) => Icon(
-                              Icons.grass,
-                              size: 32,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "ZIM-HERBS",
-                          overflow: TextOverflow.clip,
-                          softWrap: false,
-                          style: TextStyle(
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 16.0,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Image.asset(
+                      'assets/logo/logo.png',
+                      height: 32,
+                      width: 32,
+                      fit: BoxFit.contain,
+                      errorBuilder:
+                          (_, _, _) => Icon(
+                            Icons.grass,
+                            size: 32,
                             color: Theme.of(context).colorScheme.secondary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
                           ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "ZIM-HERBS",
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.menu_open, color: Colors.white),
-                  onPressed: widget.onToggle,
-                  tooltip: "Collapse Sidebar",
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.menu_open, color: Colors.white),
+                onPressed: widget.onToggle,
+                tooltip: "Collapse Sidebar",
+              ),
+            ],
           ),
         );
       } else {
@@ -144,85 +142,83 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
     final isDesktop = Responsive.isDesktop(context);
     final showCollapsed = isDesktop && !widget.isExpanded;
 
-    return ClipRect(
-      child: Padding(
-        padding: const EdgeInsets.all(defaultPadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Divider(
-              color: Theme.of(
-                context,
-              ).colorScheme.onPrimary.withValues(alpha: 0.2),
-            ),
-            const SizedBox(height: 8),
-            if (showCollapsed)
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: const CircleAvatar(
-                  radius: 12,
-                  backgroundColor: Colors.transparent,
-                  backgroundImage: AssetImage(
-                    'assets/images/zimbabwe-flag-rounded.png',
-                  ),
-                ),
-              )
-            else
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const CircleAvatar(
-                          radius: 12,
-                          backgroundColor: Colors.transparent,
-                          backgroundImage: AssetImage(
-                            'assets/images/zimbabwe-flag-rounded.png',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "ZIM HERBS",
-                          overflow: TextOverflow.clip,
-                          softWrap: false,
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withValues(alpha: 0.6),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "v1.0.0",
-                    style: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withValues(alpha: 0.4),
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
+    return Padding(
+      padding: const EdgeInsets.all(defaultPadding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Divider(
+            color: Theme.of(
+              context,
+            ).colorScheme.onPrimary.withValues(alpha: 0.2),
+          ),
+          const SizedBox(height: 8),
+          if (showCollapsed)
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
               ),
-          ],
-        ),
+              child: const CircleAvatar(
+                radius: 12,
+                backgroundColor: Colors.transparent,
+                backgroundImage: AssetImage(
+                  'assets/images/zimbabwe-flag-rounded.png',
+                ),
+              ),
+            )
+          else
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.transparent,
+                        backgroundImage: AssetImage(
+                          'assets/images/zimbabwe-flag-rounded.png',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "ZIM HERBS",
+                        overflow: TextOverflow.clip,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withValues(alpha: 0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "v1.0.0",
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withValues(alpha: 0.4),
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -230,9 +226,11 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
+    final double targetWidth = widget.isExpanded ? 250 : 70;
 
     Widget content = SafeArea(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Sidebar Header ──
           _buildHeader(context, isDesktop),
@@ -286,6 +284,32 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                       );
                     },
                   ),
+                  Builder(
+                    builder: (context) {
+                      try {
+                        final authState = context.watch<AuthCubit>().state;
+                        if (authState is Authenticated && authState.user.role.isAdmin) {
+                          return _buildMenuItem(
+                            title: "Admin Console",
+                            icon: Icons.admin_panel_settings,
+                            isActive: false,
+                            onTap: () {
+                              if (!Responsive.isDesktop(context)) {
+                                Navigator.pop(context);
+                              }
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AdminDashboardPage(user: authState.user),
+                                ),
+                              );
+                            },
+                          );
+                        }
+                      } catch (_) {}
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   _buildMenuItem(
                     title: "Sign Out",
                     icon: Icons.logout,
@@ -297,7 +321,6 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                       context.read<AuthCubit>().signOut();
                     },
                   ),
-
                 ],
               ),
             ),
@@ -313,13 +336,23 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
       return AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
-        width: widget.isExpanded ? 250 : 70,
+        width: targetWidth,
         height: double.infinity,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primary,
           borderRadius: BorderRadius.zero,
         ),
-        child: content,
+        child: ClipRect(
+          child: OverflowBox(
+            minWidth: targetWidth,
+            maxWidth: targetWidth,
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: targetWidth,
+              child: content,
+            ),
+          ),
+        ),
       );
     } else {
       return Drawer(
@@ -354,6 +387,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                   BlendMode.srcIn,
                 ),
                 height: 24,
+                width: 24,
               )
               : Icon(
                 icon,
@@ -371,22 +405,22 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
         preferBelow: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-          child: InkWell(
-            onTap: onTap,
+          child: Material(
+            color:
+                isActive
+                    ? Theme.of(
+                      context,
+                    ).colorScheme.secondary.withValues(alpha: 0.2)
+                    : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color:
-                    isActive
-                        ? Theme.of(
-                          context,
-                        ).colorScheme.secondary.withValues(alpha: 0.2)
-                        : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(child: childWidget),
               ),
-              child: Center(child: childWidget),
             ),
           ),
         ),
@@ -394,57 +428,65 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Container(
-        decoration: BoxDecoration(
-          color:
-              isActive
-                  ? Theme.of(
-                    context,
-                  ).colorScheme.secondary.withValues(alpha: 0.2)
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ListTile(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: Material(
+        color:
+            isActive
+                ? Theme.of(
+                  context,
+                ).colorScheme.secondary.withValues(alpha: 0.2)
+                : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
           onTap: onTap,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          leading:
-              svgSrc != null
-                  ? SvgPicture.asset(
-                    svgSrc,
-                    colorFilter: ColorFilter.mode(
-                      isActive
-                          ? Theme.of(context).colorScheme.secondary
-                          : Theme.of(
-                            context,
-                          ).colorScheme.onPrimary.withValues(alpha: 0.7),
-                      BlendMode.srcIn,
-                    ),
-                    height: 24,
-                  )
-                  : Icon(
-                    icon,
-                    color:
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                svgSrc != null
+                    ? SvgPicture.asset(
+                      svgSrc,
+                      colorFilter: ColorFilter.mode(
                         isActive
                             ? Theme.of(context).colorScheme.secondary
                             : Theme.of(
                               context,
                             ).colorScheme.onPrimary.withValues(alpha: 0.7),
-                    size: 24,
+                        BlendMode.srcIn,
+                      ),
+                      height: 24,
+                      width: 24,
+                    )
+                    : Icon(
+                      icon,
+                      color:
+                          isActive
+                              ? Theme.of(context).colorScheme.secondary
+                              : Theme.of(
+                                context,
+                              ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                      size: 24,
+                    ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color:
+                          isActive
+                              ? Theme.of(context).colorScheme.secondary
+                              : Theme.of(
+                                context,
+                              ).colorScheme.onPrimary.withValues(alpha: 0.8),
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                      fontSize: 16,
+                    ),
                   ),
-          title: Text(
-            title,
-            style: TextStyle(
-              color:
-                  isActive
-                      ? Theme.of(context).colorScheme.secondary
-                      : Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withValues(alpha: 0.8),
-              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-              fontSize: 16,
+                ),
+              ],
             ),
           ),
         ),

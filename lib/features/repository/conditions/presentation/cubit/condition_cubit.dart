@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
+import '../../domain/entities/body_part.dart';
 import '../../domain/entities/condition.dart';
 import '../../domain/repositories/condition_repository.dart';
 import 'condition_state.dart';
@@ -10,27 +11,37 @@ class ConditionCubit extends Cubit<ConditionState> {
   final ConditionRepository repository;
 
   List<Condition> _allConditions = [];
+  List<BodyPart> _allBodyParts = [];
   String _currentQuery = '';
   BodySystem? _currentBodySystem;
+  String? _currentBodyPartId;
 
   ConditionCubit(this.repository) : super(ConditionInitial());
 
   // ============================================================
-  // LOAD CONDITIONS
+  // LOAD CONDITIONS & BODY PARTS
   // ============================================================
   Future<void> loadConditions() async {
     try {
       emit(ConditionLoading());
-      final conditions = await repository.getAllConditions();
-      _allConditions = conditions;
+      final results = await Future.wait([
+        repository.getAllConditions(),
+        repository.getAllBodyParts(),
+      ]);
+
+      _allConditions = results[0] as List<Condition>;
+      _allBodyParts = results[1] as List<BodyPart>;
       _currentQuery = '';
       _currentBodySystem = null;
+      _currentBodyPartId = null;
 
       emit(
         ConditionLoaded(
           _allConditions,
+          allBodyParts: _allBodyParts,
           searchQuery: '',
           selectedBodySystem: null,
+          selectedBodyPartId: null,
         ),
       );
     } catch (e) {
@@ -51,12 +62,23 @@ class ConditionCubit extends Cubit<ConditionState> {
     _applyFilters();
   }
 
+  void filterByBodyPart(String? bodyPartId) {
+    _currentBodyPartId = bodyPartId;
+    _applyFilters();
+  }
+
   void _applyFilters() {
     var filtered = _allConditions;
 
     if (_currentBodySystem != null) {
       filtered = filtered
           .where((c) => c.bodySystem == _currentBodySystem)
+          .toList();
+    }
+
+    if (_currentBodyPartId != null) {
+      filtered = filtered
+          .where((c) => c.bodyParts.any((bp) => bp.id == _currentBodyPartId))
           .toList();
     }
 
@@ -69,8 +91,10 @@ class ConditionCubit extends Cubit<ConditionState> {
     emit(
       ConditionLoaded(
         filtered,
+        allBodyParts: _allBodyParts,
         searchQuery: _currentQuery,
         selectedBodySystem: _currentBodySystem,
+        selectedBodyPartId: _currentBodyPartId,
       ),
     );
   }
@@ -78,10 +102,16 @@ class ConditionCubit extends Cubit<ConditionState> {
   // ============================================================
   // CREATE CONDITION
   // ============================================================
-  Future<void> createCondition(Condition condition) async {
+  Future<void> createCondition(
+    Condition condition, {
+    List<String>? bodyPartIds,
+  }) async {
     try {
       emit(ConditionLoading());
-      final created = await repository.createCondition(condition);
+      final created = await repository.createCondition(
+        condition,
+        bodyPartIds: bodyPartIds,
+      );
       _allConditions.add(created);
       _allConditions.sort((a, b) => a.name.compareTo(b.name));
 
@@ -95,10 +125,16 @@ class ConditionCubit extends Cubit<ConditionState> {
   // ============================================================
   // UPDATE CONDITION
   // ============================================================
-  Future<void> updateCondition(Condition condition) async {
+  Future<void> updateCondition(
+    Condition condition, {
+    List<String>? bodyPartIds,
+  }) async {
     try {
       emit(ConditionLoading());
-      final updated = await repository.updateCondition(condition);
+      final updated = await repository.updateCondition(
+        condition,
+        bodyPartIds: bodyPartIds,
+      );
       final index = _allConditions.indexWhere((c) => c.id == updated.id);
       if (index != -1) {
         _allConditions[index] = updated;
@@ -133,5 +169,12 @@ class ConditionCubit extends Cubit<ConditionState> {
   // ============================================================
   Future<void> refreshConditions() async {
     await loadConditions();
+  }
+
+  /// Get list of cached or freshly fetched body parts
+  Future<List<BodyPart>> getBodyParts() async {
+    if (_allBodyParts.isNotEmpty) return _allBodyParts;
+    _allBodyParts = await repository.getAllBodyParts();
+    return _allBodyParts;
   }
 }

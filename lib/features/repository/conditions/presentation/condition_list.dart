@@ -66,10 +66,18 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
             condition: condition != null ? ConditionModel.fromEntity(condition) : null,
             onSave: (newConditionModel) async {
               final newCondition = newConditionModel.toEntity();
+              final bodyPartIds =
+                  newConditionModel.bodyParts.map((bp) => bp.id).toList();
               if (condition == null) {
-                context.read<ConditionCubit>().createCondition(newCondition);
+                context.read<ConditionCubit>().createCondition(
+                      newCondition,
+                      bodyPartIds: bodyPartIds,
+                    );
               } else {
-                context.read<ConditionCubit>().updateCondition(newCondition);
+                context.read<ConditionCubit>().updateCondition(
+                      newCondition,
+                      bodyPartIds: bodyPartIds,
+                    );
               }
             },
           ),

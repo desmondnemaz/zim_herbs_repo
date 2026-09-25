@@ -11,6 +11,7 @@ import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 import 'package:zim_herbs_repo/features/dashboard/bloc/dashboard_cubit.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/components/admin_drawer_sidebar.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/components/admin_dashboard_screen.dart';
+import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final UserModel user;
@@ -211,6 +212,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: 12),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const HomePage()),
+                                  );
+                                },
+                                icon: const Icon(Icons.school_outlined, size: 14, color: Colors.white),
+                                label: const Text(
+                                  "Customer Portal",
+                                  style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                              ),
                               const Spacer(),
                               const _OfflineBadge(),
                               const SizedBox(width: 12),
@@ -224,6 +244,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       Expanded(
                         child: AdminDashboardScreen(
                           activeIndex: _activeIndex,
+                          onNavigate: (i) => setState(() => _activeIndex = i),
                           onToggleSidebar: () {
                             if (isDesktop) {
                               context.read<DashboardCubit>().toggleSidebar();
@@ -370,6 +391,19 @@ class _AdminProfileAvatar extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                       const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.school_outlined, color: Colors.green),
+                        title: const Text('Customer / Learning Portal',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text('Switch to learner experience'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const HomePage()),
+                          );
+                        },
+                      ),
                       ListTile(
                         leading:
                             const Icon(Icons.logout, color: Colors.redAccent),

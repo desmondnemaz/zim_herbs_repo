@@ -1,4 +1,5 @@
 import 'package:zim_herbs_repo/core/utils/enums.dart';
+import '../../domain/entities/body_part.dart';
 import '../../domain/entities/condition.dart';
 import '../../domain/repositories/condition_repository.dart';
 import '../datasources/condition_remote_datasource.dart';
@@ -35,27 +36,57 @@ class ConditionRepositoryImpl implements ConditionRepository {
   }
 
   @override
+  Future<List<Condition>> getConditionsByBodyPart(String bodyPartId) async {
+    final models = await dataSource.getConditionsByBodyPart(bodyPartId);
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
   Future<List<Condition>> searchConditions(String query) async {
     final models = await dataSource.searchConditions(query);
     return models.map((m) => m.toEntity()).toList();
   }
 
   @override
-  Future<Condition> createCondition(Condition condition) async {
+  Future<Condition> createCondition(
+    Condition condition, {
+    List<String>? bodyPartIds,
+  }) async {
     final model = ConditionModel.fromEntity(condition);
-    final createdModel = await dataSource.createCondition(model);
+    final createdModel = await dataSource.createCondition(
+      model,
+      bodyPartIds: bodyPartIds,
+    );
     return createdModel.toEntity();
   }
 
   @override
-  Future<Condition> updateCondition(Condition condition) async {
+  Future<Condition> updateCondition(
+    Condition condition, {
+    List<String>? bodyPartIds,
+  }) async {
     final model = ConditionModel.fromEntity(condition);
-    final updatedModel = await dataSource.updateCondition(model);
+    final updatedModel = await dataSource.updateCondition(
+      model,
+      bodyPartIds: bodyPartIds,
+    );
     return updatedModel.toEntity();
   }
 
   @override
   Future<void> deleteCondition(String id) {
     return dataSource.deleteCondition(id);
+  }
+
+  @override
+  Future<List<BodyPart>> getAllBodyParts() async {
+    final models = await dataSource.getAllBodyParts();
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<BodyPart?> getBodyPartById(String id) async {
+    final model = await dataSource.getBodyPartById(id);
+    return model?.toEntity();
   }
 }

@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/core/theme/light_mode.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
-import 'package:zim_herbs_repo/features/auth/data/fake_auth_repository.dart';
+import 'package:zim_herbs_repo/features/auth/data/supabase_auth_repository.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/auth_gate.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
@@ -27,12 +27,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fakeAuthRepo = FakeAuthRepository();
+    final authRepository = SupabaseAuthRepository(Supabase.instance.client);
 
     return MultiBlocProvider(
       providers: [
   BlocProvider(
-    create: (context) => AuthCubit(fakeAuthRepo)..checkAuth(),
+    create: (context) => AuthCubit(authRepository)..checkAuth(),
   ),
 
   BlocProvider(

@@ -17,6 +17,7 @@ import 'package:zim_herbs_repo/features/dashboard/bloc/recommendations_bloc.dart
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
+import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -361,6 +362,20 @@ class _ProfileAvatar extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                       const Divider(),
+                      if (state is Authenticated && state.user.role.isAdmin) ...[
+                        ListTile(
+                          leading: const Icon(Icons.admin_panel_settings, color: Colors.amber),
+                          title: const Text('Admin Console', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: const Text('Switch to admin & moderation console'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => AdminDashboardPage(user: state.user)),
+                            );
+                          },
+                        ),
+                      ],
                       ListTile(
                         leading: const Icon(Icons.logout, color: Colors.redAccent),
                         title: const Text(

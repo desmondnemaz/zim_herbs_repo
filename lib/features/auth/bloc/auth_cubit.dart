@@ -36,16 +36,6 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> signInWithRole(UserRole role) async {
-    emit(const AuthLoading());
-    try {
-      final user = await _authRepository.signInWithFakeRole(role);
-      emit(Authenticated(user));
-    } catch (e) {
-      emit(AuthError(e.toString()));
-    }
-  }
-
   Future<void> signInWithCredentials({
     required String email,
     required String password,
@@ -58,7 +48,25 @@ class AuthCubit extends Cubit<AuthState> {
       );
       emit(Authenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  Future<void> signUpWithCredentials({
+    required String email,
+    required String password,
+    String? fullName,
+  }) async {
+    emit(const AuthLoading());
+    try {
+      final user = await _authRepository.signUpWithCredentials(
+        email: email,
+        password: password,
+        fullName: fullName,
+      );
+      emit(Authenticated(user));
+    } catch (e) {
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
     }
   }
 

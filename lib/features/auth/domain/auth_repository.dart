@@ -7,14 +7,18 @@ abstract class AuthRepository {
   /// Returns the current signed in user, if any
   Future<UserModel?> getCurrentUser();
 
-  /// Sign in using credentials (email & password)
+  /// Sign in using real credentials (email & password)
   Future<UserModel> signInWithCredentials({
     required String email,
     required String password,
   });
 
-  /// Quick sign in with a specific fake role (for demo/testing)
-  Future<UserModel> signInWithFakeRole(UserRole role);
+  /// Sign up a new user using credentials (email & password, optional name)
+  Future<UserModel> signUpWithCredentials({
+    required String email,
+    required String password,
+    String? fullName,
+  });
 
   /// Sign out current user
   Future<void> signOut();

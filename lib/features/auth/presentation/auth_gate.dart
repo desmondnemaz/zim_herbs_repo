@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/login_page.dart';
+import 'package:zim_herbs_repo/features/auth/presentation/portal_selection_page.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
-import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -23,7 +23,7 @@ class AuthGate extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 16),
-                  const Text('Initializing Zim Herbs...'),
+                  const Text('Initializing Zim Herbs Admin...'),
                 ],
               ),
             ),
@@ -32,8 +32,9 @@ class AuthGate extends StatelessWidget {
 
         if (state is Authenticated) {
           if (state.user.role.isAdmin) {
-            return AdminDashboardPage(user: state.user);
+            return PortalSelectionPage(user: state.user);
           } else {
+            // General authenticated customer learning experience
             return const HomePage();
           }
         }

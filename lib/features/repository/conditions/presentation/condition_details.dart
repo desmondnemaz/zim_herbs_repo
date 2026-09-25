@@ -204,6 +204,62 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                                     ),
                                     const SizedBox(height: 20),
                                   ],
+                                  if (condition.bodyParts.isNotEmpty) ...[
+                                    _buildSectionCard(
+                                      icon: Icons.accessibility_new_rounded,
+                                      title: 'Affected Body Parts',
+                                      content: Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: condition.bodyParts.map((bp) {
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withValues(alpha: 0.08),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                    .withValues(alpha: 0.2),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.adjust_rounded,
+                                                  size: 16,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  bp.localizedName,
+                                                  style: TextStyle(
+                                                    fontSize: rs.bodyFont,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .primary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                      rs: rs,
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
                                   if (condition.symptoms.isNotEmpty) ...[
                                     _buildSectionCard(
                                       icon: Icons.warning_amber_rounded,
@@ -296,6 +352,37 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                 ),
               ),
             ],
+          ),
+        ),
+        ...condition.bodyParts.map(
+          (bp) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.accessibility_new_rounded,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  bp.nameEn,
+                  style: TextStyle(
+                    fontSize: rs.labelFont,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
