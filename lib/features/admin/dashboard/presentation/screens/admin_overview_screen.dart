@@ -5,6 +5,9 @@ import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
+import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 
@@ -28,6 +31,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   int _bodyPartsCount = 0;
   int _usersCount = 0;
   bool _isLoading = true;
+  Failure? _errorFailure;
 
   @override
   void initState() {
@@ -36,6 +40,11 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   }
 
   Future<void> _loadLiveStats() async {
+    setState(() {
+      _isLoading = true;
+      _errorFailure = null;
+    });
+
     try {
       final results = await Future.wait([
         _client.from('herbs').count(CountOption.exact),
@@ -60,9 +69,12 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
           _isLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e, stackTrace) {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _errorFailure = ErrorHandler.handle(e, stackTrace);
+          _isLoading = false;
+        });
       }
     }
   }
@@ -143,6 +155,15 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               );
             },
           ),
+          if (_errorFailure != null) ...[
+            const SizedBox(height: 16),
+            AppErrorBanner(
+              failure: _errorFailure,
+              title: 'Live Stats Unavailable',
+              actionLabel: 'Retry',
+              onAction: _loadLiveStats,
+            ),
+          ],
           const SizedBox(height: 28),
 
           // ─── Section: System Stats ─────────────────────────────────────────

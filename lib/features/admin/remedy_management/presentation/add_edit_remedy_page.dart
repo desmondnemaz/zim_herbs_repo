@@ -11,6 +11,8 @@ import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/rem
 import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
+import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_form_cubit.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
@@ -212,17 +214,35 @@ class _RemedyFormViewState extends State<_RemedyFormView> {
         listener: (context, state) {
           if (state.status == RemedyFormStatus.success) {
             Navigator.pop(context, true);
+            ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Remedy saved successfully!')),
             );
           }
           if (state.status == RemedyFormStatus.error) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: ${state.errorMessage}')),
-            );
+            // Only show snackbar if form resources were already loaded.
+            // If resources failed to load initially, the builder displays AppErrorView.
+            if (state.conditions.isNotEmpty || state.availableHerbs.isNotEmpty) {
+              showAppErrorSnackBar(
+                context,
+                failure: state.failure,
+                message: state.errorMessage ?? 'An error occurred while saving the remedy.',
+              );
+            }
           }
         },
         builder: (context, state) {
+          if (state.status == RemedyFormStatus.error &&
+              state.conditions.isEmpty &&
+              state.availableHerbs.isEmpty) {
+            return AppErrorView(
+              failure: state.failure,
+              message: state.errorMessage ?? 'Failed to load form resources.',
+              onRetry: () =>
+                  context.read<RemedyFormCubit>().loadFormResources(widget.remedy),
+            );
+          }
+
           if (state.status == RemedyFormStatus.loaded) {
             if (widget.remedy != null && _selectedCondition == null) {
               try {

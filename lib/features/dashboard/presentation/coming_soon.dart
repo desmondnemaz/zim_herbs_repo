@@ -44,7 +44,11 @@ class _ComingSoonPageState extends State<ComingSoonPage>
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -106,7 +110,11 @@ class _ComingSoonPageState extends State<ComingSoonPage>
             ),
             const SizedBox(height: 48),
             FilledButton.icon(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              },
               icon: const Icon(Icons.arrow_back),
               label: const Text("Go Back"),
               style: FilledButton.styleFrom(

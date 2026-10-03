@@ -24,33 +24,37 @@ class PortalSelectionPage extends StatelessWidget {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.grass, color: theme.colorScheme.secondary, size: 24),
-            const SizedBox(width: 8),
-            Text(
-              "ZIM HERBS",
-              style: TextStyle(
-                color: theme.colorScheme.secondary,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
+            Icon(Icons.grass, color: theme.colorScheme.secondary, size: 22),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                "ZIM HERBS",
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: theme.colorScheme.secondary,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton.icon(
+          IconButton(
             onPressed: () => context.read<AuthCubit>().signOut(),
-            icon: const Icon(Icons.logout, color: Colors.white, size: 18),
-            label: const Text(
-              "Sign Out",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
+            icon: const Icon(Icons.logout, color: Colors.white, size: 20),
+            tooltip: "Sign Out",
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+          padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? 24.0 : 16.0,
+            vertical: isDesktop ? 36.0 : 20.0,
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 860),
             child: Column(
@@ -58,7 +62,7 @@ class PortalSelectionPage extends StatelessWidget {
               children: [
                 // Header badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -69,14 +73,17 @@ class PortalSelectionPage extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.verified_user, size: 16, color: theme.colorScheme.primary),
+                      Icon(Icons.verified_user, size: 15, color: theme.colorScheme.primary),
                       const SizedBox(width: 6),
-                      Text(
-                        "Administrator Access Verified",
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                      Flexible(
+                        child: Text(
+                          "Administrator Access Verified",
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -86,7 +93,10 @@ class PortalSelectionPage extends StatelessWidget {
                 Text(
                   "Welcome, ${user.name}!",
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineMedium?.copyWith(
+                  style: (isDesktop
+                          ? theme.textTheme.headlineMedium
+                          : theme.textTheme.titleLarge)
+                      ?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.primary,
                   ),
@@ -96,12 +106,12 @@ class PortalSelectionPage extends StatelessWidget {
                   "Select the portal you would like to open. You can switch between them anytime from the navigation menu.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: Colors.grey.shade700,
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 28),
 
                 // Portals Cards (Side-by-side on desktop, stacked on mobile)
                 if (isDesktop)

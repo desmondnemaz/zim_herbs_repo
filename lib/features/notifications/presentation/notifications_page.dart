@@ -48,7 +48,6 @@ class NotificationsPage extends StatelessWidget {
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -58,7 +57,11 @@ class NotificationsPage extends StatelessWidget {
                   ),
                 ],
               ),
-              child: ListTile(
+              child: Material(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
                 contentPadding: const EdgeInsets.all(16),
                 leading: Container(
                   padding: const EdgeInsets.all(12),
@@ -103,6 +106,7 @@ class NotificationsPage extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
               ),
             );
           },

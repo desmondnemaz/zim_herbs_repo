@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import '../../domain/entities/remedy.dart';
 import '../../domain/repositories/remedy_repository.dart';
 import 'remedy_state.dart';
@@ -68,8 +69,9 @@ class RemedyCubit extends Cubit<RemedyState> {
           filteredConditionId: null,
         ),
       );
-    } catch (e) {
-      emit(RemedyError('Failed to load remedies: $e'));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(RemedyError(failure.message, failure: failure));
     }
   }
 
@@ -150,8 +152,9 @@ class RemedyCubit extends Cubit<RemedyState> {
           ),
         );
       }
-    } catch (e) {
-      emit(RemedyError('Failed to filter remedies: $e'));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(RemedyError(failure.message, failure: failure));
     }
   }
 
@@ -183,8 +186,9 @@ class RemedyCubit extends Cubit<RemedyState> {
           filteredConditionId: _currentConditionId,
         ),
       );
-    } catch (e) {
-      emit(RemedyError('Failed to delete remedy: $e'));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(RemedyError(failure.message, failure: failure));
     }
   }
 
@@ -203,8 +207,9 @@ class RemedyCubit extends Cubit<RemedyState> {
       emit(RemedyOperationSuccess(message));
 
       await refreshRemedies();
-    } catch (e) {
-      emit(RemedyError('Failed to update approval status: $e'));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(RemedyError(failure.message, failure: failure));
     }
   }
 

@@ -106,6 +106,20 @@ class _HomePageState extends State<HomePage> {
             canPop: false,
             onPopInvokedWithResult: (didPop, _) async {
               if (didPop) return;
+
+              // 1. If mobile drawer is open, close it first
+              if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+                _scaffoldKey.currentState?.closeDrawer();
+                return;
+              }
+
+              // 2. If there are routes to pop in the Navigator, pop them
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+                return;
+              }
+
+              // 3. Only when on home with no previous routes, confirm exit
               final shouldExit = await _onWillPop(context);
               if (shouldExit) {
                 if (Platform.isAndroid) {
@@ -130,6 +144,13 @@ class _HomePageState extends State<HomePage> {
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       elevation: 4,
                       shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                      leading: Navigator.canPop(context)
+                          ? IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed: () => Navigator.pop(context),
+                              tooltip: 'Back',
+                            )
+                          : null,
                       title: const _BrandLogo(),
                       centerTitle: false,
                       actions: const [
@@ -181,14 +202,22 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ],
                           ),
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Spacer(),
-                              _OfflineBadge(),
-                              SizedBox(width: 12),
-                              _ProfileAvatar(),
-                              SizedBox(width: 4),
+                              if (Navigator.canPop(context)) ...[
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                                  onPressed: () => Navigator.pop(context),
+                                  tooltip: 'Back',
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              const Spacer(),
+                              const _OfflineBadge(),
+                              const SizedBox(width: 12),
+                              const _ProfileAvatar(),
+                              const SizedBox(width: 4),
                             ],
                           ),
                         ),

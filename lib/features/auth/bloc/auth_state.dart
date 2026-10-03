@@ -1,3 +1,4 @@
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 
 abstract class AuthState {
@@ -23,5 +24,8 @@ class Unauthenticated extends AuthState {
 
 class AuthError extends AuthState {
   final String message;
-  const AuthError(this.message);
+  final Failure? failure;
+
+  const AuthError(this.message, {this.failure});
 }
+

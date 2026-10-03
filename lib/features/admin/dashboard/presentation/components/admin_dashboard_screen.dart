@@ -41,16 +41,16 @@ class AdminDashboardScreen extends StatelessWidget {
         body = AdminOverviewScreen(onNavigate: onNavigate);
         break;
       case 1:
-        body = const HerbsList();
+        body = HerbsList(onBack: () => onNavigate?.call(0));
         break;
       case 2:
-        body = const ConditionsListPage();
+        body = ConditionsListPage(onBack: () => onNavigate?.call(0));
         break;
       case 3:
-        body = const RemediesList();
+        body = RemediesList(onBack: () => onNavigate?.call(0));
         break;
       case 4:
-        body = const StorePage();
+        body = StorePage(onBack: () => onNavigate?.call(0));
         break;
       case 5:
         body = const UserManagementScreen();

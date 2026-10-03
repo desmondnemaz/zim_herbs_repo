@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import '../../domain/entities/remedy.dart';
 import '../../domain/repositories/remedy_repository.dart';
 
@@ -31,11 +33,12 @@ class RemedyDetailLoaded extends RemedyDetailState {
 
 class RemedyDetailError extends RemedyDetailState {
   final String message;
+  final Failure? failure;
 
-  const RemedyDetailError(this.message);
+  const RemedyDetailError(this.message, {this.failure});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, failure];
 }
 
 // ============================================================
@@ -57,10 +60,18 @@ class RemedyDetailCubit extends Cubit<RemedyDetailState> {
       if (remedy != null) {
         emit(RemedyDetailLoaded(remedy));
       } else {
-        emit(const RemedyDetailError('Remedy not found'));
+        emit(const RemedyDetailError(
+          'Remedy not found',
+          failure: Failure(
+            title: 'Remedy Not Found',
+            message: 'The requested remedy details could not be found.',
+            type: FailureType.notFound,
+          ),
+        ));
       }
-    } catch (e) {
-      emit(RemedyDetailError('Failed to load remedy details: $e'));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(RemedyDetailError(failure.message, failure: failure));
     }
   }
 }

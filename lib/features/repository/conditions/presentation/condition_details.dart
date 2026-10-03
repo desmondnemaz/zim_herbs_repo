@@ -6,6 +6,7 @@ import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/c
 import 'package:zim_herbs_repo/features/repository/conditions/data/repositories/condition_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_detail_cubit.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -79,10 +80,23 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
+                  },
                 ),
               ),
-              body: Center(child: Text(state.message)),
+              body: AppErrorView(
+                failure: state.failure,
+                message: state.message,
+                onRetry: () => context
+                    .read<ConditionDetailCubit>()
+                    .loadCondition(widget.conditionId),
+                onBack: Navigator.canPop(context)
+                    ? () => Navigator.pop(context)
+                    : null,
+              ),
             );
           }
 
@@ -112,7 +126,11 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                           size: rs.appBarIcon,
                         ),
                       ),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      },
                     ),
                     flexibleSpace: FlexibleSpaceBar(
                       centerTitle: true,

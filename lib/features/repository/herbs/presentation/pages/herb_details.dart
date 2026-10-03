@@ -11,6 +11,7 @@ import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/rem
 import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedies_list.dart';
 
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -119,44 +120,21 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                         Theme.of(context).colorScheme.secondary,
                   ),
                   onPressed: () {
-                    Navigator.pop(context);
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
                   },
                 ),
               ),
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        state.message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          context
-                              .read<HerbDetailCubit>()
-                              .loadHerb(widget.herbId);
-                        },
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Try Again'),
-                      ),
-                    ],
-                  ),
-                ),
+              body: AppErrorView(
+                failure: state.failure,
+                message: state.message,
+                onRetry: () {
+                  context.read<HerbDetailCubit>().loadHerb(widget.herbId);
+                },
+                onBack: Navigator.canPop(context)
+                    ? () => Navigator.pop(context)
+                    : null,
               ),
             );
           }
@@ -207,7 +185,9 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                         ),
                       ),
                       onPressed: () {
-                        Navigator.pop(context);
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
                       },
                     ),
 

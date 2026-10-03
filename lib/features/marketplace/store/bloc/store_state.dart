@@ -1,5 +1,5 @@
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
-
 
 abstract class StoreState {}
 
@@ -16,5 +16,7 @@ class StoreLoaded extends StoreState {
 
 class StoreError extends StoreState {
   final String message;
-  StoreError(this.message);
+  final Failure? failure;
+
+  StoreError(this.message, {this.failure});
 }

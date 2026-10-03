@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 
@@ -18,12 +20,18 @@ class ProductDetailLoaded extends ProductDetailState {
   final ProductModel product;
   final int quantity;
 
-  const ProductDetailLoaded({required this.product, this.quantity = 1});
+  const ProductDetailLoaded({
+    required this.product,
+    this.quantity = 1,
+  });
 
   @override
   List<Object?> get props => [product, quantity];
 
-  ProductDetailLoaded copyWith({ProductModel? product, int? quantity}) {
+  ProductDetailLoaded copyWith({
+    ProductModel? product,
+    int? quantity,
+  }) {
     return ProductDetailLoaded(
       product: product ?? this.product,
       quantity: quantity ?? this.quantity,
@@ -33,11 +41,12 @@ class ProductDetailLoaded extends ProductDetailState {
 
 class ProductDetailError extends ProductDetailState {
   final String message;
+  final Failure? failure;
 
-  const ProductDetailError(this.message);
+  const ProductDetailError(this.message, {this.failure});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, failure];
 }
 
 class ProductDetailCubit extends Cubit<ProductDetailState> {
@@ -57,10 +66,18 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
       if (product != null) {
         emit(ProductDetailLoaded(product: product));
       } else {
-        emit(const ProductDetailError("Product not found"));
+        emit(const ProductDetailError(
+          "Product not found",
+          failure: Failure(
+            title: "Product Not Found",
+            message: "The requested store product could not be found.",
+            type: FailureType.notFound,
+          ),
+        ));
       }
-    } catch (e) {
-      emit(ProductDetailError("Failed to load product: $e"));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ProductDetailError(failure.message, failure: failure));
     }
   }
 

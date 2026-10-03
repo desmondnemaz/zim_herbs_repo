@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:zim_herbs_repo/core/theme/light_mode.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/auth/data/supabase_auth_repository.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/auth_gate.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
@@ -19,20 +20,33 @@ import 'package:zim_herbs_repo/features/marketplace/store/bloc/store_bloc.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/store_event.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/cart_cubit.dart';
 
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authRepository = SupabaseAuthRepository(Supabase.instance.client);
+  State<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends State<MyApp> {
+  late final SupabaseAuthRepository _authRepository;
+  bool _wasAuthenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authRepository = SupabaseAuthRepository(Supabase.instance.client);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
   BlocProvider(
-    create: (context) => AuthCubit(authRepository)..checkAuth(),
+    create: (context) => AuthCubit(_authRepository)..checkAuth(),
   ),
 
   BlocProvider(
@@ -87,60 +101,75 @@ class MyApp extends StatelessWidget {
 
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
-          return MaterialApp(
-            scaffoldMessengerKey: rootScaffoldMessengerKey,
-            debugShowCheckedModeBanner: false,
-            theme: pharmacyTheme,
-            home: BlocListener<conn.ConnectionBloc, conn.ConnectionState>(
-              listenWhen:
-                  (previous, current) => previous.status != current.status,
-              listener: (context, state) {
-                if (state.status == conn.ConnectionStatus.offline) {
-                  rootScaffoldMessengerKey.currentState?.showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: const [
-                          Icon(Icons.wifi_off, color: Colors.white),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'No internet, some features will not work correctly',
+          return BlocListener<AuthCubit, AuthState>(
+            listenWhen: (previous, current) {
+              if (current is Authenticated) {
+                _wasAuthenticated = true;
+              }
+              return current is Unauthenticated && _wasAuthenticated;
+            },
+            listener: (context, authState) {
+              _wasAuthenticated = false;
+              rootNavigatorKey.currentState?.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const AuthGate()),
+                (route) => false,
+              );
+            },
+            child: MaterialApp(
+              navigatorKey: rootNavigatorKey,
+              scaffoldMessengerKey: rootScaffoldMessengerKey,
+              debugShowCheckedModeBanner: false,
+              theme: pharmacyTheme,
+              home: BlocListener<conn.ConnectionBloc, conn.ConnectionState>(
+                listenWhen:
+                    (previous, current) => previous.status != current.status,
+                listener: (context, state) {
+                  if (state.status == conn.ConnectionStatus.offline) {
+                    rootScaffoldMessengerKey.currentState?.clearSnackBars();
+                    rootScaffoldMessengerKey.currentState?.showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: const [
+                            Icon(Icons.wifi_off, color: Colors.white),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'No internet, some features will not work correctly',
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        backgroundColor: Colors.redAccent,
+                        duration: const Duration(seconds: 4),
+                        action: SnackBarAction(
+                          label: 'DISMISS',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            rootScaffoldMessengerKey.currentState
+                                ?.clearSnackBars();
+                          },
+                        ),
                       ),
-                      backgroundColor: Colors.redAccent,
-                      duration: const Duration(
-                        days: 1,
-                      ), // Persistent until dismissed or online
-                      action: SnackBarAction(
-                        label: 'DISMISS',
-                        textColor: Colors.white,
-                        onPressed: () {
-                          rootScaffoldMessengerKey.currentState
-                              ?.hideCurrentSnackBar();
-                        },
+                    );
+                  } else if (state.status == conn.ConnectionStatus.online) {
+                    rootScaffoldMessengerKey.currentState?.clearSnackBars();
+                    rootScaffoldMessengerKey.currentState?.showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: const [
+                            Icon(Icons.wifi, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text('You are online'),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 3),
                       ),
-                    ),
-                  );
-                } else if (state.status == conn.ConnectionStatus.online) {
-                  rootScaffoldMessengerKey.currentState?.hideCurrentSnackBar();
-                  rootScaffoldMessengerKey.currentState?.showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: const [
-                          Icon(Icons.wifi, color: Colors.white),
-                          SizedBox(width: 12),
-                          Text('You are online'),
-                        ],
-                      ),
-                      backgroundColor: Colors.green,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                }
-              },
-              child: const AuthGate(),
+                    );
+                  }
+                },
+                child: const AuthGate(),
+              ),
             ),
           );
         },

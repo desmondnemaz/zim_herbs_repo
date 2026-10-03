@@ -85,8 +85,13 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async {
-    await client.auth.signOut();
-    _authStateController.add(null);
+    try {
+      await client.auth.signOut();
+    } catch (_) {
+      // Even if remote sign out fails (e.g. offline/network issue), ensure local sign out succeeds
+    } finally {
+      _authStateController.add(null);
+    }
   }
 
   Future<UserModel> _fetchUserProfile(User user) async {

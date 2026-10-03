@@ -8,10 +8,12 @@ import 'package:zim_herbs_repo/features/marketplace/store/bloc/store_event.dart'
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/cart_cubit.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/cart_state.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/presentation/components/cart_summary_sheet.dart';
 
 class StorePage extends StatelessWidget {
-  const StorePage({super.key});
+  final VoidCallback? onBack;
+  const StorePage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +31,18 @@ class StorePage extends StatelessWidget {
             backgroundColor: colorScheme.primary,
             foregroundColor: colorScheme.secondary,
             centerTitle: true,
+            leading: (onBack != null || Navigator.canPop(context))
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () {
+                      if (onBack != null) {
+                        onBack!();
+                      } else if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                    },
+                  )
+                : null,
             title: Text(
               'Herbal Marketplace',
               style: GoogleFonts.outfit(
@@ -146,8 +160,11 @@ class StorePage extends StatelessWidget {
                   child: Center(child: CircularProgressIndicator()),
                 );
               } else if (state is StoreError) {
-                return SliverFillRemaining(
-                  child: Center(child: Text(state.message)),
+                return AppSliverErrorView(
+                  failure: state.failure,
+                  message: state.message,
+                  onRetry: () =>
+                      context.read<StoreBloc>().add(FetchProducts()),
                 );
               } else if (state is StoreLoaded) {
                 return SliverPadding(

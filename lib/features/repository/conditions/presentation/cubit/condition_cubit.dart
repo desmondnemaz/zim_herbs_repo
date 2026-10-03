@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import '../../domain/entities/body_part.dart';
 import '../../domain/entities/condition.dart';
@@ -44,8 +45,9 @@ class ConditionCubit extends Cubit<ConditionState> {
           selectedBodyPartId: null,
         ),
       );
-    } catch (e) {
-      emit(ConditionError(e.toString()));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ConditionError(failure.message, failure: failure));
     }
   }
 
@@ -117,8 +119,9 @@ class ConditionCubit extends Cubit<ConditionState> {
 
       emit(ConditionOperationSuccess('Condition created successfully'));
       _applyFilters();
-    } catch (e) {
-      emit(ConditionError(e.toString()));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ConditionError(failure.message));
     }
   }
 
@@ -143,8 +146,9 @@ class ConditionCubit extends Cubit<ConditionState> {
 
       emit(ConditionOperationSuccess('Condition updated successfully'));
       _applyFilters();
-    } catch (e) {
-      emit(ConditionError(e.toString()));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ConditionError(failure.message));
     }
   }
 
@@ -159,8 +163,9 @@ class ConditionCubit extends Cubit<ConditionState> {
 
       emit(ConditionOperationSuccess('Condition deleted successfully'));
       _applyFilters();
-    } catch (e) {
-      emit(ConditionError(e.toString()));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ConditionError(failure.message));
     }
   }
 

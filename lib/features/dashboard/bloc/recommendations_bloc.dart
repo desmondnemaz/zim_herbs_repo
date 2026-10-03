@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/domain/repositories/herb_repository.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
@@ -30,7 +32,9 @@ class RecommendationsLoaded extends RecommendationsState {
 
 class RecommendationsError extends RecommendationsState {
   final String message;
-  RecommendationsError(this.message);
+  final Failure? failure;
+
+  RecommendationsError(this.message, {this.failure});
 }
 
 // BLoC
@@ -58,8 +62,9 @@ class RecommendationsBloc extends Bloc<RecommendationsEvent, RecommendationsStat
             newStoreProducts: results[2] as List<ProductModel>,
           ),
         );
-      } catch (e) {
-        emit(RecommendationsError(e.toString()));
+      } catch (e, stackTrace) {
+        final failure = ErrorHandler.handle(e, stackTrace);
+        emit(RecommendationsError(failure.message, failure: failure));
       }
     });
   }

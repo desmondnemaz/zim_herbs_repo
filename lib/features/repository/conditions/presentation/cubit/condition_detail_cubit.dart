@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import '../../domain/entities/condition.dart';
 import '../../domain/repositories/condition_repository.dart';
 
@@ -22,9 +24,12 @@ class ConditionDetailLoaded extends ConditionDetailState {
 
 class ConditionDetailError extends ConditionDetailState {
   final String message;
-  const ConditionDetailError(this.message);
+  final Failure? failure;
+
+  const ConditionDetailError(this.message, {this.failure});
+
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, failure];
 }
 
 class ConditionDetailCubit extends Cubit<ConditionDetailState> {
@@ -39,10 +44,18 @@ class ConditionDetailCubit extends Cubit<ConditionDetailState> {
       if (condition != null) {
         emit(ConditionDetailLoaded(condition));
       } else {
-        emit(const ConditionDetailError("Condition not found"));
+        emit(const ConditionDetailError(
+          "Condition not found",
+          failure: Failure(
+            title: "Condition Not Found",
+            message: "The requested medical condition could not be found.",
+            type: FailureType.notFound,
+          ),
+        ));
       }
-    } catch (e) {
-      emit(ConditionDetailError(e.toString()));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ConditionDetailError(failure.message, failure: failure));
     }
   }
 }

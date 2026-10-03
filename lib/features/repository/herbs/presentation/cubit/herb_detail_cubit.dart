@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import '../../domain/entities/herb.dart';
 import '../../domain/repositories/herb_repository.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
@@ -34,11 +36,12 @@ class HerbDetailLoaded extends HerbDetailState {
 
 class HerbDetailError extends HerbDetailState {
   final String message;
+  final Failure? failure;
 
-  const HerbDetailError(this.message);
+  const HerbDetailError(this.message, {this.failure});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, failure];
 }
 
 class HerbDetailCubit extends Cubit<HerbDetailState> {
@@ -64,12 +67,20 @@ class HerbDetailCubit extends Cubit<HerbDetailState> {
       final remedies = results[1] as List<Remedy>;
 
       if (herb == null) {
-        emit(const HerbDetailError("Herb not found"));
+        emit(const HerbDetailError(
+          "Herb not found",
+          failure: Failure(
+            title: "Herb Not Found",
+            message: "The requested herb record could not be found.",
+            type: FailureType.notFound,
+          ),
+        ));
       } else {
         emit(HerbDetailLoaded(herb: herb, remedies: remedies));
       }
-    } catch (e) {
-      emit(HerbDetailError("Failed to load herb details: $e"));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(HerbDetailError(failure.message, failure: failure));
     }
   }
 }

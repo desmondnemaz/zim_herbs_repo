@@ -1,3 +1,4 @@
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import '../../domain/entities/herb.dart';
 
 /// Base state for the Herb feature.
@@ -62,8 +63,9 @@ class HerbLoaded extends HerbState {
 /// Something went wrong while performing an operation.
 class HerbError extends HerbState {
   final String message;
+  final Failure? failure;
 
-  HerbError(this.message);
+  HerbError(this.message, {this.failure});
 }
 
 

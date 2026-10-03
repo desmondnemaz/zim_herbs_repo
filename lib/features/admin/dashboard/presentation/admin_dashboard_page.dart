@@ -87,6 +87,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             canPop: false,
             onPopInvokedWithResult: (didPop, _) async {
               if (didPop) return;
+
+              // 1. If mobile drawer is open, close it first
+              if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+                _scaffoldKey.currentState?.closeDrawer();
+                return;
+              }
+
+              // 2. If not on Overview (home), navigate back to Overview
+              if (_activeIndex != 0) {
+                setState(() => _activeIndex = 0);
+                return;
+              }
+
+              // 3. If there are routes to pop in the Navigator, pop them
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+                return;
+              }
+
+              // 4. Only when on home with no previous routes, confirm exit
               final shouldExit = await _onWillPop(context);
               if (shouldExit) {
                 if (Platform.isAndroid) {

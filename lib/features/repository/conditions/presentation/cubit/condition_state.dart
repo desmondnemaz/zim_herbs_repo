@@ -1,3 +1,4 @@
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import '../../domain/entities/body_part.dart';
 import '../../domain/entities/condition.dart';
@@ -26,8 +27,9 @@ class ConditionLoaded extends ConditionState {
 
 class ConditionError extends ConditionState {
   final String message;
+  final Failure? failure;
 
-  ConditionError(this.message);
+  ConditionError(this.message, {this.failure});
 }
 
 class ConditionOperationSuccess extends ConditionState {

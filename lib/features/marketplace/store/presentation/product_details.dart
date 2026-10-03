@@ -5,6 +5,7 @@ import 'package:zim_herbs_repo/features/marketplace/store/bloc/cart_cubit.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/product_detail_cubit.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -39,7 +40,16 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           if (state is ProductDetailError) {
             return Scaffold(
               appBar: AppBar(backgroundColor: colorScheme.primary),
-              body: Center(child: Text(state.message)),
+              body: AppErrorView(
+                failure: state.failure,
+                message: state.message,
+                onRetry: () => context
+                    .read<ProductDetailCubit>()
+                    .loadProduct(widget.product.id),
+                onBack: Navigator.canPop(context)
+                    ? () => Navigator.pop(context)
+                    : null,
+              ),
             );
           }
 
@@ -70,7 +80,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                           size: rs.appBarIcon,
                         ),
                       ),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      },
                     ),
                     flexibleSpace: FlexibleSpaceBar(
                       centerTitle: true,

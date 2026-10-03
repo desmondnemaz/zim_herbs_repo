@@ -1,3 +1,4 @@
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import '../../domain/entities/remedy.dart';
 
 /// Base state for the Remedy feature.
@@ -63,8 +64,9 @@ class RemedyLoaded extends RemedyState {
 /// Something went wrong while performing an operation.
 class RemedyError extends RemedyState {
   final String message;
+  final Failure? failure;
 
-  RemedyError(this.message);
+  RemedyError(this.message, {this.failure});
 }
 
 // ------------------------------------------------------------

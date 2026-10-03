@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 class UserManagementScreen extends StatefulWidget {
@@ -13,7 +17,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   final SupabaseClient _client = Supabase.instance.client;
   List<Map<String, dynamic>> _users = [];
   bool _isLoading = true;
-  String? _errorMessage;
+  Failure? _errorFailure;
   String _searchQuery = '';
 
   @override
@@ -25,7 +29,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Future<void> _loadUsers() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _errorFailure = null;
     });
 
     try {
@@ -40,10 +44,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorFailure = ErrorHandler.handle(e, stackTrace);
           _isLoading = false;
         });
       }
@@ -76,13 +80,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update role: $e'),
-            backgroundColor: Colors.red,
-          ),
+        showAppErrorSnackBar(
+          context,
+          failure: ErrorHandler.handle(e, stackTrace),
         );
       }
     }
@@ -161,22 +163,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _errorMessage != null
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.error_outline,
-                                    size: 48, color: Colors.red),
-                                const SizedBox(height: 12),
-                                Text('Error loading users: $_errorMessage'),
-                                const SizedBox(height: 12),
-                                ElevatedButton(
-                                  onPressed: _loadUsers,
-                                  child: const Text('Retry'),
-                                ),
-                              ],
-                            ),
+                    : _errorFailure != null
+                        ? AppErrorView(
+                            failure: _errorFailure,
+                            onRetry: _loadUsers,
                           )
                         : filteredUsers.isEmpty
                             ? Center(

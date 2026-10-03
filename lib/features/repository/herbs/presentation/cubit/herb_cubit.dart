@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 
 import '../../domain/entities/herb.dart';
 import '../../domain/repositories/herb_repository.dart';
@@ -74,10 +75,11 @@ class HerbCubit extends Cubit<HerbState> {
           searchQuery: '',
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       /// Something went wrong.
+      final failure = ErrorHandler.handle(e, stackTrace);
       emit(
-        HerbError(e.toString()),
+        HerbError(failure.message, failure: failure),
       );
     }
   }
@@ -170,10 +172,11 @@ class HerbCubit extends Cubit<HerbState> {
           searchQuery: '',
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       /// Tell the UI that deletion failed.
+      final failure = ErrorHandler.handle(e, stackTrace);
       emit(
-        HerbError(e.toString()),
+        HerbError(failure.message),
       );
     }
   }

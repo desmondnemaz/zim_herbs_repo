@@ -14,10 +14,12 @@ import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
 
 class HerbsList extends StatefulWidget {
-  const HerbsList({super.key});
+  final VoidCallback? onBack;
+  const HerbsList({super.key, this.onBack});
 
   @override
   State<HerbsList> createState() => _HerbsListState();
@@ -111,19 +113,10 @@ class _HerbsListState extends State<HerbsList> {
           listener: (context, state) {
             // Successful operation
             if (state is HerbOperationSuccess) {
+              ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message),
-                ),
-              );
-            }
-
-            // Error
-            else if (state is HerbError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
                 ),
               );
             }
@@ -266,8 +259,11 @@ class _HerbsListState extends State<HerbsList> {
                           // ====================================
 
                           if (state is HerbError) {
-                            return Center(
-                              child: Text(state.message),
+                            return AppErrorView(
+                              failure: state.failure,
+                              message: state.message,
+                              onRetry: () =>
+                                  context.read<HerbCubit>().loadHerbs(),
                             );
                           }
 
@@ -380,22 +376,25 @@ class _HerbsListState extends State<HerbsList> {
       child: Row(
         children: [
           // Back button
-          InkWell(
-            onTap: () => Navigator.pop(context),
-
-            child: Icon(
-              Icons.arrow_back,
-
-              color:
-                  Theme.of(context).colorScheme.secondary,
-
-              size: rs.appBarIcon,
+          if (widget.onBack != null || Navigator.canPop(context)) ...[
+            InkWell(
+              onTap: () {
+                if (widget.onBack != null) {
+                  widget.onBack!();
+                } else if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              },
+              child: Icon(
+                Icons.arrow_back,
+                color: Theme.of(context).colorScheme.secondary,
+                size: rs.appBarIcon,
+              ),
             ),
-          ),
-
-          SizedBox(
-            width: defaultPadding,
-          ),
+            SizedBox(
+              width: defaultPadding,
+            ),
+          ],
 
           // Title
           Text(

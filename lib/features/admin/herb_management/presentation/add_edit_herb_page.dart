@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
+import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
@@ -138,9 +140,10 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
       } catch (e) {
         debugPrint('Unexpected error in _submit: $e');
         if (mounted) {
-          ScaffoldMessenger.of(
+          showAppErrorSnackBar(
             context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+            failure: ErrorHandler.handle(e),
+          );
         }
       } finally {
         if (mounted) {

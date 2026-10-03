@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart' as conn;
+import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 
@@ -20,21 +24,83 @@ class _LoginPageState extends State<LoginPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   LoginPortalRole _selectedRole = LoginPortalRole.customer;
   bool _isSignUpMode = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  Failure? _activeFailure;
+
+  static final RegExp _emailRegExp = RegExp(
+    r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    final currentAuthState = context.read<AuthCubit>().state;
+    if (currentAuthState is AuthError) {
+      _activeFailure = currentAuthState.failure ??
+          ErrorHandler.handle(currentAuthState.message);
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
+  void _clearError() {
+    if (_activeFailure != null) {
+      setState(() {
+        _activeFailure = null;
+      });
+      context.read<AuthCubit>().clearError();
+    }
+  }
+
+  conn.ConnectionBloc? _maybeGetConnectionBloc(BuildContext context) {
+    try {
+      return context.read<conn.ConnectionBloc>();
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _onSubmit() {
+    FocusScope.of(context).unfocus();
+
+    // Check if offline before attempting network call
+    final connBloc = _maybeGetConnectionBloc(context);
+    if (connBloc != null &&
+        connBloc.state.status == conn.ConnectionStatus.offline) {
+      const failure = Failure(
+        title: 'Login Unsuccessful',
+        message:
+            'You are currently offline. Please connect to Wi-Fi or mobile data to authenticate.',
+        type: FailureType.noInternet,
+      );
+      setState(() {
+        _activeFailure = failure;
+      });
+      showAppErrorSnackBar(
+        context,
+        title: 'Login Unsuccessful',
+        message: failure.message,
+        type: failure.type,
+      );
+      return;
+    }
+
     if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _activeFailure = null;
+      });
       if (_isSignUpMode && _selectedRole == LoginPortalRole.customer) {
         context.read<AuthCubit>().signUpWithCredentials(
               email: _emailController.text.trim(),
@@ -45,6 +111,7 @@ class _LoginPageState extends State<LoginPage> {
         context.read<AuthCubit>().signInWithCredentials(
               email: _emailController.text.trim(),
               password: _passwordController.text,
+              requireAdmin: _selectedRole == LoginPortalRole.admin,
             );
       }
     }
@@ -54,33 +121,62 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isCustomer = _selectedRole == LoginPortalRole.customer;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isSmallScreen = screenWidth < 380;
+    final cardPadding = isSmallScreen ? 16.0 : 28.0;
+    final horizontalPadding = isSmallScreen ? 12.0 : 24.0;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: theme.colorScheme.error,
-              ),
+            final failure = state.failure ?? ErrorHandler.handle(state.message);
+            setState(() {
+              _activeFailure = failure;
+            });
+            showAppErrorSnackBar(
+              context,
+              failure: failure,
+              title: _isSignUpMode ? 'Registration Unsuccessful' : 'Login Unsuccessful',
+              actionLabel: failure.type == FailureType.userAlreadyExists
+                  ? 'SIGN IN'
+                  : (failure.isNetworkError || failure.isServerError)
+                      ? 'RETRY'
+                      : null,
+              onAction: failure.type == FailureType.userAlreadyExists
+                  ? () {
+                      setState(() {
+                        _isSignUpMode = false;
+                        _activeFailure = null;
+                      });
+                      context.read<AuthCubit>().clearError();
+                    }
+                  : (failure.isNetworkError || failure.isServerError)
+                      ? _onSubmit
+                      : null,
             );
+          } else if (state is Authenticated || state is AuthLoading) {
+            if (_activeFailure != null) {
+              setState(() {
+                _activeFailure = null;
+              });
+            }
           }
         },
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
               child: Card(
                 elevation: 8,
                 shadowColor: theme.colorScheme.primary.withValues(alpha: 0.15),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(32.0),
+                  padding: EdgeInsets.all(cardPadding),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -102,11 +198,13 @@ class _LoginPageState extends State<LoginPage> {
                                 onTap: () {
                                   setState(() {
                                     _selectedRole = LoginPortalRole.customer;
+                                    _activeFailure = null;
                                   });
+                                  context.read<AuthCubit>().clearError();
                                 },
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                                   decoration: BoxDecoration(
                                     color: isCustomer
                                         ? Colors.green.shade700
@@ -115,25 +213,30 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
                                         Icons.school_rounded,
-                                        size: 18,
+                                        size: 16,
                                         color: isCustomer
                                             ? Colors.white
                                             : Colors.grey.shade700,
                                       ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        "Customer / Learn",
-                                        style: TextStyle(
-                                          fontWeight: isCustomer
-                                              ? FontWeight.bold
-                                              : FontWeight.w500,
-                                          fontSize: 13,
-                                          color: isCustomer
-                                              ? Colors.white
-                                              : Colors.grey.shade800,
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          isSmallScreen ? "Customer" : "Customer / Learn",
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                          style: TextStyle(
+                                            fontWeight: isCustomer
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            fontSize: isSmallScreen ? 12 : 13,
+                                            color: isCustomer
+                                                ? Colors.white
+                                                : Colors.grey.shade800,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -147,11 +250,13 @@ class _LoginPageState extends State<LoginPage> {
                                   setState(() {
                                     _selectedRole = LoginPortalRole.admin;
                                     _isSignUpMode = false;
+                                    _activeFailure = null;
                                   });
+                                  context.read<AuthCubit>().clearError();
                                 },
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                                   decoration: BoxDecoration(
                                     color: !isCustomer
                                         ? theme.colorScheme.primary
@@ -160,25 +265,30 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
                                         Icons.admin_panel_settings_rounded,
-                                        size: 18,
+                                        size: 16,
                                         color: !isCustomer
                                             ? Colors.white
                                             : Colors.grey.shade700,
                                       ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        "Admin Console",
-                                        style: TextStyle(
-                                          fontWeight: !isCustomer
-                                              ? FontWeight.bold
-                                              : FontWeight.w500,
-                                          fontSize: 13,
-                                          color: !isCustomer
-                                              ? Colors.white
-                                              : Colors.grey.shade800,
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          isSmallScreen ? "Admin" : "Admin Console",
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                          style: TextStyle(
+                                            fontWeight: !isCustomer
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            fontSize: isSmallScreen ? 12 : 13,
+                                            color: !isCustomer
+                                                ? Colors.white
+                                                : Colors.grey.shade800,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -189,12 +299,12 @@ class _LoginPageState extends State<LoginPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Header Icon & Title
                       Center(
                         child: Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: isCustomer
                                 ? Colors.green.shade50
@@ -205,18 +315,18 @@ class _LoginPageState extends State<LoginPage> {
                             isCustomer
                                 ? Icons.grass_rounded
                                 : Icons.admin_panel_settings_rounded,
-                            size: 42,
+                            size: 36,
                             color: isCustomer
                                 ? Colors.green.shade800
                                 : theme.colorScheme.primary,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Text(
                         isCustomer ? 'Zim Herbs Learning' : 'Zim Herbs Admin',
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.headlineSmall?.copyWith(
+                        style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isCustomer
                               ? Colors.green.shade900
@@ -233,35 +343,100 @@ class _LoginPageState extends State<LoginPage> {
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: Colors.grey.shade600,
+                          fontSize: 13,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Sign In vs Sign Up toggle (only in customer mode)
                       if (isCustomer)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 20.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            runSpacing: 6,
                             children: [
                               ChoiceChip(
                                 label: const Text("Sign In"),
                                 selected: !_isSignUpMode,
                                 onSelected: (sel) {
-                                  if (sel) setState(() => _isSignUpMode = false);
+                                  if (sel) {
+                                    setState(() {
+                                      _isSignUpMode = false;
+                                      _activeFailure = null;
+                                    });
+                                    context.read<AuthCubit>().clearError();
+                                  }
                                 },
                               ),
-                              const SizedBox(width: 8),
                               ChoiceChip(
                                 label: const Text("Create Account"),
                                 selected: _isSignUpMode,
                                 onSelected: (sel) {
-                                  if (sel) setState(() => _isSignUpMode = true);
+                                  if (sel) {
+                                    setState(() {
+                                      _isSignUpMode = true;
+                                      _activeFailure = null;
+                                    });
+                                    context.read<AuthCubit>().clearError();
+                                  }
                                 },
                               ),
                             ],
                           ),
                         ),
+
+                      // Offline Connection Warning Banner (reactive to network status)
+                      Builder(
+                        builder: (context) {
+                          conn.ConnectionStatus? status;
+                          try {
+                            status = context
+                                .watch<conn.ConnectionBloc>()
+                                .state
+                                .status;
+                          } catch (_) {
+                            status = null;
+                          }
+                          if (status == conn.ConnectionStatus.offline) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFBEB),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(0xFFFDE68A),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.wifi_off_rounded,
+                                    size: 16,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'You appear to be offline. Internet connection is required to authenticate.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.amber.shade900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
 
                       // Form
                       Form(
@@ -272,6 +447,7 @@ class _LoginPageState extends State<LoginPage> {
                               TextFormField(
                                 controller: _nameController,
                                 textCapitalization: TextCapitalization.words,
+                                onChanged: (_) => _clearError(),
                                 decoration: InputDecoration(
                                   labelText: 'Full Name',
                                   hintText: 'John Doe',
@@ -281,8 +457,12 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 ),
                                 validator: (val) {
-                                  if (val == null || val.trim().isEmpty) {
+                                  final name = val?.trim() ?? '';
+                                  if (name.isEmpty) {
                                     return 'Please enter your full name';
+                                  }
+                                  if (name.length < 2) {
+                                    return 'Full name must be at least 2 characters';
                                   }
                                   return null;
                                 },
@@ -292,6 +472,7 @@ class _LoginPageState extends State<LoginPage> {
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
+                              onChanged: (_) => _clearError(),
                               decoration: InputDecoration(
                                 labelText: 'Email Address',
                                 hintText: isCustomer
@@ -303,11 +484,12 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                               validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Please enter your email';
+                                final email = val?.trim() ?? '';
+                                if (email.isEmpty) {
+                                  return 'Please enter your email address';
                                 }
-                                if (!val.contains('@')) {
-                                  return 'Please enter a valid email';
+                                if (!_emailRegExp.hasMatch(email)) {
+                                  return 'Please enter a valid email address (e.g. name@example.com)';
                                 }
                                 return null;
                               },
@@ -316,6 +498,7 @@ class _LoginPageState extends State<LoginPage> {
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
+                              onChanged: (_) => _clearError(),
                               decoration: InputDecoration(
                                 labelText: 'Password',
                                 prefixIcon: const Icon(Icons.lock_outline),
@@ -336,16 +519,92 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                               validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
+                                if (val == null || val.isEmpty) {
                                   return 'Please enter your password';
                                 }
                                 if (val.length < 6) {
-                                  return 'Password must be at least 6 characters';
+                                  return 'Password must be at least 6 characters long';
                                 }
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 24),
+                            if (isCustomer && _isSignUpMode) ...[
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _confirmPasswordController,
+                                obscureText: _obscureConfirmPassword,
+                                onChanged: (_) => _clearError(),
+                                decoration: InputDecoration(
+                                  labelText: 'Confirm Password',
+                                  prefixIcon: const Icon(Icons.lock_reset_outlined),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscureConfirmPassword
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscureConfirmPassword =
+                                            !_obscureConfirmPassword;
+                                      });
+                                    },
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                validator: (val) {
+                                  if (val == null || val.isEmpty) {
+                                    return 'Please confirm your password';
+                                  }
+                                  if (val != _passwordController.text) {
+                                    return 'Passwords do not match';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                            if (_activeFailure != null) ...[
+                              const SizedBox(height: 16),
+                              AppErrorBanner(
+                                failure: _activeFailure,
+                                onDismiss: () => setState(() => _activeFailure = null),
+                                actionLabel: _activeFailure!.type ==
+                                        FailureType.userAlreadyExists
+                                    ? 'Switch to Sign In'
+                                    : _activeFailure!.type == FailureType.accessDenied
+                                        ? 'Switch to Customer'
+                                        : (_activeFailure!.isNetworkError ||
+                                                _activeFailure!.isServerError)
+                                            ? 'Try Again'
+                                            : null,
+                                onAction: _activeFailure!.type ==
+                                        FailureType.userAlreadyExists
+                                    ? () {
+                                        setState(() {
+                                          _isSignUpMode = false;
+                                          _activeFailure = null;
+                                        });
+                                        context.read<AuthCubit>().clearError();
+                                      }
+                                    : _activeFailure!.type ==
+                                            FailureType.accessDenied
+                                        ? () {
+                                            setState(() {
+                                              _selectedRole =
+                                                  LoginPortalRole.customer;
+                                              _activeFailure = null;
+                                            });
+                                            context.read<AuthCubit>().clearError();
+                                          }
+                                        : (_activeFailure!.isNetworkError ||
+                                                _activeFailure!.isServerError)
+                                            ? _onSubmit
+                                            : null,
+                              ),
+                            ],
+                            const SizedBox(height: 20),
 
                             BlocBuilder<AuthCubit, AuthState>(
                               builder: (context, state) {

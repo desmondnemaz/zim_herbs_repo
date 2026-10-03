@@ -9,11 +9,13 @@ import 'package:zim_herbs_repo/features/admin/condition_management/presentation/
 import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/components/desktop_condition_list.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/components/mobile_condition_list.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 
 class ConditionsListPage extends StatefulWidget {
-  const ConditionsListPage({super.key});
+  final VoidCallback? onBack;
+  const ConditionsListPage({super.key, this.onBack});
 
   @override
   State<ConditionsListPage> createState() => _ConditionsListPageState();
@@ -98,16 +100,10 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
         return BlocListener<ConditionCubit, ConditionState>(
           listener: (context, state) {
             if (state is ConditionOperationSuccess) {
+              ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
-            } else if (state is ConditionError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
-                ),
-              );
             }
           },
           child: Scaffold(
@@ -139,7 +135,12 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
                           }
 
                           if (state is ConditionError) {
-                            return Center(child: Text(state.message));
+                            return AppErrorView(
+                              failure: state.failure,
+                              message: state.message,
+                              onRetry: () =>
+                                  context.read<ConditionCubit>().loadConditions(),
+                            );
                           }
 
                           if (state is ConditionLoaded) {
@@ -279,15 +280,23 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
       child: Row(
         children: [
-          InkWell(
-            onTap: () => Navigator.pop(context),
-            child: Icon(
-              Icons.arrow_back,
-              color: Theme.of(context).colorScheme.secondary,
-              size: rs.appBarIcon,
+          if (widget.onBack != null || Navigator.canPop(context)) ...[
+            InkWell(
+              onTap: () {
+                if (widget.onBack != null) {
+                  widget.onBack!();
+                } else if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              },
+              child: Icon(
+                Icons.arrow_back,
+                color: Theme.of(context).colorScheme.secondary,
+                size: rs.appBarIcon,
+              ),
             ),
-          ),
-          SizedBox(width: defaultPadding),
+            SizedBox(width: defaultPadding),
+          ],
           Text(
             "Conditions",
             style: TextStyle(

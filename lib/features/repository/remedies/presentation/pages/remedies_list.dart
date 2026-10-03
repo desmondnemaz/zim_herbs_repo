@@ -7,29 +7,48 @@ import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/c
 import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/remedy_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/remedies/domain/repositories/remedy_repository.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/components/desktop_remedy_list.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/components/mobile_remedy_list.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_cubit.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_state.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
 
 class RemediesList extends StatelessWidget {
   final String? initialConditionId;
+  final VoidCallback? onBack;
+  final RemedyRepository? repository;
+  final ConditionRemoteDataSource? conditionDataSource;
 
-  const RemediesList({super.key, this.initialConditionId});
+  const RemediesList({
+    super.key,
+    this.initialConditionId,
+    this.onBack,
+    this.repository,
+    this.conditionDataSource,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final client = Supabase.instance.client;
-    final repository = RemedyRepositoryImpl(
-      RemedyRemoteDataSource(client),
-    );
+    RemedyRepository effectiveRepo;
+    if (repository != null) {
+      effectiveRepo = repository!;
+    } else {
+      try {
+        effectiveRepo = RemedyRepositoryImpl(
+          RemedyRemoteDataSource(Supabase.instance.client),
+        );
+      } catch (_) {
+        throw StateError('Supabase must be initialized or repository must be provided');
+      }
+    }
 
     return BlocProvider(
       create: (context) {
-        final cubit = RemedyCubit(repository);
+        final cubit = RemedyCubit(effectiveRepo);
         if (initialConditionId != null) {
           cubit.filterByCondition(initialConditionId);
         } else {
@@ -37,20 +56,33 @@ class RemediesList extends StatelessWidget {
         }
         return cubit;
       },
-      child: _RemediesListView(initialConditionId: initialConditionId),
+      child: _RemediesListView(
+        initialConditionId: initialConditionId,
+        onBack: onBack,
+        conditionDataSource: conditionDataSource,
+      ),
     );
   }
 }
 
 class _RemediesListView extends StatelessWidget {
   final String? initialConditionId;
-  const _RemediesListView({this.initialConditionId});
+  final VoidCallback? onBack;
+  final ConditionRemoteDataSource? conditionDataSource;
+  const _RemediesListView({this.initialConditionId, this.onBack, this.conditionDataSource});
 
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
-    final conditionsFuture =
-        ConditionRemoteDataSource(Supabase.instance.client).getAllConditions();
+    final conditionsFuture = conditionDataSource != null
+        ? conditionDataSource!.getAllConditions()
+        : () {
+            try {
+              return ConditionRemoteDataSource(Supabase.instance.client).getAllConditions();
+            } catch (_) {
+              return Future.value(<ConditionModel>[]);
+            }
+          }();
 
     return Scaffold(
       appBar:
@@ -93,16 +125,10 @@ class _RemediesListView extends StatelessWidget {
           child: BlocListener<RemedyCubit, RemedyState>(
             listener: (context, state) {
               if (state is RemedyOperationSuccess) {
+                ScaffoldMessenger.of(context).clearSnackBars();
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(SnackBar(content: Text(state.message)));
-              } else if (state is RemedyError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                  ),
-                );
               }
             },
             child: Column(
@@ -215,25 +241,11 @@ class _RemediesListView extends StatelessWidget {
                       }
 
                       if (state is RemedyError) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                state.message,
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed:
-                                    () =>
-                                        context
-                                            .read<RemedyCubit>()
-                                            .refreshRemedies(),
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
+                        return AppErrorView(
+                          failure: state.failure,
+                          message: state.message,
+                          onRetry: () =>
+                              context.read<RemedyCubit>().refreshRemedies(),
                         );
                       }
 
@@ -290,15 +302,23 @@ class _RemediesListView extends StatelessWidget {
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
       child: Row(
         children: [
-          InkWell(
-            onTap: () => Navigator.pop(context),
-            child: Icon(
-              Icons.arrow_back,
-              color: Theme.of(context).colorScheme.secondary,
-              size: rs.appBarIcon,
+          if (onBack != null || Navigator.canPop(context)) ...[
+            InkWell(
+              onTap: () {
+                if (onBack != null) {
+                  onBack!();
+                } else if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              },
+              child: Icon(
+                Icons.arrow_back,
+                color: Theme.of(context).colorScheme.secondary,
+                size: rs.appBarIcon,
+              ),
             ),
-          ),
-          SizedBox(width: rs.defaultPadding),
+            SizedBox(width: rs.defaultPadding),
+          ],
           Text(
             "All Remedies",
             style: TextStyle(

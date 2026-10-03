@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import '../../../../../core/errors/error_handler.dart';
+import '../../../../../core/errors/failure.dart';
 import '../../domain/entities/remedy.dart';
 import '../../domain/repositories/remedy_repository.dart';
 import '../../../conditions/domain/entities/condition.dart';
@@ -57,6 +59,7 @@ class RemedyFormState extends Equatable {
   final List<Herb> availableHerbs;
   final List<RemedyHerbRow> herbRows;
   final String? errorMessage;
+  final Failure? failure;
 
   const RemedyFormState({
     this.status = RemedyFormStatus.initial,
@@ -64,6 +67,7 @@ class RemedyFormState extends Equatable {
     this.availableHerbs = const [],
     this.herbRows = const [],
     this.errorMessage,
+    this.failure,
   });
 
   RemedyFormState copyWith({
@@ -72,6 +76,7 @@ class RemedyFormState extends Equatable {
     List<Herb>? availableHerbs,
     List<RemedyHerbRow>? herbRows,
     String? errorMessage,
+    Failure? failure,
   }) {
     return RemedyFormState(
       status: status ?? this.status,
@@ -79,6 +84,7 @@ class RemedyFormState extends Equatable {
       availableHerbs: availableHerbs ?? this.availableHerbs,
       herbRows: herbRows ?? this.herbRows,
       errorMessage: errorMessage ?? this.errorMessage,
+      failure: failure ?? this.failure,
     );
   }
 
@@ -89,6 +95,7 @@ class RemedyFormState extends Equatable {
         availableHerbs,
         herbRows,
         errorMessage,
+        failure,
       ];
 }
 
@@ -154,11 +161,13 @@ class RemedyFormCubit extends Cubit<RemedyFormState> {
           herbRows: herbRows,
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
       emit(
         state.copyWith(
           status: RemedyFormStatus.error,
-          errorMessage: e.toString(),
+          errorMessage: failure.message,
+          failure: failure,
         ),
       );
     }
@@ -202,11 +211,13 @@ class RemedyFormCubit extends Cubit<RemedyFormState> {
         await _remedyRepository.updateRemedy(remedy);
       }
       emit(state.copyWith(status: RemedyFormStatus.success));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
       emit(
         state.copyWith(
           status: RemedyFormStatus.error,
-          errorMessage: e.toString(),
+          errorMessage: failure.message,
+          failure: failure,
         ),
       );
     }

@@ -102,18 +102,23 @@ class SettingsPage extends StatelessWidget {
   Widget _buildHeader(BuildContext context, ResponsiveSize rs) {
     return Row(
       children: [
-        InkWell(
-          onTap: () => Navigator.pop(context),
-          borderRadius: BorderRadius.circular(50),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Icon(
-              Icons.arrow_back,
-              color: Theme.of(context).colorScheme.primary,
-              size: rs.appBarIcon,
+        if (Navigator.canPop(context))
+          InkWell(
+            onTap: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
+            borderRadius: BorderRadius.circular(50),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Icon(
+                Icons.arrow_back,
+                color: Theme.of(context).colorScheme.primary,
+                size: rs.appBarIcon,
+              ),
             ),
           ),
-        ),
         const SizedBox(width: 8),
         Text(
           "Settings",

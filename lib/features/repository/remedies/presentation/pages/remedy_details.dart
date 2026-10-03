@@ -7,6 +7,8 @@ import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/re
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_cubit.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_state.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_detail_cubit.dart';
+import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -126,11 +128,14 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
                   );
                 }
               } else if (state is RemedyError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                  ),
+                showAppErrorSnackBar(
+                  context,
+                  failure: state.failure,
+                  message: state.message,
+                  onAction: () => context.read<RemedyDetailCubit>().loadRemedy(
+                        widget.remedyId,
+                      ),
+                  actionLabel: 'RETRY',
                 );
               }
             },
@@ -151,10 +156,23 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   leading: IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                    },
                   ),
                 ),
-                body: Center(child: Text(state.message)),
+                body: AppErrorView(
+                  failure: state.failure,
+                  message: state.message,
+                  onRetry: () => context
+                      .read<RemedyDetailCubit>()
+                      .loadRemedy(widget.remedyId),
+                  onBack: Navigator.canPop(context)
+                      ? () => Navigator.pop(context)
+                      : null,
+                ),
               );
             }
 
@@ -183,7 +201,11 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
                             size: rs.appBarIcon,
                           ),
                         ),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          }
+                        },
                       ),
                       actions: [
                         IconButton(
@@ -592,7 +614,6 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
@@ -605,12 +626,16 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
           ),
         ],
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          key: PageStorageKey<String>(rh.herbId),
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            key: PageStorageKey<String>(rh.herbId),
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           leading: Container(
             width: 48,
             height: 48,
@@ -675,6 +700,7 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
             ),
           ],
         ),
+      ),
       ),
     );
   }
