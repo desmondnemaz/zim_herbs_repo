@@ -88,12 +88,6 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _activeFailure = failure;
       });
-      showAppErrorSnackBar(
-        context,
-        title: 'Login Unsuccessful',
-        message: failure.message,
-        type: failure.type,
-      );
       return;
     }
 
@@ -135,27 +129,6 @@ class _LoginPageState extends State<LoginPage> {
             setState(() {
               _activeFailure = failure;
             });
-            showAppErrorSnackBar(
-              context,
-              failure: failure,
-              title: _isSignUpMode ? 'Registration Unsuccessful' : 'Login Unsuccessful',
-              actionLabel: failure.type == FailureType.userAlreadyExists
-                  ? 'SIGN IN'
-                  : (failure.isNetworkError || failure.isServerError)
-                      ? 'RETRY'
-                      : null,
-              onAction: failure.type == FailureType.userAlreadyExists
-                  ? () {
-                      setState(() {
-                        _isSignUpMode = false;
-                        _activeFailure = null;
-                      });
-                      context.read<AuthCubit>().clearError();
-                    }
-                  : (failure.isNetworkError || failure.isServerError)
-                      ? _onSubmit
-                      : null,
-            );
           } else if (state is Authenticated || state is AuthLoading) {
             if (_activeFailure != null) {
               setState(() {
