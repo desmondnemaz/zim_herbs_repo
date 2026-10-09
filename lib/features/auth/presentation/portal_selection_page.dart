@@ -77,7 +77,7 @@ class PortalSelectionPage extends StatelessWidget {
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          "Administrator Access Verified",
+                          user.isAdmin ? "Administrator Access Verified" : "Moderator Access Verified",
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: theme.colorScheme.primary,
@@ -225,7 +225,7 @@ class PortalSelectionPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              "Admin Console",
+              user.isAdmin ? "Admin Console" : "Moderation Console",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
@@ -235,7 +235,9 @@ class PortalSelectionPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              "Manage repository herbs, review and approve remedy submissions from HerbCircle users, link conditions to body parts, manage users and track metrics.",
+              user.isAdmin
+                  ? "Manage repository herbs, review and approve remedy submissions from HerbCircle users, link conditions to body parts, manage users and track metrics."
+                  : "Review and verify traditional herbs, remedies submissions, and verify herbalist practitioner credentials.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
             ),
@@ -247,10 +249,10 @@ class PortalSelectionPage extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => AdminDashboardPage(user: user)),
                 );
               },
-              icon: const Icon(Icons.dashboard_customize_rounded),
-              label: const Text(
-                "Enter Admin Console",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              icon: Icon(user.isAdmin ? Icons.dashboard_customize_rounded : Icons.verified_user_rounded),
+              label: Text(
+                user.isAdmin ? "Enter Admin Console" : "Enter Moderation Console",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,

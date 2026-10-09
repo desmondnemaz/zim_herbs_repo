@@ -25,6 +25,7 @@ class Herb {
   final String? nameSn;
   final String? nameNd;
   final String? description;
+  final bool isApproved;
   final List<HerbImage> images;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -35,6 +36,7 @@ class Herb {
     this.nameSn,
     this.nameNd,
     this.description,
+    this.isApproved = true,
     this.images = const [],
     this.createdAt,
     this.updatedAt,

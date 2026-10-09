@@ -4,12 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 
 class AdminDrawerSideBar extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback? onToggle;
   final int activeIndex;
   final ValueChanged<int> onNavTap;
+  final UserModel? user;
 
   const AdminDrawerSideBar({
     super.key,
@@ -17,6 +19,7 @@ class AdminDrawerSideBar extends StatefulWidget {
     this.onToggle,
     required this.activeIndex,
     required this.onNavTap,
+    this.user,
   });
 
   @override
@@ -24,18 +27,75 @@ class AdminDrawerSideBar extends StatefulWidget {
 }
 
 class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
-  static const _navItems = [
-    _AdminNavItem(label: 'Overview', icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard),
-    _AdminNavItem(label: 'Herb Mgmt', icon: Icons.local_florist_outlined, activeIcon: Icons.local_florist),
-    _AdminNavItem(label: 'Conditions', icon: Icons.sick_outlined, activeIcon: Icons.sick),
-    _AdminNavItem(label: 'Remedies', icon: Icons.healing_outlined, activeIcon: Icons.healing),
-    _AdminNavItem(label: 'Marketplace', icon: Icons.storefront_outlined, activeIcon: Icons.storefront),
-    _AdminNavItem(label: 'Users', icon: Icons.people_outline, activeIcon: Icons.people),
-    _AdminNavItem(label: 'Reports', icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart),
-    _AdminNavItem(label: 'Analytics', icon: Icons.analytics_outlined, activeIcon: Icons.analytics),
-  ];
+  List<_AdminNavItem> _getNavItems() {
+    final isAdmin = widget.user?.canManageUsers ?? true;
+
+    return [
+      const _AdminNavItem(
+        index: 0,
+        label: 'Overview',
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+      ),
+      const _AdminNavItem(
+        index: 1,
+        label: 'Moderation',
+        icon: Icons.verified_user_outlined,
+        activeIcon: Icons.verified_user,
+      ),
+      const _AdminNavItem(
+        index: 2,
+        label: 'Herb Mgmt',
+        icon: Icons.local_florist_outlined,
+        activeIcon: Icons.local_florist,
+      ),
+      const _AdminNavItem(
+        index: 3,
+        label: 'Conditions',
+        icon: Icons.sick_outlined,
+        activeIcon: Icons.sick,
+      ),
+      const _AdminNavItem(
+        index: 4,
+        label: 'Remedies',
+        icon: Icons.healing_outlined,
+        activeIcon: Icons.healing,
+      ),
+      const _AdminNavItem(
+        index: 5,
+        label: 'Marketplace',
+        icon: Icons.storefront_outlined,
+        activeIcon: Icons.storefront,
+      ),
+      // Admin-only sections (strictly forbidden for moderators)
+      if (isAdmin) ...[
+        const _AdminNavItem(
+          index: 6,
+          label: 'Users',
+          icon: Icons.people_outline,
+          activeIcon: Icons.people,
+        ),
+        const _AdminNavItem(
+          index: 7,
+          label: 'Reports',
+          icon: Icons.bar_chart_outlined,
+          activeIcon: Icons.bar_chart,
+        ),
+        const _AdminNavItem(
+          index: 8,
+          label: 'Analytics',
+          icon: Icons.analytics_outlined,
+          activeIcon: Icons.analytics,
+        ),
+      ],
+    ];
+  }
 
   Widget _buildHeader(BuildContext context, bool isDesktop) {
+    final isAdmin = widget.user?.isAdmin ?? true;
+    final headerTitle = isAdmin ? "ADMIN" : "MODERATION";
+    final headerIcon = isAdmin ? Icons.admin_panel_settings : Icons.verified_user;
+
     if (isDesktop) {
       if (widget.isExpanded) {
         return Padding(
@@ -45,12 +105,12 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
               Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.admin_panel_settings,
+                    Icon(headerIcon,
                         size: 28, color: Theme.of(context).colorScheme.secondary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "ADMIN",
+                        headerTitle,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         style: TextStyle(
@@ -84,7 +144,7 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
                 tooltip: "Expand Sidebar",
               ),
               const SizedBox(height: 12),
-              Icon(Icons.admin_panel_settings,
+              Icon(headerIcon,
                   size: 28, color: Theme.of(context).colorScheme.secondary),
             ],
           ),
@@ -103,14 +163,14 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.admin_panel_settings,
+                headerIcon,
                 size: 48,
                 color: Theme.of(context).colorScheme.secondary,
               ),
             ),
             const SizedBox(height: 12),
             Text(
-              "ADMIN PANEL",
+              isAdmin ? "ADMIN PANEL" : "MODERATOR CONSOLE",
               style: TextStyle(
                 color: Theme.of(context).colorScheme.secondary,
                 fontSize: 16,
@@ -138,9 +198,30 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
           ),
           const SizedBox(height: 8),
           if (showCollapsed)
-            _buildNavItem(context, -1, const _AdminNavItem(label: 'Sign Out', icon: Icons.logout, activeIcon: Icons.logout), isSignOut: true, forceCollapsed: true)
+            _buildNavItem(
+              context,
+              -1,
+              const _AdminNavItem(
+                index: -1,
+                label: 'Sign Out',
+                icon: Icons.logout,
+                activeIcon: Icons.logout,
+              ),
+              isSignOut: true,
+              forceCollapsed: true,
+            )
           else
-            _buildNavItem(context, -1, const _AdminNavItem(label: 'Sign Out', icon: Icons.logout, activeIcon: Icons.logout), isSignOut: true),
+            _buildNavItem(
+              context,
+              -1,
+              const _AdminNavItem(
+                index: -1,
+                label: 'Sign Out',
+                icon: Icons.logout,
+                activeIcon: Icons.logout,
+              ),
+              isSignOut: true,
+            ),
         ],
       ),
     );
@@ -155,7 +236,7 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
   }) {
     final isDesktop = Responsive.isDesktop(context);
     final isExpanded = !isDesktop || widget.isExpanded;
-    final isActive = !isSignOut && widget.activeIndex == index;
+    final isActive = !isSignOut && widget.activeIndex == item.index;
 
     final iconColor = isSignOut
         ? Colors.redAccent
@@ -168,7 +249,7 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
         if (!Responsive.isDesktop(context)) Navigator.pop(context);
         context.read<AuthCubit>().signOut();
       } else {
-        widget.onNavTap(index);
+        widget.onNavTap(item.index);
         if (!Responsive.isDesktop(context)) Navigator.pop(context);
       }
     }
@@ -255,6 +336,7 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
     final double targetWidth = widget.isExpanded ? 230 : 68;
+    final navItems = _getNavItems();
 
     Widget content = SafeArea(
       child: Column(
@@ -265,8 +347,8 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
             child: SingleChildScrollView(
               child: Column(
                 children: List.generate(
-                  _navItems.length,
-                  (i) => _buildNavItem(context, i, _navItems[i]),
+                  navItems.length,
+                  (i) => _buildNavItem(context, i, navItems[i]),
                 ),
               ),
             ),
@@ -309,8 +391,15 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
 }
 
 class _AdminNavItem {
+  final int index;
   final String label;
   final IconData icon;
   final IconData activeIcon;
-  const _AdminNavItem({required this.label, required this.icon, required this.activeIcon});
+
+  const _AdminNavItem({
+    required this.index,
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+  });
 }

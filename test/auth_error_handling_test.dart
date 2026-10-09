@@ -11,7 +11,7 @@ import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/auth/domain/auth_repository.dart';
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
-import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/login_page.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/auth_gate.dart';
 
@@ -304,9 +304,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Inline banner should be displayed
-      expect(find.byType(AppErrorBanner), findsOneWidget);
-      // Floating notification with "Login Unsuccessful" should be shown
-      expect(find.text('Login Unsuccessful'), findsWidgets);
+      expect(find.byType(AppErrorView), findsOneWidget);
+      // Inline banner with title should be shown
+      expect(find.text('Incorrect Credentials'), findsWidgets);
 
       authCubit.close();
       connBloc.close();

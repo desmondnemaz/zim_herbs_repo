@@ -98,13 +98,18 @@ class SupabaseAuthRepository implements AuthRepository {
     try {
       final profile = await client
           .from('user_profiles')
-          .select('id, email, full_name, is_admin, avatar_url')
+          .select('id, email, full_name, is_admin, is_moderator, avatar_url')
           .eq('id', user.id)
           .maybeSingle();
 
       if (profile != null) {
         final isAdmin = profile['is_admin'] as bool? ?? false;
+        final isModerator = profile['is_moderator'] as bool? ?? false;
         final fullName = profile['full_name'] as String?;
+
+        final UserRole role = isAdmin
+            ? UserRole.admin
+            : (isModerator ? UserRole.moderator : UserRole.customer);
 
         return UserModel(
           id: user.id,
@@ -112,7 +117,9 @@ class SupabaseAuthRepository implements AuthRepository {
               ? fullName.trim()
               : (user.email ?? 'User'),
           email: user.email ?? (profile['email'] as String? ?? ''),
-          role: isAdmin ? UserRole.admin : UserRole.customer,
+          role: role,
+          isAdmin: isAdmin,
+          isModerator: isModerator,
           avatarUrl: profile['avatar_url'] as String?,
         );
       }
@@ -125,6 +132,8 @@ class SupabaseAuthRepository implements AuthRepository {
       name: user.email?.split('@').first ?? 'User',
       email: user.email ?? '',
       role: UserRole.customer,
+      isAdmin: false,
+      isModerator: false,
     );
   }
 

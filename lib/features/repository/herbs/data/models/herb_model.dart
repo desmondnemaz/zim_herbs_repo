@@ -61,6 +61,9 @@ class HerbModel {
   /// Optional description of the herb.
   final String? description;
 
+  /// Whether the herb has been verified by moderators.
+  final bool isApproved;
+
   /// When the herb was created in Supabase.
   final DateTime? createdAt;
 
@@ -86,6 +89,7 @@ class HerbModel {
     this.nameSn,
     this.nameNd,
     this.description,
+    this.isApproved = true,
     this.createdAt,
     this.updatedAt,
     this.images = const [],
@@ -127,6 +131,7 @@ class HerbModel {
       nameSn: nameSn,
       nameNd: nameNd,
       description: description,
+      isApproved: isApproved,
       images: images.map((image) => image.toEntity()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -159,6 +164,7 @@ class HerbModel {
       nameSn: herb.nameSn,
       nameNd: herb.nameNd,
       description: herb.description,
+      isApproved: herb.isApproved,
       images: herb.images.map((img) => HerbImageModel.fromEntity(img)).toList(),
       createdAt: herb.createdAt,
       updatedAt: herb.updatedAt,
@@ -237,6 +243,9 @@ class HerbModel {
                 )
               : null,
 
+      /// Whether the herb is approved by moderators.
+      isApproved: json['is_approved'] as bool? ?? true,
+
       /// Same process for updated_at.
       updatedAt:
           json['updated_at'] != null
@@ -305,6 +314,7 @@ class HerbModel {
       'name_sn': nameSn,
       'name_nd': nameNd,
       'description': description,
+      'is_approved': isApproved,
     };
   }
 

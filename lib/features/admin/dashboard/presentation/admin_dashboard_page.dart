@@ -123,6 +123,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             // Sidebar for Mobile/Tablet
             drawer: !isDesktop
                 ? AdminDrawerSideBar(
+                    user: widget.user,
                     activeIndex: _activeIndex,
                     onNavTap: (i) => setState(() => _activeIndex = i),
                   )
@@ -162,6 +163,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               children: [
                 if (isDesktop)
                   AdminDrawerSideBar(
+                    user: widget.user,
                     isExpanded: state.isSidebarVisible,
                     onToggle: () => context.read<DashboardCubit>().toggleSidebar(),
                     activeIndex: _activeIndex,
@@ -213,14 +215,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.verified_user,
-                                        size: 13,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .secondary),
+                                    Icon(
+                                      widget.user.isAdmin
+                                          ? Icons.admin_panel_settings
+                                          : Icons.verified_user,
+                                      size: 13,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      widget.user.name,
+                                      '${widget.user.name} (${widget.user.isAdmin ? "Admin" : "Moderator"})',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -263,6 +269,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       // ===== Main Admin Content =====
                       Expanded(
                         child: AdminDashboardScreen(
+                          user: widget.user,
                           activeIndex: _activeIndex,
                           onNavigate: (i) => setState(() => _activeIndex = i),
                           onToggleSidebar: () {

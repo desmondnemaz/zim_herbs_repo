@@ -51,13 +51,13 @@ class AuthCubit extends Cubit<AuthState> {
         password: password,
       );
 
-      if (requireAdmin && !user.role.isAdmin) {
-        // User logged in successfully, but lacks admin permissions for the requested portal
+      if (requireAdmin && !user.canModerate) {
+        // User logged in successfully, but lacks staff/admin/moderator permissions for this portal
         await _authRepository.signOut();
         const failure = Failure(
           title: 'Access Denied',
           message:
-              'This account does not have administrator privileges. Please sign in via the Customer portal.',
+              'This account does not have staff or administrator privileges. Please sign in via the Customer portal.',
           type: FailureType.accessDenied,
         );
         emit(AuthError(message: failure.message, failure: failure));
@@ -108,10 +108,10 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       emit(const AuthLoading());
       await _authRepository.signOut();
+    } catch (_) {
+      // Even if network fails during remote signout, clear local session
+    } finally {
       emit(const Unauthenticated());
-    } catch (e, st) {
-      final failure = ErrorHandler.handle(e, st);
-      emit(AuthError(message: failure.message, failure: failure));
     }
   }
 

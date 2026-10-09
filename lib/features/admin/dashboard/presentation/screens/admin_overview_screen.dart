@@ -11,11 +11,14 @@ import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 
+import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
+
 /// The Overview landing screen for admin with live data from Supabase.
 class AdminOverviewScreen extends StatefulWidget {
   final ValueChanged<int>? onNavigate;
+  final UserModel? user;
 
-  const AdminOverviewScreen({super.key, this.onNavigate});
+  const AdminOverviewScreen({super.key, this.onNavigate, this.user});
 
   @override
   State<AdminOverviewScreen> createState() => _AdminOverviewScreenState();
@@ -201,43 +204,52 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                 value: '$_herbsCount',
                 icon: Icons.local_florist,
                 color: Colors.green,
-                onTap: () => widget.onNavigate?.call(1),
+                onTap: () => widget.onNavigate?.call(2),
               ),
               _StatCard(
                 title: 'Conditions',
                 value: '$_conditionsCount',
                 icon: Icons.sick_outlined,
                 color: Colors.teal,
-                onTap: () => widget.onNavigate?.call(2),
+                onTap: () => widget.onNavigate?.call(3),
               ),
               _StatCard(
                 title: 'Remedies',
                 value: '$_remediesCount',
                 icon: Icons.healing,
                 color: Colors.blue,
-                onTap: () => widget.onNavigate?.call(3),
+                onTap: () => widget.onNavigate?.call(4),
               ),
               _StatCard(
                 title: 'Pending Reviews',
                 value: '$_pendingReviewsCount',
                 icon: Icons.rate_review_outlined,
                 color: _pendingReviewsCount > 0 ? Colors.amber : Colors.grey,
-                onTap: () => widget.onNavigate?.call(3),
+                onTap: () => widget.onNavigate?.call(1),
               ),
               _StatCard(
                 title: 'Body Parts',
                 value: '$_bodyPartsCount',
                 icon: Icons.accessibility_new,
                 color: Colors.purple,
-                onTap: () => widget.onNavigate?.call(2),
+                onTap: () => widget.onNavigate?.call(3),
               ),
-              _StatCard(
-                title: 'Registered Users',
-                value: '$_usersCount',
-                icon: Icons.people_alt_outlined,
-                color: Colors.blueGrey,
-                onTap: () => widget.onNavigate?.call(5),
-              ),
+              if (widget.user?.canManageUsers ?? false)
+                _StatCard(
+                  title: 'Registered Users',
+                  value: '$_usersCount',
+                  icon: Icons.people_alt_outlined,
+                  color: Colors.blueGrey,
+                  onTap: () => widget.onNavigate?.call(6),
+                )
+              else
+                _StatCard(
+                  title: 'Moderation Hub',
+                  value: '$_pendingReviewsCount Pending',
+                  icon: Icons.verified_user,
+                  color: Colors.indigo,
+                  onTap: () => widget.onNavigate?.call(1),
+                ),
             ],
           ),
 
@@ -289,17 +301,18 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                 },
               ),
               _QuickActionCard(
-                title: 'Moderate HerbCircle',
+                title: 'Moderate Content',
                 icon: Icons.verified_user_outlined,
                 color: Colors.amber,
-                onTap: () => widget.onNavigate?.call(3),
+                onTap: () => widget.onNavigate?.call(1),
               ),
-              _QuickActionCard(
-                title: 'User Management',
-                icon: Icons.manage_accounts_outlined,
-                color: Colors.teal,
-                onTap: () => widget.onNavigate?.call(5),
-              ),
+              if (widget.user?.canManageUsers ?? false)
+                _QuickActionCard(
+                  title: 'User Management',
+                  icon: Icons.manage_accounts_outlined,
+                  color: Colors.teal,
+                  onTap: () => widget.onNavigate?.call(6),
+                ),
             ],
           ),
 

@@ -89,6 +89,42 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
+  Future<void> _toggleModeratorRole(String userId, bool currentStatus) async {
+    final newStatus = !currentStatus;
+    try {
+      await _client
+          .from('user_profiles')
+          .update({'is_moderator': newStatus})
+          .eq('id', userId);
+
+      if (mounted) {
+        setState(() {
+          final index = _users.indexWhere((u) => u['id'] == userId);
+          if (index != -1) {
+            _users[index]['is_moderator'] = newStatus;
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newStatus
+                  ? 'User assigned Moderator privileges'
+                  : 'Moderator role revoked',
+            ),
+            backgroundColor: newStatus ? Colors.indigo : Colors.orange,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      if (mounted) {
+        showAppErrorSnackBar(
+          context,
+          failure: ErrorHandler.handle(e, stackTrace),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -184,6 +220,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   final user = filteredUsers[index];
                                   final isAdmin =
                                       user['is_admin'] as bool? ?? false;
+                                  final isModerator =
+                                      user['is_moderator'] as bool? ?? false;
                                   final isSupplier =
                                       user['is_supplier'] as bool? ?? false;
                                   final fullName =
@@ -202,14 +240,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                         color: isAdmin
                                             ? theme.colorScheme.primary
                                                 .withValues(alpha: 0.3)
-                                            : Colors.grey.shade200,
+                                            : (isModerator
+                                                ? Colors.indigo.shade200
+                                                : Colors.grey.shade200),
                                       ),
                                     ),
                                     child: ListTile(
                                       leading: CircleAvatar(
                                         backgroundColor: isAdmin
                                             ? theme.colorScheme.primary
-                                            : theme.colorScheme.secondary,
+                                            : (isModerator
+                                                ? Colors.indigo
+                                                : theme.colorScheme.secondary),
                                         backgroundImage: avatarUrl != null &&
                                                 avatarUrl.isNotEmpty
                                             ? NetworkImage(avatarUrl)
@@ -265,6 +307,31 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                                 ),
                                               ),
                                             ),
+                                          if (isModerator && !isAdmin) ...[
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.indigo
+                                                    .withValues(alpha: 0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color: Colors.indigo),
+                                              ),
+                                              child: const Text(
+                                                'MODERATOR',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.indigo,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                           if (isSupplier) ...[
                                             const SizedBox(width: 6),
                                             Container(
@@ -299,6 +366,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                           if (action == 'toggle_admin') {
                                             _toggleAdminRole(
                                                 user['id'] as String, isAdmin);
+                                          } else if (action ==
+                                              'toggle_moderator') {
+                                            _toggleModeratorRole(
+                                                user['id'] as String,
+                                                isModerator);
                                           }
                                         },
                                         itemBuilder: (context) => [
@@ -320,6 +392,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                                 Text(isAdmin
                                                     ? 'Revoke Admin'
                                                     : 'Make Admin'),
+                                              ],
+                                            ),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'toggle_moderator',
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  isModerator
+                                                      ? Icons.verified_user_outlined
+                                                      : Icons.verified_user,
+                                                  color: isModerator
+                                                      ? Colors.orange
+                                                      : Colors.indigo,
+                                                  size: 20,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(isModerator
+                                                    ? 'Revoke Moderator'
+                                                    : 'Make Moderator'),
                                               ],
                                             ),
                                           ),

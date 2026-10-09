@@ -79,7 +79,7 @@ class _AuthGateState extends State<AuthGate> {
         _isFirstCheck = false;
 
         if (state is Authenticated) {
-          if (state.user.role.isAdmin) {
+          if (state.user.canModerate) {
             return PortalSelectionPage(user: state.user);
           } else {
             // General authenticated customer learning experience
