@@ -11,95 +11,116 @@ class AuthCubit extends Cubit<AuthState> {
   StreamSubscription<UserModel?>? _authSubscription;
 
   AuthCubit(this._authRepository) : super(const AuthInitial()) {
-    _init();
-  }
-
-  void _init() {
     _authSubscription = _authRepository.authStateChanges.listen((user) {
       if (user != null) {
         emit(Authenticated(user));
       } else {
-        emit(const Unauthenticated());
+        if (state is! AuthError) {
+          emit(const Unauthenticated());
+        }
       }
     });
   }
 
-  void clearError() {
-    if (state is AuthError) {
-      emit(const Unauthenticated());
-    }
-  }
-
+  /// Check current session status on app start
   Future<void> checkAuth() async {
-    emit(const AuthLoading());
     try {
+      emit(const AuthLoading());
       final user = await _authRepository.getCurrentUser();
       if (user != null) {
         emit(Authenticated(user));
       } else {
         emit(const Unauthenticated());
       }
-    } catch (e, stackTrace) {
-      final failure = ErrorHandler.handle(e, stackTrace);
-      emit(AuthError(failure.message, failure: failure));
+    } catch (e, st) {
+      final failure = ErrorHandler.handle(e, st);
+      emit(AuthError(message: failure.message, failure: failure));
     }
   }
 
+  /// Sign in using credentials
   Future<void> signInWithCredentials({
     required String email,
     required String password,
     bool requireAdmin = false,
   }) async {
-    emit(const AuthLoading());
     try {
+      emit(const AuthLoading());
       final user = await _authRepository.signInWithCredentials(
         email: email,
         password: password,
       );
+
       if (requireAdmin && !user.role.isAdmin) {
+        // User logged in successfully, but lacks admin permissions for the requested portal
         await _authRepository.signOut();
         const failure = Failure(
           title: 'Access Denied',
           message:
-              'This account does not have administrator privileges. Please switch to the Customer tab to sign in.',
+              'This account does not have administrator privileges. Please sign in via the Customer portal.',
           type: FailureType.accessDenied,
         );
-        emit(AuthError(failure.message, failure: failure));
+        emit(AuthError(message: failure.message, failure: failure));
         return;
       }
+
       emit(Authenticated(user));
-    } catch (e, stackTrace) {
-      final failure = ErrorHandler.handle(e, stackTrace);
-      emit(AuthError(failure.message, failure: failure));
+    } catch (e, st) {
+      final failure = ErrorHandler.handle(e, st);
+      emit(AuthError(message: failure.message, failure: failure));
     }
   }
 
+  /// Convenience alias for [signInWithCredentials]
+  Future<void> login({
+    required String email,
+    required String password,
+    bool requireAdmin = false,
+  }) =>
+      signInWithCredentials(
+        email: email,
+        password: password,
+        requireAdmin: requireAdmin,
+      );
+
+  /// Sign up a new user account
   Future<void> signUpWithCredentials({
     required String email,
     required String password,
     String? fullName,
   }) async {
-    emit(const AuthLoading());
     try {
+      emit(const AuthLoading());
       final user = await _authRepository.signUpWithCredentials(
         email: email,
         password: password,
         fullName: fullName,
       );
       emit(Authenticated(user));
-    } catch (e, stackTrace) {
-      final failure = ErrorHandler.handle(e, stackTrace);
-      emit(AuthError(failure.message, failure: failure));
+    } catch (e, st) {
+      final failure = ErrorHandler.handle(e, st);
+      emit(AuthError(message: failure.message, failure: failure));
     }
   }
 
+  /// Sign out current user session
   Future<void> signOut() async {
-    emit(const AuthLoading());
     try {
+      emit(const AuthLoading());
       await _authRepository.signOut();
-    } catch (_) {
-      // Ignore error to ensure state transitions to unauthenticated
-    } finally {
+      emit(const Unauthenticated());
+    } catch (e, st) {
+      final failure = ErrorHandler.handle(e, st);
+      emit(AuthError(message: failure.message, failure: failure));
+    }
+  }
+
+  /// Convenience alias for [signOut]
+  Future<void> logout() => signOut();
+
+  /// Clears any active error state back to [Unauthenticated] or current user
+  void clearError() {
+    if (state is AuthError) {
       emit(const Unauthenticated());
     }
   }

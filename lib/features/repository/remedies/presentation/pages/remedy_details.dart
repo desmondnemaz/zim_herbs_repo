@@ -7,7 +7,6 @@ import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/re
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_cubit.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_state.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_detail_cubit.dart';
-import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';

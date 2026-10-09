@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/dashboard/bloc/recommendations_bloc.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/recommendation_widgets.dart';
-import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/components/menu_section.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/pages/herbs_list.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/presentation/store_page.dart';
@@ -105,7 +105,7 @@ class DashboardScreen extends StatelessWidget {
                               horizontal: 16.0,
                               vertical: 12.0,
                             ),
-                            child: AppErrorBanner(
+                            child: AppErrorView.banner(
                               failure: state.failure,
                               message: state.message,
                               title: 'Highlights Unavailable',

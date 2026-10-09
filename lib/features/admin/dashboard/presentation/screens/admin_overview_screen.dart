@@ -5,7 +5,7 @@ import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
-import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
@@ -157,7 +157,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
           ),
           if (_errorFailure != null) ...[
             const SizedBox(height: 16),
-            AppErrorBanner(
+            AppErrorView.banner(
               failure: _errorFailure,
               title: 'Live Stats Unavailable',
               actionLabel: 'Retry',

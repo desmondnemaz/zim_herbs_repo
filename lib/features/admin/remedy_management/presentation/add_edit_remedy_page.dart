@@ -11,7 +11,6 @@ import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/rem
 import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
-import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_form_cubit.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zim_herbs_repo/core/components/app_error_banner.dart';
+import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart' as conn;
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/errors/failure.dart';
@@ -567,7 +567,7 @@ class _LoginPageState extends State<LoginPage> {
                             ],
                             if (_activeFailure != null) ...[
                               const SizedBox(height: 16),
-                              AppErrorBanner(
+                              AppErrorView.banner(
                                 failure: _activeFailure,
                                 onDismiss: () => setState(() => _activeFailure = null),
                                 actionLabel: _activeFailure!.type ==
