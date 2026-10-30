@@ -243,18 +243,21 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                   _buildMenuItem(
                     title: "Dashboard",
                     svgSrc: "assets/icons/menu_dashboard.svg",
+                    iconColor: const Color(0xFF80CBC4),
                     isActive: _activeRoute == "Dashboard",
                     onTap: () => setState(() => _activeRoute = "Dashboard"),
                   ),
                   _buildMenuItem(
                     title: "Profile",
                     svgSrc: "assets/icons/menu_profile.svg",
+                    iconColor: const Color(0xFF81C784),
                     isActive: _activeRoute == "Profile",
                     onTap: () => setState(() => _activeRoute = "Profile"),
                   ),
                   _buildMenuItem(
                     title: "Notifications",
                     icon: Icons.notifications_none,
+                    iconColor: const Color(0xFFFFB74D),
                     isActive: _activeRoute == "Notifications",
                     onTap: () {
                       if (!Responsive.isDesktop(context)) {
@@ -271,6 +274,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                   _buildMenuItem(
                     title: "Settings",
                     svgSrc: "assets/icons/menu_setting.svg",
+                    iconColor: const Color(0xFF64B5F6),
                     isActive: _activeRoute == "Settings",
                     onTap: () {
                       if (!Responsive.isDesktop(context)) {
@@ -292,6 +296,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                           return _buildMenuItem(
                             title: "Admin Console",
                             icon: Icons.admin_panel_settings,
+                            iconColor: const Color(0xFFCE93D8),
                             isActive: false,
                             onTap: () {
                               if (!Responsive.isDesktop(context)) {
@@ -312,14 +317,10 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                   ),
                   _buildMenuItem(
                     title: "Sign Out",
-                    icon: Icons.logout,
+                    icon: Icons.logout_rounded,
                     isActive: false,
-                    onTap: () {
-                      if (!Responsive.isDesktop(context)) {
-                        Navigator.pop(context);
-                      }
-                      context.read<AuthCubit>().signOut();
-                    },
+                    isSignOut: true,
+                    onTap: () => _showSignOutConfirmation(context),
                   ),
                 ],
               ),
@@ -368,10 +369,31 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
     String? svgSrc,
     IconData? icon,
     required bool isActive,
+    bool isSignOut = false,
+    Color? iconColor,
     required VoidCallback onTap,
   }) {
     final isDesktop = Responsive.isDesktop(context);
     final isExpanded = !isDesktop || widget.isExpanded;
+    final accentColor = iconColor ?? Theme.of(context).colorScheme.secondary;
+
+    final itemColor = isSignOut
+        ? Colors.white
+        : isActive
+            ? accentColor
+            : accentColor.withValues(alpha: 0.88);
+
+    final tileBackground = isSignOut
+        ? Colors.white.withValues(alpha: 0.12)
+        : isActive
+            ? accentColor.withValues(alpha: 0.22)
+            : Colors.transparent;
+
+    final textColor = isSignOut
+        ? Colors.white
+        : isActive
+            ? accentColor
+            : Colors.white.withValues(alpha: 0.88);
 
     if (!isExpanded) {
       final childWidget =
@@ -379,11 +401,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
               ? SvgPicture.asset(
                 svgSrc,
                 colorFilter: ColorFilter.mode(
-                  isActive
-                      ? Theme.of(context).colorScheme.secondary
-                      : Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                  itemColor,
                   BlendMode.srcIn,
                 ),
                 height: 24,
@@ -391,12 +409,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
               )
               : Icon(
                 icon,
-                color:
-                    isActive
-                        ? Theme.of(context).colorScheme.secondary
-                        : Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                color: itemColor,
                 size: 24,
               );
 
@@ -406,12 +419,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
           child: Material(
-            color:
-                isActive
-                    ? Theme.of(
-                      context,
-                    ).colorScheme.secondary.withValues(alpha: 0.2)
-                    : Colors.transparent,
+            color: tileBackground,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               onTap: onTap,
@@ -430,12 +438,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Material(
-        color:
-            isActive
-                ? Theme.of(
-                  context,
-                ).colorScheme.secondary.withValues(alpha: 0.2)
-                : Colors.transparent,
+        color: tileBackground,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -448,11 +451,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                     ? SvgPicture.asset(
                       svgSrc,
                       colorFilter: ColorFilter.mode(
-                        isActive
-                            ? Theme.of(context).colorScheme.secondary
-                            : Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                        itemColor,
                         BlendMode.srcIn,
                       ),
                       height: 24,
@@ -460,12 +459,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                     )
                     : Icon(
                       icon,
-                      color:
-                          isActive
-                              ? Theme.of(context).colorScheme.secondary
-                              : Theme.of(
-                                context,
-                              ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                      color: itemColor,
                       size: 24,
                     ),
                 const SizedBox(width: 12),
@@ -475,13 +469,9 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color:
-                          isActive
-                              ? Theme.of(context).colorScheme.secondary
-                              : Theme.of(
-                                context,
-                              ).colorScheme.onPrimary.withValues(alpha: 0.8),
-                      fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                      color: textColor,
+                      fontWeight:
+                          (isActive || isSignOut) ? FontWeight.bold : FontWeight.w500,
                       fontSize: 16,
                     ),
                   ),
@@ -490,6 +480,67 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSignOutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Color(0xFFD32F2F)),
+            SizedBox(width: 10),
+            Text(
+              'Sign Out',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to sign out of your account?',
+          style: TextStyle(color: Color(0xFF4B5563), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(0xFF6B7280),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              if (!Responsive.isDesktop(context)) Navigator.pop(context);
+              context.read<AuthCubit>().signOut();
+            },
+            child: const Text(
+              'Sign Out',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
     );
   }

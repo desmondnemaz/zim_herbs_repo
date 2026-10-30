@@ -104,7 +104,8 @@ class SupabaseAuthRepository implements AuthRepository {
 
       if (profile != null) {
         final isAdmin = profile['is_admin'] as bool? ?? false;
-        final isModerator = profile['is_moderator'] as bool? ?? false;
+        final isModerator =
+            (profile['is_moderator'] as bool? ?? false) || isAdmin;
         final fullName = profile['full_name'] as String?;
 
         final UserRole role = isAdmin

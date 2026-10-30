@@ -176,7 +176,52 @@ class HerbCubit extends Cubit<HerbState> {
       /// Tell the UI that deletion failed.
       final failure = ErrorHandler.handle(e, stackTrace);
       emit(
-        HerbError(failure.message),
+        HerbError(failure.message, failure: failure),
+      );
+    }
+  }
+
+
+  // ============================================================
+  // DELETE MULTIPLE HERBS
+  // ============================================================
+
+  /// Deletes multiple herbs.
+  Future<void> deleteHerbs(List<String> ids) async {
+    if (ids.isEmpty) return;
+
+    try {
+      /// Tell the UI that an operation is happening.
+      emit(HerbLoading());
+
+      /// Ask the repository to delete the herbs.
+      await repository.deleteHerbs(ids);
+
+      /// Remove the herbs from our local list.
+      final idSet = ids.toSet();
+      _allHerbs.removeWhere(
+        (herb) => idSet.contains(herb.id),
+      );
+
+      /// Tell the UI that the operation succeeded.
+      emit(
+        HerbOperationSuccess(
+          '${ids.length} herb${ids.length > 1 ? 's' : ''} deleted successfully',
+        ),
+      );
+
+      /// Display the updated list.
+      emit(
+        HerbLoaded(
+          _allHerbs,
+          searchQuery: '',
+        ),
+      );
+    } catch (e, stackTrace) {
+      /// Tell the UI that deletion failed.
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(
+        HerbError(failure.message, failure: failure),
       );
     }
   }
@@ -195,5 +240,68 @@ class HerbCubit extends Cubit<HerbState> {
   /// BLoC event.
   Future<void> refreshHerbs() async {
     await loadHerbs();
+  }
+
+  // ============================================================
+  // UNVERIFIED HERBS OPERATIONS
+  // ============================================================
+
+  /// Fetches only unverified herbs pending moderator review.
+  Future<void> loadUnverifiedHerbs() async {
+    try {
+      emit(HerbLoading());
+      final herbs = await repository.getUnverifiedHerbs();
+      _allHerbs = herbs;
+      emit(HerbLoaded(herbs, searchQuery: ''));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(HerbError(failure.message, failure: failure));
+    }
+  }
+
+  /// Updates an herb's verification status (approves or revokes).
+  Future<void> updateHerbVerification(
+    String herbId,
+    bool isApproved, {
+    String? verifiedBy,
+    String? moderationNotes,
+  }) async {
+    try {
+      await repository.updateHerbVerification(
+        herbId,
+        isApproved,
+        verifiedBy: verifiedBy,
+        moderationNotes: moderationNotes,
+      );
+      final index = _allHerbs.indexWhere((h) => h.id == herbId);
+      if (index != -1) {
+        final current = _allHerbs[index];
+        _allHerbs[index] = Herb(
+          id: current.id,
+          nameEn: current.nameEn,
+          nameSn: current.nameSn,
+          nameNd: current.nameNd,
+          description: current.description,
+          isApproved: isApproved,
+          images: current.images,
+          createdAt: current.createdAt,
+          updatedAt: DateTime.now(),
+          createdBy: current.createdBy,
+          updatedBy: verifiedBy ?? current.updatedBy,
+          verifiedBy: isApproved ? verifiedBy : null,
+          verifiedAt: isApproved ? DateTime.now() : null,
+          moderationNotes: moderationNotes ?? current.moderationNotes,
+        );
+      }
+      emit(
+        HerbOperationSuccess(
+          isApproved ? 'Herb verified and published' : 'Herb marked as unverified',
+        ),
+      );
+      emit(HerbLoaded(_allHerbs, searchQuery: ''));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(HerbError(failure.message, failure: failure));
+    }
   }
 }

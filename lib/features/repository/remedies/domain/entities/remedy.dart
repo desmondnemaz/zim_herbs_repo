@@ -67,6 +67,8 @@ class Remedy {
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? createdBy;
+  final String? updatedBy;
 
   /// Denormalised condition name for display convenience.
   final String? conditionName;
@@ -99,6 +101,8 @@ class Remedy {
     this.rejectedBy,
     this.createdAt,
     this.updatedAt,
+    this.createdBy,
+    this.updatedBy,
     this.conditionName,
     this.conditionBodySystem,
     this.remedyHerbs = const [],

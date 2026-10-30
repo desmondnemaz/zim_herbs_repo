@@ -74,6 +74,31 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return shouldExit ?? false;
   }
 
+  String _getSectionTitle(int index) {
+    switch (index) {
+      case 0:
+        return 'Overview';
+      case 1:
+        return 'Moderation';
+      case 2:
+        return 'Herb Management';
+      case 3:
+        return 'Conditions';
+      case 4:
+        return 'Remedies';
+      case 5:
+        return 'Marketplace';
+      case 6:
+        return 'User Management';
+      case 7:
+        return 'Reports';
+      case 8:
+        return 'Analytics';
+      default:
+        return 'Overview';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
@@ -118,7 +143,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             },
             child: Scaffold(
             key: _scaffoldKey,
-            backgroundColor: Theme.of(context).colorScheme.surface,
+            backgroundColor: const Color(0xFFF3F8F2),
 
             // Sidebar for Mobile/Tablet
             drawer: !isDesktop
@@ -176,92 +201,103 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       if (isDesktop)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
+                            horizontal: 20,
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.primary,
                             boxShadow: [
                               BoxShadow(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withValues(alpha: 0.35),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                                color: Colors.black.withValues(alpha: 0.10),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              // Admin badge chip
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .secondary
-                                      .withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .secondary
-                                        .withValues(alpha: 0.5),
+                              // Contextual breadcrumb
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    widget.user.isAdmin
+                                        ? "Admin Console"
+                                        : "Moderator Console",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withValues(alpha: 0.65),
+                                      letterSpacing: 0.3,
+                                    ),
                                   ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      widget.user.isAdmin
-                                          ? Icons.admin_panel_settings
-                                          : Icons.verified_user,
-                                      size: 13,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .secondary,
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: 8.0),
+                                    child: Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: 16,
+                                      color: Colors.white.withValues(alpha: 0.45),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${widget.user.name} (${widget.user.isAdmin ? "Admin" : "Moderator"})',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .secondary,
-                                      ),
+                                  ),
+                                  Text(
+                                    _getSectionTitle(_activeIndex),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 0.2,
                                     ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const HomePage()),
-                                  );
-                                },
-                                icon: const Icon(Icons.school_outlined, size: 14, color: Colors.white),
-                                label: const Text(
-                                  "Customer Portal",
-                                  style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                ),
+                                  ),
+                                ],
                               ),
                               const Spacer(),
+
+                              // Action: View Public App
+                              Material(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) => const HomePage()),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 7,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.open_in_new_rounded,
+                                          size: 14,
+                                          color: Colors.white.withValues(alpha: 0.9),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Text(
+                                          "View Public App",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
                               const _OfflineBadge(),
-                              const SizedBox(width: 12),
-                              const _AdminProfileAvatar(),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 14),
+                              const _AdminProfileAvatar(showLabel: true),
                             ],
                           ),
                         ),
@@ -368,7 +404,8 @@ class _OfflineBadge extends StatelessWidget {
 
 // ─── Profile Avatar ─────────────────────────────────────────────────────────────
 class _AdminProfileAvatar extends StatelessWidget {
-  const _AdminProfileAvatar();
+  final bool showLabel;
+  const _AdminProfileAvatar({this.showLabel = false});
 
   @override
   Widget build(BuildContext context) {
@@ -419,13 +456,15 @@ class _AdminProfileAvatar extends StatelessWidget {
                       const SizedBox(height: 20),
                       const Divider(),
                       ListTile(
-                        leading: const Icon(Icons.school_outlined, color: Colors.green),
-                        title: const Text('Customer / Learning Portal',
+                        leading: const Icon(Icons.open_in_new_rounded,
+                            color: Color(0xFF2E7D32)),
+                        title: const Text('View Public App',
                             style: TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: const Text('Switch to learner experience'),
+                        subtitle:
+                            const Text('Switch to public herbal repository & store'),
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const HomePage()),
                           );
@@ -433,11 +472,12 @@ class _AdminProfileAvatar extends StatelessWidget {
                       ),
                       ListTile(
                         leading:
-                            const Icon(Icons.logout, color: Colors.redAccent),
+                            const Icon(Icons.logout, color: Color(0xFFFF5252)),
                         title: const Text('Sign Out',
                             style: TextStyle(
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.bold)),
+                                color: Color(0xFFFF5252),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15)),
                         onTap: () {
                           Navigator.pop(context);
                           context.read<AuthCubit>().signOut();
@@ -449,31 +489,89 @@ class _AdminProfileAvatar extends StatelessWidget {
               ),
             );
           },
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: theme.colorScheme.secondary.withValues(alpha: 0.7),
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+          child: showLabel
+              ? Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.20),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.white.withValues(alpha: 0.25),
+                        child: Text(
+                          userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          userRole,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.95),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                    ],
+                  ),
+                )
+              : Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: radius,
+                    backgroundColor: Colors.white.withValues(alpha: 0.20),
+                    child: Text(
+                      userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: radius,
-              backgroundColor: theme.colorScheme.secondary,
-              child: Icon(
-                Icons.admin_panel_settings_outlined,
-                color: theme.colorScheme.primary,
-                size: radius,
-              ),
-            ),
-          ),
         );
       },
     );

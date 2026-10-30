@@ -275,12 +275,19 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
   }
 
   Widget _buildHeader(BuildContext context, ResponsiveSize rs) {
+    final theme = Theme.of(context);
+    final canGoBack = widget.onBack != null || Navigator.canPop(context);
+
     return Container(
-      padding: EdgeInsets.all(defaultPadding),
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
+      padding: EdgeInsets.symmetric(
+        horizontal: defaultPadding,
+        vertical: defaultPadding * 0.75,
+      ),
+      color: theme.scaffoldBackgroundColor,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (widget.onBack != null || Navigator.canPop(context)) ...[
+          if (canGoBack) ...[
             InkWell(
               onTap: () {
                 if (widget.onBack != null) {
@@ -289,20 +296,47 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
                   Navigator.pop(context);
                 }
               },
-              child: Icon(
-                Icons.arrow_back,
-                color: Theme.of(context).colorScheme.secondary,
-                size: rs.appBarIcon,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Icon(
+                  Icons.arrow_back,
+                  color: theme.colorScheme.onSurface,
+                  size: 20,
+                ),
               ),
             ),
             SizedBox(width: defaultPadding),
           ],
-          Text(
-            "Conditions",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.secondary,
-              fontSize: rs.appBarTitleFont,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Conditions",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                    fontSize: rs.titleFont * 1.25,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  "Medical conditions & targeted remedies",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

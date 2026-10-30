@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/repositories/condition_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
@@ -191,6 +193,16 @@ class _RemedyFormViewState extends State<_RemedyFormView> {
       isApproved: widget.remedy?.isApproved ?? false,
       approvedAt: widget.remedy?.approvedAt,
       approvedBy: widget.remedy?.approvedBy,
+      createdAt: widget.remedy?.createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+      createdBy: widget.remedy == null
+          ? (context.read<AuthCubit>().state is Authenticated
+              ? (context.read<AuthCubit>().state as Authenticated).user.id
+              : Supabase.instance.client.auth.currentUser?.id)
+          : widget.remedy?.createdBy,
+      updatedBy: context.read<AuthCubit>().state is Authenticated
+          ? (context.read<AuthCubit>().state as Authenticated).user.id
+          : Supabase.instance.client.auth.currentUser?.id,
     );
 
     context.read<RemedyFormCubit>().submitRemedy(remedy);

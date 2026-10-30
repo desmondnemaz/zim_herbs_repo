@@ -38,7 +38,6 @@ class AdminDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final effectiveUser = user ??
         const UserModel(
           id: '',
@@ -98,7 +97,7 @@ class AdminDashboardScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: const Color(0xFFF3F8F2),
       body: SafeArea(
         child: body,
       ),

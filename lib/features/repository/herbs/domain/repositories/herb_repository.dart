@@ -62,4 +62,18 @@ abstract class HerbRepository {
 
   /// Delete a herb.
   Future<void> deleteHerb(String id);
+
+  /// Delete multiple herbs.
+  Future<void> deleteHerbs(List<String> ids);
+
+  /// Fetch unverified herbs pending moderator review.
+  Future<List<Herb>> getUnverifiedHerbs();
+
+  /// Update herb verification status.
+  Future<void> updateHerbVerification(
+    String herbId,
+    bool isApproved, {
+    String? verifiedBy,
+    String? moderationNotes,
+  });
 }

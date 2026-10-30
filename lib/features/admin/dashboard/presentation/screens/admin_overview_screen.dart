@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
-import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
@@ -31,7 +30,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   int _conditionsCount = 0;
   int _remediesCount = 0;
   int _pendingReviewsCount = 0;
-  int _bodyPartsCount = 0;
   int _usersCount = 0;
   bool _isLoading = true;
   Failure? _errorFailure;
@@ -57,7 +55,10 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
             .from('remedies')
             .count(CountOption.exact)
             .eq('is_approved', false),
-        _client.from('body_parts').count(CountOption.exact),
+        _client
+            .from('herbs')
+            .count(CountOption.exact)
+            .or('is_approved.is.false,is_approved.is.null'),
         _client.from('user_profiles').count(CountOption.exact),
       ]);
 
@@ -66,8 +67,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
           _herbsCount = results[0];
           _conditionsCount = results[1];
           _remediesCount = results[2];
-          _pendingReviewsCount = results[3];
-          _bodyPartsCount = results[4];
+          _pendingReviewsCount = results[3] + results[4];
           _usersCount = results[5];
           _isLoading = false;
         });
@@ -84,240 +84,301 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final rs = ResponsiveSize(context);
-    final isDesktop = Responsive.isDesktop(context);
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(rs.defaultPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ─── Welcome Banner ────────────────────────────────────────────────
-          BlocBuilder<AuthCubit, AuthState>(
-            builder: (context, state) {
-              final name =
-                  state is Authenticated ? state.user.name : 'Administrator';
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome back, $name 👋',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Here's a live overview of Zim Herbs & HerbCircle platform.",
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 13,
-                            ),
+    return Container(
+      color: const Color(0xFFF3F8F2),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(rs.defaultPadding),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1280),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ─── Welcome Banner ────────────────────────────────────────────────
+                BlocBuilder<AuthCubit, AuthState>(
+                  builder: (context, state) {
+                    final name =
+                        state is Authenticated ? state.user.name : 'Administrator';
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF2E7D32),
+                            Color(0xFF1B5E20),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF1B5E20).withValues(alpha: 0.25),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Welcome back, $name 👋',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "Here's a live overview of Zim Herbs & HerbCircle platform.",
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh, color: Colors.white),
+                            tooltip: 'Refresh live stats',
+                            onPressed: () {
+                              setState(() => _isLoading = true);
+                              _loadLiveStats();
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                if (_errorFailure != null) ...[
+                  const SizedBox(height: 16),
+                  AppErrorView.banner(
+                    failure: _errorFailure,
+                    title: 'Live Stats Unavailable',
+                    actionLabel: 'Retry',
+                    onAction: _loadLiveStats,
+                  ),
+                ],
+                const SizedBox(height: 28),
+
+                // ─── Section: System Stats ─────────────────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'System Overview',
+                      style: TextStyle(
+                        fontSize: rs.titleFont * 1.1,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1B5E20),
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh, color: Colors.white),
-                      tooltip: 'Refresh live stats',
-                      onPressed: () {
-                        setState(() => _isLoading = true);
-                        _loadLiveStats();
-                      },
-                    ),
+                    if (_isLoading)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                   ],
                 ),
-              );
-            },
-          ),
-          if (_errorFailure != null) ...[
-            const SizedBox(height: 16),
-            AppErrorView.banner(
-              failure: _errorFailure,
-              title: 'Live Stats Unavailable',
-              actionLabel: 'Retry',
-              onAction: _loadLiveStats,
+                const SizedBox(height: 16),
+
+                // Statistic Cards (Constrained & Uniform Size)
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double availableWidth = constraints.maxWidth;
+                    if (availableWidth <= 0) return const SizedBox.shrink();
+                    final int count = (availableWidth / 220).floor().clamp(1, 5);
+                    const double spacing = 12.0;
+                    final double cardWidth =
+                        ((availableWidth - (spacing * (count - 1))) / count)
+                            .floorToDouble();
+                    const double cardHeight = 84.0;
+
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: [
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _StatCard(
+                            title: 'Herbs',
+                            value: '$_herbsCount',
+                            icon: Icons.local_florist_rounded,
+                            color: const Color(0xFF22633C),
+                            onTap: () => widget.onNavigate?.call(2),
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _StatCard(
+                            title: 'Conditions',
+                            value: '$_conditionsCount',
+                            icon: Icons.monitor_heart_outlined,
+                            color: const Color(0xFF106F74),
+                            onTap: () => widget.onNavigate?.call(3),
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _StatCard(
+                            title: 'Remedies',
+                            value: '$_remediesCount',
+                            icon: Icons.healing_outlined,
+                            color: const Color(0xFF295CA2),
+                            onTap: () => widget.onNavigate?.call(4),
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _StatCard(
+                            title: 'Pending Reviews',
+                            value: '$_pendingReviewsCount',
+                            icon: Icons.chat_bubble_outline_rounded,
+                            color: const Color(0xFFA85B18),
+                            onTap: () => widget.onNavigate?.call(1),
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _StatCard(
+                            title: 'Users',
+                            value: '$_usersCount',
+                            icon: Icons.people_outline_rounded,
+                            color: const Color(0xFF684B8A),
+                            onTap: () => widget.onNavigate?.call(6),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // ─── Section: Quick Actions ────────────────────────────────────────
+                Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: rs.titleFont * 1.1,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1B5E20),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double availableWidth = constraints.maxWidth;
+                    if (availableWidth <= 0) return const SizedBox.shrink();
+                    final int count = (availableWidth / 220).floor().clamp(1, 5);
+                    const double spacing = 12.0;
+                    final double cardWidth =
+                        ((availableWidth - (spacing * (count - 1))) / count)
+                            .floorToDouble();
+                    const double cardHeight = 84.0;
+
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: [
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _QuickActionCard(
+                            title: 'Add Herb',
+                            icon: Icons.local_florist_rounded,
+                            color: const Color(0xFF22633C),
+                            pastelBackground: const Color(0xFFEAF5EB),
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const AddEditHerbPage()),
+                              );
+                              _loadLiveStats();
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _QuickActionCard(
+                            title: 'Conditions Hub',
+                            icon: Icons.monitor_heart_outlined,
+                            color: const Color(0xFF106F74),
+                            pastelBackground: const Color(0xFFE6F5F5),
+                            onTap: () => widget.onNavigate?.call(3),
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _QuickActionCard(
+                            title: 'Add Remedy',
+                            icon: Icons.healing_outlined,
+                            color: const Color(0xFF295CA2),
+                            pastelBackground: const Color(0xFFEBF3FC),
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const AddEditRemedyPage()),
+                              );
+                              _loadLiveStats();
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _QuickActionCard(
+                            title: 'Pending Reviews',
+                            icon: Icons.chat_bubble_outline_rounded,
+                            color: const Color(0xFFA85B18),
+                            pastelBackground: const Color(0xFFFEF5EB),
+                            onTap: () => widget.onNavigate?.call(1),
+                          ),
+                        ),
+                        if (widget.user?.canManageUsers ?? false)
+                          SizedBox(
+                            width: cardWidth,
+                            height: cardHeight,
+                            child: _QuickActionCard(
+                              title: 'User Management',
+                              icon: Icons.manage_accounts_outlined,
+                              color: const Color(0xFF684B8A),
+                              pastelBackground: const Color(0xFFF4EEF9),
+                              onTap: () => widget.onNavigate?.call(6),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 40),
+              ],
             ),
-          ],
-          const SizedBox(height: 28),
-
-          // ─── Section: System Stats ─────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'System Overview',
-                style: TextStyle(
-                  fontSize: rs.titleFont * 1.1,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              if (_isLoading)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-            ],
           ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount:
-                isDesktop ? 4 : (Responsive.isTablet(context) ? 2 : 2),
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: isDesktop ? 2.0 : 1.6,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              _StatCard(
-                title: 'Total Herbs',
-                value: '$_herbsCount',
-                icon: Icons.local_florist,
-                color: Colors.green,
-                onTap: () => widget.onNavigate?.call(2),
-              ),
-              _StatCard(
-                title: 'Conditions',
-                value: '$_conditionsCount',
-                icon: Icons.sick_outlined,
-                color: Colors.teal,
-                onTap: () => widget.onNavigate?.call(3),
-              ),
-              _StatCard(
-                title: 'Remedies',
-                value: '$_remediesCount',
-                icon: Icons.healing,
-                color: Colors.blue,
-                onTap: () => widget.onNavigate?.call(4),
-              ),
-              _StatCard(
-                title: 'Pending Reviews',
-                value: '$_pendingReviewsCount',
-                icon: Icons.rate_review_outlined,
-                color: _pendingReviewsCount > 0 ? Colors.amber : Colors.grey,
-                onTap: () => widget.onNavigate?.call(1),
-              ),
-              _StatCard(
-                title: 'Body Parts',
-                value: '$_bodyPartsCount',
-                icon: Icons.accessibility_new,
-                color: Colors.purple,
-                onTap: () => widget.onNavigate?.call(3),
-              ),
-              if (widget.user?.canManageUsers ?? false)
-                _StatCard(
-                  title: 'Registered Users',
-                  value: '$_usersCount',
-                  icon: Icons.people_alt_outlined,
-                  color: Colors.blueGrey,
-                  onTap: () => widget.onNavigate?.call(6),
-                )
-              else
-                _StatCard(
-                  title: 'Moderation Hub',
-                  value: '$_pendingReviewsCount Pending',
-                  icon: Icons.verified_user,
-                  color: Colors.indigo,
-                  onTap: () => widget.onNavigate?.call(1),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 32),
-
-          // ─── Section: Quick Actions ────────────────────────────────────────
-          Text(
-            'Quick Actions',
-            style: TextStyle(
-              fontSize: rs.titleFont * 1.1,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          GridView.count(
-            crossAxisCount:
-                isDesktop ? 4 : (Responsive.isTablet(context) ? 2 : 2),
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: isDesktop ? 1.9 : 1.5,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              _QuickActionCard(
-                title: 'Add Herb',
-                icon: Icons.local_florist,
-                color: Colors.green,
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddEditHerbPage()),
-                  );
-                  _loadLiveStats();
-                },
-              ),
-              _QuickActionCard(
-                title: 'Add Remedy',
-                icon: Icons.healing,
-                color: Colors.blue,
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const AddEditRemedyPage()),
-                  );
-                  _loadLiveStats();
-                },
-              ),
-              _QuickActionCard(
-                title: 'Moderate Content',
-                icon: Icons.verified_user_outlined,
-                color: Colors.amber,
-                onTap: () => widget.onNavigate?.call(1),
-              ),
-              if (widget.user?.canManageUsers ?? false)
-                _QuickActionCard(
-                  title: 'User Management',
-                  icon: Icons.manage_accounts_outlined,
-                  color: Colors.teal,
-                  onTap: () => widget.onNavigate?.call(6),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 40),
-        ],
+        ),
       ),
     );
   }
@@ -341,67 +402,83 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rs = ResponsiveSize(context);
-    final theme = Theme.of(context);
+    // Use dark charcoal for numerical values where contrast permits (WCAG luminance >= 0.45),
+    // otherwise fallback to white on darker saturated backgrounds to ensure optimal contrast.
+    final bool contrastPermits = color.computeLuminance() >= 0.45;
+    const Color darkCharcoal = Color(0xFF1E293B);
+    final Color numericalColor = contrastPermits ? darkCharcoal : Colors.white;
+    final Color iconColor = contrastPermits ? darkCharcoal : Colors.white;
+    final Color titleColor = contrastPermits
+        ? darkCharcoal.withValues(alpha: 0.85)
+        : Colors.white;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: contrastPermits
+                  ? color.withValues(alpha: 0.25)
+                  : Colors.white.withValues(alpha: 0.16),
+              width: 1.0,
             ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.28),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              child: Icon(icon, color: color, size: rs.icon * 0.9),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: rs.titleFont * 1.05,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: rs.bodyFont * 0.85,
-                      color: Colors.grey.shade600,
+                  Icon(icon, color: iconColor, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: numericalColor,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: titleColor,
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -413,19 +490,20 @@ class _QuickActionCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color color;
+  final Color? pastelBackground;
   final VoidCallback onTap;
 
   const _QuickActionCard({
     required this.title,
     required this.icon,
     required this.color,
+    this.pastelBackground,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final rs = ResponsiveSize(context);
-    final theme = Theme.of(context);
+    final bgColor = pastelBackground ?? color.withValues(alpha: 0.08);
 
     return Material(
       color: Colors.transparent,
@@ -433,13 +511,21 @@ class _QuickActionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
+            color: bgColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: color.withValues(alpha: 0.25),
+              width: 1.0,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -449,21 +535,28 @@ class _QuickActionCard extends StatelessWidget {
                   color: color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: rs.icon * 0.85),
+                child: Icon(icon, color: color, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontSize: rs.subtitleFont,
+                  maxLines: 2,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface,
+                    color: Color(0xFF1E293B),
+                    height: 1.2,
                   ),
                 ),
               ),
-              Icon(Icons.arrow_forward_ios,
-                  size: 14, color: color.withValues(alpha: 0.7)),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 13,
+                color: color.withValues(alpha: 0.8),
+              ),
             ],
           ),
         ),

@@ -36,56 +36,65 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
         label: 'Overview',
         icon: Icons.dashboard_outlined,
         activeIcon: Icons.dashboard,
+        accentColor: Color(0xFF80CBC4), // Mint Teal
       ),
       const _AdminNavItem(
         index: 1,
         label: 'Moderation',
-        icon: Icons.verified_user_outlined,
-        activeIcon: Icons.verified_user,
+        icon: Icons.chat_bubble_outline_rounded,
+        activeIcon: Icons.chat_bubble_rounded,
+        accentColor: Color(0xFFFFB74D), // Amber (matching Pending Reviews card)
       ),
       const _AdminNavItem(
         index: 2,
         label: 'Herb Mgmt',
-        icon: Icons.local_florist_outlined,
-        activeIcon: Icons.local_florist,
+        icon: Icons.local_florist_rounded,
+        activeIcon: Icons.local_florist_rounded,
+        accentColor: Color(0xFF81C784), // Herbal Green (matching Herbs card)
       ),
       const _AdminNavItem(
         index: 3,
         label: 'Conditions',
-        icon: Icons.sick_outlined,
-        activeIcon: Icons.sick,
+        icon: Icons.monitor_heart_outlined,
+        activeIcon: Icons.monitor_heart_rounded,
+        accentColor: Color(0xFF4DD0E1), // Medical Cyan/Teal (matching Conditions card)
       ),
       const _AdminNavItem(
         index: 4,
         label: 'Remedies',
         icon: Icons.healing_outlined,
-        activeIcon: Icons.healing,
+        activeIcon: Icons.healing_rounded,
+        accentColor: Color(0xFF64B5F6), // Healing Blue (matching Remedies card)
       ),
       const _AdminNavItem(
         index: 5,
         label: 'Marketplace',
         icon: Icons.storefront_outlined,
-        activeIcon: Icons.storefront,
+        activeIcon: Icons.storefront_rounded,
+        accentColor: Color(0xFFFFD54F), // Store Gold
       ),
       // Admin-only sections (strictly forbidden for moderators)
       if (isAdmin) ...[
         const _AdminNavItem(
           index: 6,
           label: 'Users',
-          icon: Icons.people_outline,
-          activeIcon: Icons.people,
+          icon: Icons.people_outline_rounded,
+          activeIcon: Icons.people_rounded,
+          accentColor: Color(0xFFCE93D8), // Purple (matching Users card)
         ),
         const _AdminNavItem(
           index: 7,
           label: 'Reports',
           icon: Icons.bar_chart_outlined,
-          activeIcon: Icons.bar_chart,
+          activeIcon: Icons.bar_chart_rounded,
+          accentColor: Color(0xFFFF8A80), // Reports Coral
         ),
         const _AdminNavItem(
           index: 8,
           label: 'Analytics',
           icon: Icons.analytics_outlined,
-          activeIcon: Icons.analytics,
+          activeIcon: Icons.analytics_rounded,
+          accentColor: Color(0xFF9FA8DA), // Analytics Indigo
         ),
       ],
     ];
@@ -239,15 +248,85 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
     final isActive = !isSignOut && widget.activeIndex == item.index;
 
     final iconColor = isSignOut
-        ? Colors.redAccent
+        ? Colors.white
         : isActive
-            ? Theme.of(context).colorScheme.secondary
-            : Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7);
+            ? item.accentColor
+            : item.accentColor.withValues(alpha: 0.88);
+
+    final tileBackground = isSignOut
+        ? Colors.white.withValues(alpha: 0.12)
+        : isActive
+            ? item.accentColor.withValues(alpha: 0.22)
+            : Colors.transparent;
+
+    final textColor = isSignOut
+        ? Colors.white
+        : isActive
+            ? item.accentColor
+            : Colors.white.withValues(alpha: 0.88);
+
+    void showSignOutConfirmation() {
+      showDialog(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.logout_rounded, color: Color(0xFFD32F2F)),
+              SizedBox(width: 10),
+              Text(
+                'Sign Out',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to sign out of your account?',
+            style: TextStyle(color: Color(0xFF4B5563), fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD32F2F),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(dialogCtx);
+                if (!Responsive.isDesktop(context)) Navigator.pop(context);
+                context.read<AuthCubit>().signOut();
+              },
+              child: const Text(
+                'Sign Out',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     void handleTap() {
       if (isSignOut) {
-        if (!Responsive.isDesktop(context)) Navigator.pop(context);
-        context.read<AuthCubit>().signOut();
+        showSignOutConfirmation();
       } else {
         widget.onNavTap(item.index);
         if (!Responsive.isDesktop(context)) Navigator.pop(context);
@@ -261,9 +340,7 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
           child: Material(
-            color: isActive
-                ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)
-                : Colors.transparent,
+            color: tileBackground,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               onTap: handleTap,
@@ -288,9 +365,7 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Material(
-        color: isActive
-            ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)
-            : Colors.transparent,
+        color: tileBackground,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: handleTap,
@@ -311,15 +386,9 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isSignOut
-                          ? Colors.redAccent
-                          : isActive
-                              ? Theme.of(context).colorScheme.secondary
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .onPrimary
-                                  .withValues(alpha: 0.85),
-                      fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                      color: textColor,
+                      fontWeight:
+                          (isActive || isSignOut) ? FontWeight.bold : FontWeight.w500,
                       fontSize: 14,
                     ),
                   ),
@@ -395,11 +464,13 @@ class _AdminNavItem {
   final String label;
   final IconData icon;
   final IconData activeIcon;
+  final Color accentColor;
 
   const _AdminNavItem({
     required this.index,
     required this.label,
     required this.icon,
     required this.activeIcon,
+    this.accentColor = Colors.white,
   });
 }

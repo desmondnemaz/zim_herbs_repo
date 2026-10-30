@@ -43,6 +43,61 @@ class HerbRemoteDataSource {
   }
 
   // ============================================================
+  // GET UNVERIFIED HERBS
+  // ============================================================
+
+  /// Fetch herbs that are unverified / pending moderator review.
+  Future<List<HerbModel>> getUnverifiedHerbs() async {
+    final response = await client
+        .from('herbs')
+        .select('''
+          *,
+          herb_images(*),
+          remedy_herbs(
+            *,
+            remedies(
+              *,
+              conditions(*)
+            )
+          )
+        ''')
+        .or('is_approved.is.false,is_approved.is.null')
+        .order('created_at', ascending: false);
+
+    return (response as List<dynamic>)
+        .map(
+          (json) => HerbModel.fromJson(
+            json as Map<String, dynamic>,
+          ),
+        )
+        .toList();
+  }
+
+  /// Update herb verification status.
+  Future<void> updateHerbVerification(
+    String herbId,
+    bool isApproved, {
+    String? verifiedBy,
+    String? moderationNotes,
+  }) async {
+    final now = DateTime.now().toIso8601String();
+    final updateData = <String, dynamic>{
+      'is_approved': isApproved,
+      'updated_at': now,
+    };
+
+    if (verifiedBy != null) {
+      updateData['verified_by'] = isApproved ? verifiedBy : null;
+      updateData['verified_at'] = isApproved ? now : null;
+    }
+    if (moderationNotes != null) {
+      updateData['moderation_notes'] = moderationNotes;
+    }
+
+    await client.from('herbs').update(updateData).eq('id', herbId);
+  }
+
+  // ============================================================
   // GET LATEST HERBS
   // ============================================================
 
@@ -323,5 +378,16 @@ class HerbRemoteDataSource {
         .from('herbs')
         .delete()
         .eq('id', id);
+  }
+
+  /// Delete multiple herbs by their IDs.
+  Future<void> deleteHerbs(
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return;
+    await client
+        .from('herbs')
+        .delete()
+        .inFilter('id', ids);
   }
 }

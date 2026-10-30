@@ -70,6 +70,21 @@ class HerbModel {
   /// When the herb was last updated.
   final DateTime? updatedAt;
 
+  /// Contributor/user who created this record.
+  final String? createdBy;
+
+  /// User who last updated this record.
+  final String? updatedBy;
+
+  /// Moderator/admin who verified this herb.
+  final String? verifiedBy;
+
+  /// Timestamp when this herb was verified.
+  final DateTime? verifiedAt;
+
+  /// Notes or reason provided during moderation.
+  final String? moderationNotes;
+
   /// Images belonging to this herb.
   ///
   /// We use another model:
@@ -92,6 +107,11 @@ class HerbModel {
     this.isApproved = true,
     this.createdAt,
     this.updatedAt,
+    this.createdBy,
+    this.updatedBy,
+    this.verifiedBy,
+    this.verifiedAt,
+    this.moderationNotes,
     this.images = const [],
     List<RemedyModel>? remedies,
     List<RemedyModel>? treatments,
@@ -135,6 +155,11 @@ class HerbModel {
       images: images.map((image) => image.toEntity()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,
+      createdBy: createdBy,
+      updatedBy: updatedBy,
+      verifiedBy: verifiedBy,
+      verifiedAt: verifiedAt,
+      moderationNotes: moderationNotes,
     );
   }
 
@@ -168,6 +193,11 @@ class HerbModel {
       images: herb.images.map((img) => HerbImageModel.fromEntity(img)).toList(),
       createdAt: herb.createdAt,
       updatedAt: herb.updatedAt,
+      createdBy: herb.createdBy,
+      updatedBy: herb.updatedBy,
+      verifiedBy: herb.verifiedBy,
+      verifiedAt: herb.verifiedAt,
+      moderationNotes: herb.moderationNotes,
     );
   }
 
@@ -254,6 +284,15 @@ class HerbModel {
                 )
               : null,
 
+      /// Audit attribution fields
+      createdBy: json['created_by'] as String?,
+      updatedBy: json['updated_by'] as String?,
+      verifiedBy: json['verified_by'] as String?,
+      verifiedAt: json['verified_at'] != null
+          ? DateTime.tryParse(json['verified_at'] as String)
+          : null,
+      moderationNotes: json['moderation_notes'] as String?,
+
       /// Attach the images we extracted above.
       images: images,
 
@@ -315,6 +354,11 @@ class HerbModel {
       'name_nd': nameNd,
       'description': description,
       'is_approved': isApproved,
+      if (createdBy != null) 'created_by': createdBy,
+      if (updatedBy != null) 'updated_by': updatedBy,
+      if (verifiedBy != null) 'verified_by': verifiedBy,
+      if (verifiedAt != null) 'verified_at': verifiedAt!.toIso8601String(),
+      if (moderationNotes != null) 'moderation_notes': moderationNotes,
     };
   }
 

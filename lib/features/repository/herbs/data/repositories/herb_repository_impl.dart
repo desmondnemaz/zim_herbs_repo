@@ -117,4 +117,30 @@ Future<Herb> updateHerb(
   Future<void> deleteHerb(String id) {
     return dataSource.deleteHerb(id);
   }
+
+  @override
+  Future<void> deleteHerbs(List<String> ids) {
+    return dataSource.deleteHerbs(ids);
+  }
+
+  @override
+  Future<List<Herb>> getUnverifiedHerbs() async {
+    final models = await dataSource.getUnverifiedHerbs();
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<void> updateHerbVerification(
+    String herbId,
+    bool isApproved, {
+    String? verifiedBy,
+    String? moderationNotes,
+  }) {
+    return dataSource.updateHerbVerification(
+      herbId,
+      isApproved,
+      verifiedBy: verifiedBy,
+      moderationNotes: moderationNotes,
+    );
+  }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:uuid/uuid.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
@@ -31,10 +34,12 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
   final ImagePicker _picker = ImagePicker();
   final HerbRemoteDataSource _repository =
       HerbRemoteDataSource(Supabase.instance.client);
+  bool _isApproved = true;
 
   @override
   void initState() {
     super.initState();
+    _isApproved = widget.herb?.isApproved ?? true;
     _nameEnController = TextEditingController(text: widget.herb?.nameEn ?? '');
     _nameSnController = TextEditingController(text: widget.herb?.nameSn ?? '');
     _nameNdController = TextEditingController(text: widget.herb?.nameNd ?? '');
@@ -80,6 +85,10 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
 
       try {
         final herbId = widget.herb?.id ?? const Uuid().v4();
+        final authState = context.read<AuthCubit>().state;
+        final currentUserId = authState is Authenticated
+            ? authState.user.id
+            : Supabase.instance.client.auth.currentUser?.id;
 
         // 1. Create/Construct Herb Model
         var newHerb = HerbModel(
@@ -93,8 +102,19 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
               _descriptionController.text.isEmpty
                   ? null
                   : _descriptionController.text,
+          isApproved: _isApproved,
           createdAt: widget.herb?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
+          createdBy:
+              widget.herb == null ? currentUserId : widget.herb?.createdBy,
+          updatedBy: currentUserId,
+          verifiedBy: _isApproved
+              ? (widget.herb?.verifiedBy ?? currentUserId)
+              : null,
+          verifiedAt: _isApproved
+              ? (widget.herb?.verifiedAt ?? DateTime.now())
+              : null,
+          moderationNotes: widget.herb?.moderationNotes,
           images: widget.herb?.images ?? [],
           remedies: widget.herb?.remedies ?? [],
         );
@@ -330,6 +350,59 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
                         label: 'Description',
                         rs: rs,
                         maxLines: 5,
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: _isApproved
+                              ? Colors.green.shade50
+                              : Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isApproved
+                                ? Colors.green.shade300
+                                : Colors.amber.shade400,
+                          ),
+                        ),
+                        child: SwitchListTile(
+                          value: _isApproved,
+                          activeThumbColor: Theme.of(context).colorScheme.primary,
+                          title: Text(
+                            _isApproved
+                                ? 'Verified Herb'
+                                : 'Unverified (Pending Review)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _isApproved
+                                  ? Colors.green.shade900
+                                  : Colors.amber.shade900,
+                            ),
+                          ),
+                          subtitle: Text(
+                            _isApproved
+                                ? 'This herb is verified by moderators and visible to all users.'
+                                : 'This herb is unverified and pending moderator review.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _isApproved
+                                  ? Colors.green.shade800
+                                  : Colors.amber.shade800,
+                            ),
+                          ),
+                          secondary: Icon(
+                            _isApproved
+                                ? Icons.verified_user_rounded
+                                : Icons.pending_actions_rounded,
+                            color: _isApproved
+                                ? Colors.green.shade700
+                                : Colors.amber.shade800,
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _isApproved = val;
+                            });
+                          },
+                        ),
                       ),
                       const SizedBox(height: 40),
 

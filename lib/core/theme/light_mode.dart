@@ -10,21 +10,27 @@ final ThemeData pharmacyTheme = ThemeData(
     onSecondary: Colors.black,
     error: const Color(0xFFD32F2F),
     onError: Colors.white,
-    surface: const Color.fromARGB(255, 201, 228, 203),
+    surface: const Color(0xFFF3F8F2),
     onSurface: Colors.black,
   ),
-  scaffoldBackgroundColor: const Color.fromARGB(255, 201, 228, 203),
+  scaffoldBackgroundColor: const Color(0xFFF3F8F2),
   appBarTheme: const AppBarTheme(
     backgroundColor: Color(0xFF2E7D32),
     foregroundColor: Colors.white,
     elevation: 0,
+  ),
+  cardColor: Colors.white,
+  cardTheme: const CardThemeData(
+    color: Colors.white,
+    elevation: 1,
+    surfaceTintColor: Colors.transparent,
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF2E7D32),
       foregroundColor: Colors.white,
       textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
     ),
@@ -37,5 +43,4 @@ final ThemeData pharmacyTheme = ThemeData(
     bodyMedium: GoogleFonts.roboto(color: const Color(0xFF212121)),
     bodySmall: GoogleFonts.roboto(color: const Color(0xFF757575)),
   ),
-  cardColor: const Color.fromARGB(255, 243, 175, 3),
 );

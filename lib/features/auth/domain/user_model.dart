@@ -15,7 +15,8 @@ enum UserRole {
   }
 
   bool get isAdmin => this == UserRole.admin;
-  bool get isModerator => this == UserRole.moderator;
+  /// Admins also inherit all moderator privileges
+  bool get isModerator => this == UserRole.moderator || this == UserRole.admin;
   bool get isStaff => this == UserRole.admin || this == UserRole.moderator;
   bool get isCustomer => this == UserRole.customer;
 }
@@ -25,7 +26,7 @@ class UserModel {
   final String name;
   final String email;
   final UserRole role;
-  final bool isModerator;
+  final bool _isModerator;
   final bool isAdmin;
   final String? avatarUrl;
 
@@ -34,10 +35,13 @@ class UserModel {
     required this.name,
     required this.email,
     required this.role,
-    this.isModerator = false,
+    bool isModerator = false,
     this.isAdmin = false,
     this.avatarUrl,
-  });
+  }) : _isModerator = isModerator;
+
+  /// True if the user is a moderator or an administrator (admins inherit all moderation rights).
+  bool get isModerator => _isModerator || isAdmin || role == UserRole.admin;
 
   /// True if the user has moderation privileges (Admins inherit moderation privileges,
   /// but Moderators are below Admins and cannot manage users or system roles).
@@ -80,7 +84,8 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final isAdminVal = json['is_admin'] as bool? ?? false;
-    final isModeratorVal = json['is_moderator'] as bool? ?? false;
+    final isModeratorVal =
+        (json['is_moderator'] as bool? ?? false) || isAdminVal;
 
     return UserModel(
       id: json['id'] as String,

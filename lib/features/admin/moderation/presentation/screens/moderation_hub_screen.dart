@@ -7,6 +7,8 @@ import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/models/remedy_model.dart';
+import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
+import 'unverified_herbs_screen.dart';
 import '../../data/datasources/moderation_remote_datasource.dart';
 import '../../data/models/herbalist_moderation_model.dart';
 
@@ -30,7 +32,7 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
   bool _loadingHerbs = true;
   Failure? _herbsError;
   String _herbSearchQuery = '';
-  String _herbFilter = 'all'; // 'all', 'pending', 'verified'
+  String _herbFilter = 'pending'; // Default to 'pending' unverified herbs for moderators!
 
   // Remedies State
   List<RemedyModel> _remedies = [];
@@ -96,7 +98,11 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
   Future<void> _toggleHerbApproval(HerbModel herb) async {
     final newStatus = !herb.isApproved;
     try {
-      await _datasource.updateHerbApproval(herb.id, newStatus);
+      await _datasource.updateHerbApproval(
+        herb.id,
+        newStatus,
+        moderatorId: widget.moderator.id,
+      );
       if (mounted) {
         setState(() {
           final index = _herbs.indexWhere((h) => h.id == herb.id);
@@ -112,6 +118,11 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
               remedies: herb.remedies,
               createdAt: herb.createdAt,
               updatedAt: DateTime.now(),
+              createdBy: herb.createdBy,
+              updatedBy: widget.moderator.id,
+              verifiedBy: newStatus ? widget.moderator.id : null,
+              verifiedAt: newStatus ? DateTime.now() : null,
+              moderationNotes: herb.moderationNotes,
             );
           }
         });
@@ -131,6 +142,282 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
         );
       }
     }
+  }
+
+  Future<void> _openEditHerb(HerbModel herb) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddEditHerbPage(herb: herb),
+      ),
+    );
+
+    if (result == true || result != null) {
+      _loadHerbs();
+    }
+  }
+
+  Future<void> _deleteHerb(HerbModel herb) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Herb Submission'),
+        content: Text(
+          'Are you sure you want to permanently delete "${herb.nameEn}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      try {
+        await _datasource.deleteHerb(herb.id);
+        setState(() {
+          _herbs.removeWhere((h) => h.id == herb.id);
+        });
+        if (!mounted) return;
+        showAppErrorSnackBar(
+          context,
+          title: 'Herb Deleted',
+          message: '${herb.nameEn} has been deleted.',
+          type: FailureType.validation,
+        );
+      } catch (e, st) {
+        if (mounted) {
+          showAppErrorSnackBar(
+            context,
+            failure: ErrorHandler.handle(e, st),
+          );
+        }
+      }
+    }
+  }
+
+  void _showHerbDetailsSheet(HerbModel herb) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          image: herb.primaryImageUrl != null
+                              ? DecorationImage(
+                                  image: NetworkImage(herb.primaryImageUrl!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: herb.primaryImageUrl == null
+                            ? Icon(Icons.local_florist,
+                                size: 36, color: Colors.green.shade700)
+                            : null,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              herb.nameEn,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            _statusBadge(
+                              herb.isApproved
+                                  ? 'Verified & Published'
+                                  : 'Pending Review',
+                              herb.isApproved
+                                  ? Colors.green
+                                  : Colors.amber.shade800,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (herb.nameSn != null || herb.nameNd != null) ...[
+                    const Text('Indigenous Dialect Names:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        if (herb.nameSn != null)
+                          Chip(
+                            label: Text('Shona: ${herb.nameSn}'),
+                            backgroundColor: Colors.green.shade50,
+                          ),
+                        if (herb.nameNd != null)
+                          Chip(
+                            label: Text('Ndebele: ${herb.nameNd}'),
+                            backgroundColor: Colors.blue.shade50,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  const Text('Description:',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text(
+                    (herb.description != null && herb.description!.isNotEmpty)
+                        ? herb.description!
+                        : 'No description provided.',
+                    style: TextStyle(color: Colors.grey.shade800, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  if (herb.remedies.isNotEmpty) ...[
+                    Text('Associated Remedies (${herb.remedies.length}):',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    ...herb.remedies.map(
+                      (r) => ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.healing,
+                            size: 18, color: Colors.teal),
+                        title: Text(r.name),
+                        subtitle: r.condition != null
+                            ? Text('Condition: ${r.condition!.name}')
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (herb.images.isNotEmpty) ...[
+                    Text('Images (${herb.images.length}):',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 90,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: herb.images.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
+                        itemBuilder: (ctx2, i) => ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            herb.images[i].imageUrl,
+                            width: 90,
+                            height: 90,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.edit_note_rounded),
+                          label: const Text('Update Herb'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _openEditHerb(herb);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton.icon(
+                          icon: Icon(herb.isApproved
+                              ? Icons.remove_circle_outline
+                              : Icons.verified_rounded),
+                          label: Text(
+                              herb.isApproved ? 'Revoke' : 'Verify Herb'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: herb.isApproved
+                                ? Colors.orange.shade800
+                                : Colors.green.shade700,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _toggleHerbApproval(herb);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    label: const Text('Reject / Delete Submission',
+                        style: TextStyle(color: Colors.red)),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _deleteHerb(herb);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -316,78 +603,176 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Row(
+      body: SafeArea(
+        child: Column(
           children: [
-            Icon(Icons.verified_user_rounded,
-                color: theme.colorScheme.secondary, size: 24),
-            const SizedBox(width: 10),
-            const Text(
-              'Moderation Hub',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            // Modern surface header
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: rs.defaultPadding,
+                vertical: rs.defaultPadding * 0.75,
+              ),
+              color: theme.scaffoldBackgroundColor,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.verified_user_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Moderation Hub',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: rs.titleFont * 1.25,
+                            color: theme.colorScheme.onSurface,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        Text(
+                          'Review submissions & verify medicinal catalog',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(
+                            builder: (_) => const UnverifiedHerbsScreen(),
+                          ),
+                        )
+                        .then((_) => _loadAll()),
+                    icon: Icon(
+                      Icons.pending_actions_rounded,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    label: Text(
+                      'Unverified ($pendingHerbsCount)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Segmented TabBar Container
+            Container(
+              margin: EdgeInsets.symmetric(
+                horizontal: rs.defaultPadding,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.15),
+                ),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: theme.colorScheme.primary,
+                unselectedLabelColor:
+                    theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                indicatorColor: theme.colorScheme.primary,
+                indicatorWeight: 3,
+                tabs: [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.local_florist_rounded, size: 16),
+                        const SizedBox(width: 6),
+                        const Text('Herbs'),
+                        if (pendingHerbsCount > 0) ...[
+                          const SizedBox(width: 6),
+                          _buildCountBadge(
+                            pendingHerbsCount,
+                            Colors.amber.shade700,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.healing_rounded, size: 16),
+                        const SizedBox(width: 6),
+                        const Text('Remedies'),
+                        if (pendingRemediesCount > 0) ...[
+                          const SizedBox(width: 6),
+                          _buildCountBadge(
+                            pendingRemediesCount,
+                            Colors.amber.shade700,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.medical_services_rounded, size: 16),
+                        const SizedBox(width: 6),
+                        const Text('Practitioners'),
+                        if (pendingHerbalistsCount > 0) ...[
+                          const SizedBox(width: 6),
+                          _buildCountBadge(
+                            pendingHerbalistsCount,
+                            Colors.amber.shade700,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // TabBarView Content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildHerbsTab(theme, rs),
+                  _buildRemediesTab(theme, rs),
+                  _buildPractitionersTab(theme, rs),
+                ],
+              ),
             ),
           ],
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: theme.colorScheme.secondary,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: theme.colorScheme.secondary,
-          tabs: [
-            Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.local_florist_rounded, size: 16),
-                  const SizedBox(width: 6),
-                  const Text('Herbs'),
-                  if (pendingHerbsCount > 0) ...[
-                    const SizedBox(width: 6),
-                    _buildCountBadge(pendingHerbsCount, Colors.amber.shade700),
-                  ],
-                ],
-              ),
-            ),
-            Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.healing_rounded, size: 16),
-                  const SizedBox(width: 6),
-                  const Text('Remedies'),
-                  if (pendingRemediesCount > 0) ...[
-                    const SizedBox(width: 6),
-                    _buildCountBadge(
-                        pendingRemediesCount, Colors.amber.shade700),
-                  ],
-                ],
-              ),
-            ),
-            Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.medical_services_rounded, size: 16),
-                  const SizedBox(width: 6),
-                  const Text('Practitioners'),
-                  if (pendingHerbalistsCount > 0) ...[
-                    const SizedBox(width: 6),
-                    _buildCountBadge(
-                        pendingHerbalistsCount, Colors.amber.shade700),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildHerbsTab(theme, rs),
-          _buildRemediesTab(theme, rs),
-          _buildPractitionersTab(theme, rs),
-        ],
       ),
     );
   }
@@ -480,6 +865,20 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                       (v) => setState(() => _herbFilter = v),
                       activeColor: Colors.green.shade700,
                     ),
+                    const Spacer(),
+                    TextButton.icon(
+                      icon: const Icon(Icons.pending_actions_rounded, size: 16),
+                      label: const Text('Dedicated View', style: TextStyle(fontSize: 12)),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UnverifiedHerbsScreen(),
+                          ),
+                        );
+                        _loadHerbs();
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -487,8 +886,32 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
           ),
           Expanded(
             child: filtered.isEmpty
-                ? const Center(
-                    child: Text('No herbs found matching criteria.'),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.task_alt_rounded,
+                          size: 54,
+                          color: Colors.green.shade600,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No herbs found matching criteria.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _herbFilter == 'pending'
+                              ? 'All herbs have been reviewed and verified!'
+                              : 'Try adjusting your search or filter.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
                   )
                 : ListView.separated(
                     padding: EdgeInsets.symmetric(horizontal: rs.defaultPadding),
@@ -507,107 +930,158 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                             width: 1.2,
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Herb Thumbnail
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: Colors.green.shade50,
-                                  borderRadius: BorderRadius.circular(10),
-                                  image: herb.primaryImageUrl != null
-                                      ? DecorationImage(
-                                          image: NetworkImage(
-                                              herb.primaryImageUrl!),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : null,
-                                ),
-                                child: herb.primaryImageUrl == null
-                                    ? Icon(Icons.local_florist,
-                                        color: Colors.green.shade700)
-                                    : null,
-                              ),
-                              const SizedBox(width: 14),
-                              // Info
-                              Expanded(
-                                child: Column(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () => _showHerbDetailsSheet(herb),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            herb.nameEn,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                        ),
-                                        _statusBadge(
-                                          herb.isApproved
-                                              ? 'Verified'
-                                              : 'Pending Review',
-                                          herb.isApproved
-                                              ? Colors.green
-                                              : Colors.amber.shade800,
-                                        ),
-                                      ],
+                                    // Herb Thumbnail
+                                    Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.shade50,
+                                        borderRadius: BorderRadius.circular(10),
+                                        image: herb.primaryImageUrl != null
+                                            ? DecorationImage(
+                                                image: NetworkImage(
+                                                    herb.primaryImageUrl!),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                      ),
+                                      child: herb.primaryImageUrl == null
+                                          ? Icon(Icons.local_florist,
+                                              color: Colors.green.shade700)
+                                          : null,
                                     ),
-                                    if (herb.nameSn != null ||
-                                        herb.nameNd != null) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        [
-                                          if (herb.nameSn != null)
-                                            'SN: ${herb.nameSn}',
-                                          if (herb.nameNd != null)
-                                            'ND: ${herb.nameNd}',
-                                        ].join(' | '),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade600,
-                                        ),
+                                    const SizedBox(width: 14),
+                                    // Info
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  herb.nameEn,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                              ),
+                                              _statusBadge(
+                                                herb.isApproved
+                                                    ? 'Verified'
+                                                    : 'Pending Review',
+                                                herb.isApproved
+                                                    ? Colors.green
+                                                    : Colors.amber.shade800,
+                                              ),
+                                            ],
+                                          ),
+                                          if (herb.nameSn != null ||
+                                              herb.nameNd != null) ...[
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              [
+                                                if (herb.nameSn != null)
+                                                  'SN: ${herb.nameSn}',
+                                                if (herb.nameNd != null)
+                                                  'ND: ${herb.nameNd}',
+                                              ].join(' | '),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                          if (herb.description != null &&
+                                              herb.description!.isNotEmpty) ...[
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              herb.description!,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 12.5,
+                                                color: Colors.grey.shade800,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
-                                    ],
-                                    if (herb.description != null &&
-                                        herb.description!.isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        herb.description!,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: Colors.grey.shade800,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ],
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Quick Action
-                              IconButton.filledTonal(
-                                tooltip: herb.isApproved
-                                    ? 'Revoke Verification'
-                                    : 'Verify Herb',
-                                icon: Icon(
-                                  herb.isApproved
-                                      ? Icons.close_rounded
-                                      : Icons.check_circle_outline_rounded,
-                                  color: herb.isApproved
-                                      ? Colors.orange.shade800
-                                      : Colors.green.shade700,
+                                const SizedBox(height: 12),
+                                const Divider(height: 1),
+                                const SizedBox(height: 8),
+                                // Action Buttons Row
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton.icon(
+                                      icon: const Icon(Icons.visibility_outlined,
+                                          size: 16),
+                                      label: const Text('Inspect'),
+                                      style: TextButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      onPressed: () =>
+                                          _showHerbDetailsSheet(herb),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    OutlinedButton.icon(
+                                      icon: const Icon(Icons.edit_note_rounded,
+                                          size: 18),
+                                      label: const Text('Update'),
+                                      style: OutlinedButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed: () => _openEditHerb(herb),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    FilledButton.icon(
+                                      icon: Icon(
+                                        herb.isApproved
+                                            ? Icons.remove_circle_outline
+                                            : Icons.verified_rounded,
+                                        size: 16,
+                                      ),
+                                      label: Text(herb.isApproved
+                                          ? 'Revoke'
+                                          : 'Verify Herb'),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: herb.isApproved
+                                            ? Colors.orange.shade800
+                                            : Colors.green.shade700,
+                                        visualDensity: VisualDensity.compact,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed: () =>
+                                          _toggleHerbApproval(herb),
+                                    ),
+                                  ],
                                 ),
-                                onPressed: () => _toggleHerbApproval(herb),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );

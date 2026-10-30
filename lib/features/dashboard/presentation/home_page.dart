@@ -406,10 +406,10 @@ class _ProfileAvatar extends StatelessWidget {
                         ),
                       ],
                       ListTile(
-                        leading: const Icon(Icons.logout, color: Colors.redAccent),
+                        leading: const Icon(Icons.logout, color: Color(0xFFFF5252)),
                         title: const Text(
                           'Sign Out',
-                          style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Color(0xFFFF5252), fontWeight: FontWeight.bold),
                         ),
                         onTap: () {
                           Navigator.pop(context);

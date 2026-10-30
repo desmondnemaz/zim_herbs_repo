@@ -50,6 +50,8 @@ class RemedyModel {
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? createdBy;
+  final String? updatedBy;
 
   final ConditionModel? condition;
   final List<RemedyHerbModel> remedyHerbs;
@@ -76,6 +78,8 @@ class RemedyModel {
     this.rejectedBy,
     this.createdAt,
     this.updatedAt,
+    this.createdBy,
+    this.updatedBy,
     this.condition,
     this.remedyHerbs = const [],
   });
@@ -121,6 +125,8 @@ class RemedyModel {
           json['updated_at'] != null
               ? DateTime.parse(json['updated_at'] as String)
               : null,
+      createdBy: json['created_by'] as String?,
+      updatedBy: json['updated_by'] as String?,
       condition:
           json['conditions'] != null
               ? ConditionModel.fromJson(
@@ -159,6 +165,8 @@ class RemedyModel {
       'is_approved': isApproved,
       'approved_by': approvedBy,
       'moderation_comments': moderationComments,
+      if (createdBy != null) 'created_by': createdBy,
+      if (updatedBy != null) 'updated_by': updatedBy,
     };
   }
 
@@ -188,6 +196,8 @@ class RemedyModel {
       rejectedBy: rejectedBy,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      createdBy: createdBy,
+      updatedBy: updatedBy,
       conditionName: condition?.name,
       conditionBodySystem: condition?.bodySystem,
       remedyHerbs:
@@ -223,6 +233,8 @@ class RemedyModel {
       rejectedBy: remedy.rejectedBy,
       createdAt: remedy.createdAt,
       updatedAt: remedy.updatedAt,
+      createdBy: remedy.createdBy,
+      updatedBy: remedy.updatedBy,
       remedyHerbs:
           remedy.remedyHerbs
               .map((rh) => RemedyHerbModel.fromEntity(rh))

@@ -29,6 +29,11 @@ class Herb {
   final List<HerbImage> images;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? createdBy;
+  final String? updatedBy;
+  final String? verifiedBy;
+  final DateTime? verifiedAt;
+  final String? moderationNotes;
 
   const Herb({
     required this.id,
@@ -40,6 +45,11 @@ class Herb {
     this.images = const [],
     this.createdAt,
     this.updatedAt,
+    this.createdBy,
+    this.updatedBy,
+    this.verifiedBy,
+    this.verifiedAt,
+    this.moderationNotes,
   });
 
   /// URL of the primary/first image (if available).

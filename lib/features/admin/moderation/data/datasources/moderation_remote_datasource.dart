@@ -40,11 +40,32 @@ class ModerationRemoteDataSource {
   }
 
   /// Approve or revoke approval of a herb
-  Future<void> updateHerbApproval(String herbId, bool isApproved) async {
-    await client.from('herbs').update({
+  Future<void> updateHerbApproval(
+    String herbId,
+    bool isApproved, {
+    String? moderatorId,
+    String? comments,
+  }) async {
+    final now = DateTime.now().toIso8601String();
+    final updateData = <String, dynamic>{
       'is_approved': isApproved,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', herbId);
+      'updated_at': now,
+    };
+
+    if (moderatorId != null) {
+      updateData['verified_by'] = isApproved ? moderatorId : null;
+      updateData['verified_at'] = isApproved ? now : null;
+    }
+    if (comments != null) {
+      updateData['moderation_notes'] = comments;
+    }
+
+    await client.from('herbs').update(updateData).eq('id', herbId);
+  }
+
+  /// Delete a herb (e.g. invalid or spam submission)
+  Future<void> deleteHerb(String herbId) async {
+    await client.from('herbs').delete().eq('id', herbId);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
