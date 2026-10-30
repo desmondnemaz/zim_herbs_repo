@@ -6,6 +6,8 @@ import 'package:zim_herbs_repo/features/marketplace/store/bloc/product_detail_cu
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
+import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -120,7 +122,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                             children: [
                               // Mobile Name Badge
                               if (Responsive.isMobile(context)) ...[
-                                _buildNameHeader(product.name, colorScheme, rs),
+                                _buildNameHeader(product, colorScheme, rs),
                                 const SizedBox(height: 16),
                               ],
 
@@ -153,7 +155,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                _buildNameHeader(product.name, colorScheme, rs),
+                                _buildNameHeader(product, colorScheme, rs),
                                 const SizedBox(height: 24),
                               ],
 
@@ -449,6 +451,12 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                   ],
                                 ),
                               ),
+                              const SizedBox(height: 24),
+                              RecordAuditTimeline(
+                                history: product.auditHistory,
+                                currentStatus: product.validationStatus,
+                                title: 'Product Validation & History',
+                              ),
                               const SizedBox(height: 50),
                             ],
                           ),
@@ -523,24 +531,35 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   Widget _buildNameHeader(
-    String name,
+    ProductModel product,
     ColorScheme colorScheme,
     ResponsiveSize rs,
   ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        name,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: rs.titleFont,
-          color: colorScheme.secondary,
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            product.name,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: rs.titleFont,
+              color: colorScheme.secondary,
+            ),
+          ),
         ),
-      ),
+        ValidationStatusChip(
+          status: product.validationStatus,
+          isOutlined: false,
+        ),
+      ],
     );
   }
 }

@@ -8,6 +8,8 @@ import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/r
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_state.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_detail_cubit.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
+import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -538,6 +540,12 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
                                         rs: rs,
                                       ),
 
+                                    const SizedBox(height: 24),
+                                    RecordAuditTimeline(
+                                      history: remedy.auditHistory,
+                                      currentStatus: remedy.validationStatus,
+                                      title: 'Remedy Validation & History',
+                                    ),
                                     const SizedBox(height: 32),
                                   ],
                                 ),
@@ -564,6 +572,10 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
       spacing: 8,
       runSpacing: 8,
       children: [
+        ValidationStatusChip(
+          status: remedy.validationStatus,
+          isOutlined: false,
+        ),
         if (remedy.conditionName != null)
           Chip(
             avatar: const Icon(

@@ -12,6 +12,8 @@ import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/re
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedies_list.dart';
 
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
+import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -672,9 +674,19 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                     ),
 
                                     const SizedBox(
-                                      height: 100,
+                                      height: 32,
                                     ),
                                   ],
+
+                                  RecordAuditTimeline(
+                                    history: herb.auditHistory,
+                                    currentStatus: herb.validationStatus,
+                                    title: 'Herb Validation & History',
+                                  ),
+
+                                  const SizedBox(
+                                    height: 80,
+                                  ),
                                 ],
                               ),
                             ),
@@ -712,6 +724,14 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
       spacing: 8,
       runSpacing: 8,
       children: [
+        // ================================================================
+        // VALIDATION STATUS
+        // ================================================================
+        ValidationStatusChip(
+          status: herb.validationStatus,
+          isOutlined: false,
+        ),
+
         // ================================================================
         // ENGLISH
         // ================================================================

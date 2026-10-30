@@ -7,6 +7,10 @@ import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/models/remedy_model.dart';
+import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
+import 'package:zim_herbs_repo/core/components/rejection_reason_dialog.dart';
+import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
 import 'unverified_herbs_screen.dart';
 import '../../data/datasources/moderation_remote_datasource.dart';
@@ -97,11 +101,25 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
 
   Future<void> _toggleHerbApproval(HerbModel herb) async {
     final newStatus = !herb.isApproved;
+    String? rejectionReason;
+
+    if (!newStatus) {
+      rejectionReason = await RejectionReasonDialog.show(
+        context,
+        recordName: herb.nameEn,
+        recordType: 'Herb',
+      );
+      if (rejectionReason == null) {
+        return; // User cancelled
+      }
+    }
+
     try {
       await _datasource.updateHerbApproval(
         herb.id,
         newStatus,
         moderatorId: widget.moderator.id,
+        comments: rejectionReason,
       );
       if (mounted) {
         setState(() {
@@ -122,15 +140,23 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
               updatedBy: widget.moderator.id,
               verifiedBy: newStatus ? widget.moderator.id : null,
               verifiedAt: newStatus ? DateTime.now() : null,
-              moderationNotes: herb.moderationNotes,
+              publishedBy: newStatus ? widget.moderator.id : null,
+              publishedAt: newStatus ? DateTime.now() : null,
+              rejectedBy: !newStatus ? widget.moderator.id : null,
+              rejectedAt: !newStatus ? DateTime.now() : null,
+              rejectionReason: rejectionReason,
+              moderationNotes: rejectionReason ?? herb.moderationNotes,
+              validationStatus: newStatus
+                  ? RecordValidationStatus.published
+                  : RecordValidationStatus.rejected,
             );
           }
         });
         showAppErrorSnackBar(
           context,
-          title: newStatus ? 'Herb Verified' : 'Verification Revoked',
+          title: newStatus ? 'Herb Verified' : 'Submission Rejected',
           message:
-              '${herb.nameEn} has been ${newStatus ? 'verified and published' : 'marked as unverified'}.',
+              '${herb.nameEn} has been ${newStatus ? 'verified and published' : 'rejected with contributor feedback'}.',
           type: FailureType.validation,
         );
       }
@@ -140,6 +166,34 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
           context,
           failure: ErrorHandler.handle(e, st),
         );
+      }
+    }
+  }
+
+  Future<void> _updateHerbStage(
+    HerbModel herb,
+    RecordValidationStatus stage, {
+    String? reason,
+  }) async {
+    try {
+      await _datasource.updateHerbValidationStatus(
+        herb.id,
+        stage,
+        moderatorId: widget.moderator.id,
+        reason: reason,
+      );
+      if (mounted) {
+        _loadHerbs();
+        showAppErrorSnackBar(
+          context,
+          title: 'Status Updated: ${stage.label}',
+          message: '${herb.nameEn} status is now marked as ${stage.label}.',
+          type: FailureType.validation,
+        );
+      }
+    } catch (e, st) {
+      if (mounted) {
+        showAppErrorSnackBar(context, failure: ErrorHandler.handle(e, st));
       }
     }
   }
@@ -267,13 +321,8 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            _statusBadge(
-                              herb.isApproved
-                                  ? 'Verified & Published'
-                                  : 'Pending Review',
-                              herb.isApproved
-                                  ? Colors.green
-                                  : Colors.amber.shade800,
+                            ValidationStatusChip(
+                              status: herb.validationStatus,
                             ),
                           ],
                         ),
@@ -358,57 +407,115 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                     const SizedBox(height: 20),
                   ],
                   const Divider(),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.edit_note_rounded),
-                          label: const Text('Update Herb'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _openEditHerb(herb);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FilledButton.icon(
-                          icon: Icon(herb.isApproved
-                              ? Icons.remove_circle_outline
-                              : Icons.verified_rounded),
-                          label: Text(
-                              herb.isApproved ? 'Revoke' : 'Verify Herb'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: herb.isApproved
-                                ? Colors.orange.shade800
-                                : Colors.green.shade700,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _toggleHerbApproval(herb);
-                          },
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 12),
+                  RecordAuditTimeline(
+                    history: herb.auditHistory,
+                    currentStatus: herb.validationStatus,
+                    title: 'Verification & Audit History',
                   ),
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    label: const Text('Reject / Delete Submission',
-                        style: TextStyle(color: Colors.red)),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _deleteHerb(herb);
-                    },
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.edit_note_rounded),
+                        label: const Text('Update Herb'),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _openEditHerb(herb);
+                        },
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _deleteHerb(herb);
+                        },
+                      ),
+                      if (herb.validationStatus == RecordValidationStatus.submitted) ...[
+                        FilledButton.icon(
+                          icon: const Icon(Icons.rate_review_outlined),
+                          label: const Text('Start Review'),
+                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD97706)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateHerbStage(herb, RecordValidationStatus.underReview);
+                          },
+                        ),
+                        FilledButton.icon(
+                          icon: const Icon(Icons.verified_outlined),
+                          label: const Text('Validate Herb'),
+                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0284C7)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateHerbStage(herb, RecordValidationStatus.validated);
+                          },
+                        ),
+                      ] else if (herb.validationStatus == RecordValidationStatus.underReview) ...[
+                        FilledButton.icon(
+                          icon: const Icon(Icons.verified_outlined),
+                          label: const Text('Validate Herb'),
+                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0284C7)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateHerbStage(herb, RecordValidationStatus.validated);
+                          },
+                        ),
+                      ] else if (herb.validationStatus == RecordValidationStatus.validated) ...[
+                        FilledButton.icon(
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text('Publish to Public'),
+                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateHerbStage(herb, RecordValidationStatus.published);
+                          },
+                        ),
+                      ] else if (herb.validationStatus == RecordValidationStatus.published) ...[
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.visibility_off_outlined),
+                          label: const Text('Unpublish'),
+                          style: OutlinedButton.styleFrom(foregroundColor: Colors.orange.shade800),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateHerbStage(herb, RecordValidationStatus.validated);
+                          },
+                        ),
+                      ] else if (herb.validationStatus == RecordValidationStatus.rejected) ...[
+                        FilledButton.icon(
+                          icon: const Icon(Icons.restart_alt_rounded),
+                          label: const Text('Re-open for Review'),
+                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD97706)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateHerbStage(herb, RecordValidationStatus.underReview);
+                          },
+                        ),
+                      ],
+                      if (herb.validationStatus != RecordValidationStatus.rejected)
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.cancel_outlined, size: 16),
+                          label: const Text('Reject Submission'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626),
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            final reason = await RejectionReasonDialog.show(
+                              context,
+                              recordName: herb.nameEn,
+                              recordType: 'Herb',
+                            );
+                            if (reason != null && reason.trim().isNotEmpty) {
+                              _updateHerbStage(herb, RecordValidationStatus.rejected, reason: reason.trim());
+                            }
+                          },
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -446,89 +553,28 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
     }
   }
 
-  Future<void> _approveRemedy(RemedyModel remedy) async {
-    try {
-      await _datasource.updateRemedyApproval(
-        remedy.id,
-        true,
-        moderatorId: widget.moderator.id,
-      );
-      if (mounted) {
-        _loadRemedies();
-        showAppErrorSnackBar(
-          context,
-          title: 'Remedy Verified',
-          message: '${remedy.name} has been approved for community display.',
-          type: FailureType.validation,
-        );
-      }
-    } catch (e, st) {
-      if (mounted) {
-        showAppErrorSnackBar(context, failure: ErrorHandler.handle(e, st));
-      }
-    }
-  }
 
   Future<void> _rejectRemedyDialog(RemedyModel remedy) async {
-    final commentController = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Reject Remedy Submission'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Specify reasons or feedback for "${remedy.name}":',
-              style: const TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: commentController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'e.g. Inaccurate dosage, missing precautions...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reject Remedy'),
-          ),
-        ],
-      ),
+    final reason = await RejectionReasonDialog.show(
+      context,
+      recordName: remedy.name,
+      recordType: 'Remedy',
     );
 
-    if (confirmed == true) {
+    if (reason != null && reason.trim().isNotEmpty) {
       try {
         await _datasource.updateRemedyApproval(
           remedy.id,
           false,
           moderatorId: widget.moderator.id,
-          comments: commentController.text.trim(),
+          comments: reason.trim(),
         );
         if (mounted) {
           _loadRemedies();
           showAppErrorSnackBar(
             context,
             title: 'Remedy Rejected',
-            message: '${remedy.name} submission has been rejected.',
+            message: '${remedy.name} submission has been rejected with feedback.',
             type: FailureType.validation,
           );
         }
@@ -536,6 +582,34 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
         if (mounted) {
           showAppErrorSnackBar(context, failure: ErrorHandler.handle(e, st));
         }
+      }
+    }
+  }
+
+  Future<void> _updateRemedyStage(
+    RemedyModel remedy,
+    RecordValidationStatus stage, {
+    String? reason,
+  }) async {
+    try {
+      await _datasource.updateRemedyValidationStatus(
+        remedy.id,
+        stage,
+        moderatorId: widget.moderator.id,
+        reason: reason,
+      );
+      if (mounted) {
+        _loadRemedies();
+        showAppErrorSnackBar(
+          context,
+          title: 'Status Updated: ${stage.label}',
+          message: '${remedy.name} status is now marked as ${stage.label}.',
+          type: FailureType.validation,
+        );
+      }
+    } catch (e, st) {
+      if (mounted) {
+        showAppErrorSnackBar(context, failure: ErrorHandler.handle(e, st));
       }
     }
   }
@@ -816,8 +890,11 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
           (h.nameNd?.toLowerCase().contains(q) ?? false);
 
       final matchesFilter = switch (_herbFilter) {
-        'pending' => !h.isApproved,
-        'verified' => h.isApproved,
+        'pending' => h.validationStatus == RecordValidationStatus.submitted ||
+            h.validationStatus == RecordValidationStatus.underReview,
+        'validated' => h.validationStatus == RecordValidationStatus.validated,
+        'published' => h.validationStatus == RecordValidationStatus.published,
+        'rejected' => h.validationStatus == RecordValidationStatus.rejected,
         _ => true,
       };
 
@@ -845,41 +922,60 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                   onChanged: (val) => setState(() => _herbSearchQuery = val),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _filterChip('All (${_herbs.length})', 'all', _herbFilter,
-                        (v) => setState(() => _herbFilter = v)),
-                    const SizedBox(width: 8),
-                    _filterChip(
-                      'Pending (${_herbs.where((h) => !h.isApproved).length})',
-                      'pending',
-                      _herbFilter,
-                      (v) => setState(() => _herbFilter = v),
-                      activeColor: Colors.amber.shade800,
-                    ),
-                    const SizedBox(width: 8),
-                    _filterChip(
-                      'Verified (${_herbs.where((h) => h.isApproved).length})',
-                      'verified',
-                      _herbFilter,
-                      (v) => setState(() => _herbFilter = v),
-                      activeColor: Colors.green.shade700,
-                    ),
-                    const Spacer(),
-                    TextButton.icon(
-                      icon: const Icon(Icons.pending_actions_rounded, size: 16),
-                      label: const Text('Dedicated View', style: TextStyle(fontSize: 12)),
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const UnverifiedHerbsScreen(),
-                          ),
-                        );
-                        _loadHerbs();
-                      },
-                    ),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _filterChip('All (${_herbs.length})', 'all', _herbFilter,
+                          (v) => setState(() => _herbFilter = v)),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        'Pending (${_herbs.where((h) => h.validationStatus == RecordValidationStatus.submitted || h.validationStatus == RecordValidationStatus.underReview).length})',
+                        'pending',
+                        _herbFilter,
+                        (v) => setState(() => _herbFilter = v),
+                        activeColor: const Color(0xFFD97706),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        'Validated (${_herbs.where((h) => h.validationStatus == RecordValidationStatus.validated).length})',
+                        'validated',
+                        _herbFilter,
+                        (v) => setState(() => _herbFilter = v),
+                        activeColor: const Color(0xFF0284C7),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        'Published (${_herbs.where((h) => h.validationStatus == RecordValidationStatus.published).length})',
+                        'published',
+                        _herbFilter,
+                        (v) => setState(() => _herbFilter = v),
+                        activeColor: const Color(0xFF16A34A),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        'Rejected (${_herbs.where((h) => h.validationStatus == RecordValidationStatus.rejected).length})',
+                        'rejected',
+                        _herbFilter,
+                        (v) => setState(() => _herbFilter = v),
+                        activeColor: const Color(0xFFDC2626),
+                      ),
+                      const SizedBox(width: 16),
+                      TextButton.icon(
+                        icon: const Icon(Icons.pending_actions_rounded, size: 16),
+                        label: const Text('Dedicated View', style: TextStyle(fontSize: 12)),
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const UnverifiedHerbsScreen(),
+                            ),
+                          );
+                          _loadHerbs();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -979,13 +1075,8 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                                                   ),
                                                 ),
                                               ),
-                                              _statusBadge(
-                                                herb.isApproved
-                                                    ? 'Verified'
-                                                    : 'Pending Review',
-                                                herb.isApproved
-                                                    ? Colors.green
-                                                    : Colors.amber.shade800,
+                                              ValidationStatusChip(
+                                                status: herb.validationStatus,
                                               ),
                                             ],
                                           ),
@@ -1113,8 +1204,11 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
           (r.condition?.name.toLowerCase().contains(q) ?? false);
 
       final matchesFilter = switch (_remedyFilter) {
-        'pending' => !r.isApproved,
-        'verified' => r.isApproved,
+        'pending' => r.validationStatus == RecordValidationStatus.submitted ||
+            r.validationStatus == RecordValidationStatus.underReview,
+        'validated' => r.validationStatus == RecordValidationStatus.validated,
+        'published' => r.validationStatus == RecordValidationStatus.published,
+        'rejected' => r.validationStatus == RecordValidationStatus.rejected,
         _ => true,
       };
 
@@ -1141,27 +1235,46 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                   onChanged: (val) => setState(() => _remedySearchQuery = val),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _filterChip('All (${_remedies.length})', 'all',
-                        _remedyFilter, (v) => setState(() => _remedyFilter = v)),
-                    const SizedBox(width: 8),
-                    _filterChip(
-                      'Pending (${_remedies.where((r) => !r.isApproved).length})',
-                      'pending',
-                      _remedyFilter,
-                      (v) => setState(() => _remedyFilter = v),
-                      activeColor: Colors.amber.shade800,
-                    ),
-                    const SizedBox(width: 8),
-                    _filterChip(
-                      'Verified (${_remedies.where((r) => r.isApproved).length})',
-                      'verified',
-                      _remedyFilter,
-                      (v) => setState(() => _remedyFilter = v),
-                      activeColor: Colors.green.shade700,
-                    ),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _filterChip('All (${_remedies.length})', 'all',
+                          _remedyFilter, (v) => setState(() => _remedyFilter = v)),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        'Pending (${_remedies.where((r) => r.validationStatus == RecordValidationStatus.submitted || r.validationStatus == RecordValidationStatus.underReview).length})',
+                        'pending',
+                        _remedyFilter,
+                        (v) => setState(() => _remedyFilter = v),
+                        activeColor: const Color(0xFFD97706),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        'Validated (${_remedies.where((r) => r.validationStatus == RecordValidationStatus.validated).length})',
+                        'validated',
+                        _remedyFilter,
+                        (v) => setState(() => _remedyFilter = v),
+                        activeColor: const Color(0xFF0284C7),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        'Published (${_remedies.where((r) => r.validationStatus == RecordValidationStatus.published).length})',
+                        'published',
+                        _remedyFilter,
+                        (v) => setState(() => _remedyFilter = v),
+                        activeColor: const Color(0xFF16A34A),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        'Rejected (${_remedies.where((r) => r.validationStatus == RecordValidationStatus.rejected).length})',
+                        'rejected',
+                        _remedyFilter,
+                        (v) => setState(() => _remedyFilter = v),
+                        activeColor: const Color(0xFFDC2626),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1220,13 +1333,8 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                                       ],
                                     ),
                                   ),
-                                  _statusBadge(
-                                    remedy.isApproved
-                                        ? 'Verified'
-                                        : 'Pending Review',
-                                    remedy.isApproved
-                                        ? Colors.green
-                                        : Colors.amber.shade800,
+                                  ValidationStatusChip(
+                                    status: remedy.validationStatus,
                                   ),
                                 ],
                               ),
@@ -1286,29 +1394,76 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  OutlinedButton.icon(
-                                    onPressed: () =>
-                                        _rejectRemedyDialog(remedy),
-                                    icon: const Icon(Icons.close, size: 16),
-                                    label: const Text('Reject / Comments'),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.red.shade700,
-                                      visualDensity: VisualDensity.compact,
+                                  if (remedy.validationStatus != RecordValidationStatus.rejected &&
+                                      remedy.validationStatus != RecordValidationStatus.published) ...[
+                                    OutlinedButton.icon(
+                                      onPressed: () => _rejectRemedyDialog(remedy),
+                                      icon: const Icon(Icons.close, size: 16),
+                                      label: const Text('Reject / Reason'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red.shade700,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  ElevatedButton.icon(
-                                    onPressed: remedy.isApproved
-                                        ? null
-                                        : () => _approveRemedy(remedy),
-                                    icon: const Icon(Icons.check, size: 16),
-                                    label: const Text('Approve Remedy'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green.shade700,
-                                      foregroundColor: Colors.white,
-                                      visualDensity: VisualDensity.compact,
+                                    const SizedBox(width: 8),
+                                  ],
+                                  if (remedy.validationStatus == RecordValidationStatus.submitted ||
+                                      remedy.validationStatus == RecordValidationStatus.underReview) ...[
+                                    ElevatedButton.icon(
+                                      onPressed: () => _updateRemedyStage(
+                                        remedy,
+                                        RecordValidationStatus.validated,
+                                      ),
+                                      icon: const Icon(Icons.verified_outlined, size: 16),
+                                      label: const Text('Validate Remedy'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF0284C7),
+                                        foregroundColor: Colors.white,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
                                     ),
-                                  ),
+                                  ] else if (remedy.validationStatus == RecordValidationStatus.validated) ...[
+                                    ElevatedButton.icon(
+                                      onPressed: () => _updateRemedyStage(
+                                        remedy,
+                                        RecordValidationStatus.published,
+                                      ),
+                                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                                      label: const Text('Publish to Public'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF16A34A),
+                                        foregroundColor: Colors.white,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                  ] else if (remedy.validationStatus == RecordValidationStatus.published) ...[
+                                    OutlinedButton.icon(
+                                      onPressed: () => _updateRemedyStage(
+                                        remedy,
+                                        RecordValidationStatus.validated,
+                                      ),
+                                      icon: const Icon(Icons.visibility_off_outlined, size: 16),
+                                      label: const Text('Unpublish'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.orange.shade800,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                  ] else if (remedy.validationStatus == RecordValidationStatus.rejected) ...[
+                                    ElevatedButton.icon(
+                                      onPressed: () => _updateRemedyStage(
+                                        remedy,
+                                        RecordValidationStatus.underReview,
+                                      ),
+                                      icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                                      label: const Text('Re-open for Review'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFD97706),
+                                        foregroundColor: Colors.white,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ],

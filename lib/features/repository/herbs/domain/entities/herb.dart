@@ -3,6 +3,9 @@
 /// Pure business entities independent of any database or framework.
 library;
 
+import 'package:zim_herbs_repo/core/models/record_audit_entry.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
+
 class HerbImage {
   final String id;
   final String herbId;
@@ -26,6 +29,7 @@ class Herb {
   final String? nameNd;
   final String? description;
   final bool isApproved;
+  final RecordValidationStatus validationStatus;
   final List<HerbImage> images;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -35,6 +39,17 @@ class Herb {
   final DateTime? verifiedAt;
   final String? moderationNotes;
 
+  // Granular stage tracking
+  final String? submittedBy;
+  final DateTime? submittedAt;
+  final String? reviewedBy;
+  final DateTime? reviewedAt;
+  final String? publishedBy;
+  final DateTime? publishedAt;
+  final String? rejectedBy;
+  final DateTime? rejectedAt;
+  final String? rejectionReason;
+
   const Herb({
     required this.id,
     required this.nameEn,
@@ -42,6 +57,7 @@ class Herb {
     this.nameNd,
     this.description,
     this.isApproved = true,
+    this.validationStatus = RecordValidationStatus.published,
     this.images = const [],
     this.createdAt,
     this.updatedAt,
@@ -50,6 +66,15 @@ class Herb {
     this.verifiedBy,
     this.verifiedAt,
     this.moderationNotes,
+    this.submittedBy,
+    this.submittedAt,
+    this.reviewedBy,
+    this.reviewedAt,
+    this.publishedBy,
+    this.publishedAt,
+    this.rejectedBy,
+    this.rejectedAt,
+    this.rejectionReason,
   });
 
   /// URL of the primary/first image (if available).
@@ -58,4 +83,51 @@ class Herb {
 
   /// User-facing display name.
   String get displayName => nameEn;
+
+  /// Computes the chronological validation history timeline.
+  List<RecordAuditEntry> get auditHistory {
+    final status = validationStatus;
+    final isRej = status == RecordValidationStatus.rejected;
+
+    return [
+      RecordAuditEntry(
+        stage: RecordValidationStatus.submitted,
+        actorId: submittedBy ?? createdBy,
+        timestamp: submittedAt ?? createdAt,
+        isCompleted: true,
+        isCurrent: status == RecordValidationStatus.submitted,
+      ),
+      RecordAuditEntry(
+        stage: RecordValidationStatus.underReview,
+        actorId: reviewedBy,
+        timestamp: reviewedAt,
+        isCompleted: status.stepIndex >= 2 && !isRej,
+        isCurrent: status == RecordValidationStatus.underReview,
+      ),
+      RecordAuditEntry(
+        stage: RecordValidationStatus.validated,
+        actorId: verifiedBy,
+        timestamp: verifiedAt,
+        isCompleted: status.stepIndex >= 3 && !isRej,
+        isCurrent: status == RecordValidationStatus.validated,
+      ),
+      if (!isRej)
+        RecordAuditEntry(
+          stage: RecordValidationStatus.published,
+          actorId: publishedBy ?? verifiedBy,
+          timestamp: publishedAt ?? verifiedAt,
+          isCompleted: status == RecordValidationStatus.published,
+          isCurrent: status == RecordValidationStatus.published,
+        )
+      else
+        RecordAuditEntry(
+          stage: RecordValidationStatus.rejected,
+          actorId: rejectedBy,
+          timestamp: rejectedAt ?? updatedAt,
+          notes: rejectionReason ?? moderationNotes,
+          isCompleted: true,
+          isCurrent: true,
+        ),
+    ];
+  }
 }

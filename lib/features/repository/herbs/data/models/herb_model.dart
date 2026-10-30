@@ -18,6 +18,8 @@
 /// Domain / Cubit
 library;
 
+import 'package:zim_herbs_repo/core/models/record_audit_entry.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/models/remedy_model.dart';
 
 /// Import the DOMAIN entity.
@@ -64,6 +66,9 @@ class HerbModel {
   /// Whether the herb has been verified by moderators.
   final bool isApproved;
 
+  /// Multi-stage validation status (submitted -> under_review -> validated -> published / rejected).
+  final RecordValidationStatus validationStatus;
+
   /// When the herb was created in Supabase.
   final DateTime? createdAt;
 
@@ -85,6 +90,17 @@ class HerbModel {
   /// Notes or reason provided during moderation.
   final String? moderationNotes;
 
+  // Granular stage tracking
+  final String? submittedBy;
+  final DateTime? submittedAt;
+  final String? reviewedBy;
+  final DateTime? reviewedAt;
+  final String? publishedBy;
+  final DateTime? publishedAt;
+  final String? rejectedBy;
+  final DateTime? rejectedAt;
+  final String? rejectionReason;
+
   /// Images belonging to this herb.
   ///
   /// We use another model:
@@ -105,6 +121,7 @@ class HerbModel {
     this.nameNd,
     this.description,
     this.isApproved = true,
+    this.validationStatus = RecordValidationStatus.published,
     this.createdAt,
     this.updatedAt,
     this.createdBy,
@@ -112,6 +129,15 @@ class HerbModel {
     this.verifiedBy,
     this.verifiedAt,
     this.moderationNotes,
+    this.submittedBy,
+    this.submittedAt,
+    this.reviewedBy,
+    this.reviewedAt,
+    this.publishedBy,
+    this.publishedAt,
+    this.rejectedBy,
+    this.rejectedAt,
+    this.rejectionReason,
     this.images = const [],
     List<RemedyModel>? remedies,
     List<RemedyModel>? treatments,
@@ -152,6 +178,7 @@ class HerbModel {
       nameNd: nameNd,
       description: description,
       isApproved: isApproved,
+      validationStatus: validationStatus,
       images: images.map((image) => image.toEntity()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -160,6 +187,15 @@ class HerbModel {
       verifiedBy: verifiedBy,
       verifiedAt: verifiedAt,
       moderationNotes: moderationNotes,
+      submittedBy: submittedBy,
+      submittedAt: submittedAt,
+      reviewedBy: reviewedBy,
+      reviewedAt: reviewedAt,
+      publishedBy: publishedBy,
+      publishedAt: publishedAt,
+      rejectedBy: rejectedBy,
+      rejectedAt: rejectedAt,
+      rejectionReason: rejectionReason,
     );
   }
 
@@ -190,6 +226,7 @@ class HerbModel {
       nameNd: herb.nameNd,
       description: herb.description,
       isApproved: herb.isApproved,
+      validationStatus: herb.validationStatus,
       images: herb.images.map((img) => HerbImageModel.fromEntity(img)).toList(),
       createdAt: herb.createdAt,
       updatedAt: herb.updatedAt,
@@ -198,6 +235,15 @@ class HerbModel {
       verifiedBy: herb.verifiedBy,
       verifiedAt: herb.verifiedAt,
       moderationNotes: herb.moderationNotes,
+      submittedBy: herb.submittedBy,
+      submittedAt: herb.submittedAt,
+      reviewedBy: herb.reviewedBy,
+      reviewedAt: herb.reviewedAt,
+      publishedBy: herb.publishedBy,
+      publishedAt: herb.publishedAt,
+      rejectedBy: herb.rejectedBy,
+      rejectedAt: herb.rejectedAt,
+      rejectionReason: herb.rejectionReason,
     );
   }
 
@@ -276,6 +322,12 @@ class HerbModel {
       /// Whether the herb is approved by moderators.
       isApproved: json['is_approved'] as bool? ?? true,
 
+      /// Multi-stage validation status
+      validationStatus: RecordValidationStatus.fromString(
+        json['validation_status'] as String?,
+        isApproved: json['is_approved'] as bool? ?? true,
+      ),
+
       /// Same process for updated_at.
       updatedAt:
           json['updated_at'] != null
@@ -292,6 +344,26 @@ class HerbModel {
           ? DateTime.tryParse(json['verified_at'] as String)
           : null,
       moderationNotes: json['moderation_notes'] as String?,
+
+      // Granular stage tracking
+      submittedBy: json['submitted_by'] as String?,
+      submittedAt: json['submitted_at'] != null
+          ? DateTime.tryParse(json['submitted_at'] as String)
+          : null,
+      reviewedBy: json['reviewed_by'] as String?,
+      reviewedAt: json['reviewed_at'] != null
+          ? DateTime.tryParse(json['reviewed_at'] as String)
+          : null,
+      publishedBy: json['published_by'] as String?,
+      publishedAt: json['published_at'] != null
+          ? DateTime.tryParse(json['published_at'] as String)
+          : null,
+      rejectedBy: json['rejected_by'] as String?,
+      rejectedAt: json['rejected_at'] != null
+          ? DateTime.tryParse(json['rejected_at'] as String)
+          : null,
+      rejectionReason:
+          (json['rejection_reason'] ?? json['moderation_notes']) as String?,
 
       /// Attach the images we extracted above.
       images: images,
@@ -354,11 +426,21 @@ class HerbModel {
       'name_nd': nameNd,
       'description': description,
       'is_approved': isApproved,
+      'validation_status': validationStatus.dbValue,
       if (createdBy != null) 'created_by': createdBy,
       if (updatedBy != null) 'updated_by': updatedBy,
       if (verifiedBy != null) 'verified_by': verifiedBy,
       if (verifiedAt != null) 'verified_at': verifiedAt!.toIso8601String(),
       if (moderationNotes != null) 'moderation_notes': moderationNotes,
+      if (submittedBy != null) 'submitted_by': submittedBy,
+      if (submittedAt != null) 'submitted_at': submittedAt!.toIso8601String(),
+      if (reviewedBy != null) 'reviewed_by': reviewedBy,
+      if (reviewedAt != null) 'reviewed_at': reviewedAt!.toIso8601String(),
+      if (publishedBy != null) 'published_by': publishedBy,
+      if (publishedAt != null) 'published_at': publishedAt!.toIso8601String(),
+      if (rejectedBy != null) 'rejected_by': rejectedBy,
+      if (rejectedAt != null) 'rejected_at': rejectedAt!.toIso8601String(),
+      if (rejectionReason != null) 'rejection_reason': rejectionReason,
     };
   }
 
@@ -401,6 +483,9 @@ class HerbModel {
   ///
   /// For now we simply display the English name.
   String get displayName => nameEn;
+
+  /// Convenience getter for the verification and lifecycle audit history
+  List<RecordAuditEntry> get auditHistory => toEntity().auditHistory;
 }
 
 

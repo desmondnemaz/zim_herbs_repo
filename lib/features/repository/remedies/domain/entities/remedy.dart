@@ -3,6 +3,7 @@
 /// Pure business entities independent of any database or framework.
 library;
 
+import 'package:zim_herbs_repo/core/models/record_audit_entry.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 
 /// Represents a single herb used within a remedy,
@@ -57,8 +58,9 @@ class Remedy {
   final String? sideEffects;
   final String? disclaimer;
 
-  // Moderation
+  // Moderation & Validation Status
   final bool isApproved;
+  final RecordValidationStatus validationStatus;
   final String? approvedBy;
   final DateTime? approvedAt;
   final String? moderationComments;
@@ -69,6 +71,15 @@ class Remedy {
   final DateTime? updatedAt;
   final String? createdBy;
   final String? updatedBy;
+
+  // Granular stage tracking
+  final String? submittedBy;
+  final DateTime? submittedAt;
+  final String? reviewedBy;
+  final DateTime? reviewedAt;
+  final String? publishedBy;
+  final DateTime? publishedAt;
+  final String? rejectionReason;
 
   /// Denormalised condition name for display convenience.
   final String? conditionName;
@@ -94,6 +105,7 @@ class Remedy {
     this.sideEffects,
     this.disclaimer,
     this.isApproved = false,
+    this.validationStatus = RecordValidationStatus.submitted,
     this.approvedBy,
     this.approvedAt,
     this.moderationComments,
@@ -103,19 +115,19 @@ class Remedy {
     this.updatedAt,
     this.createdBy,
     this.updatedBy,
+    this.submittedBy,
+    this.submittedAt,
+    this.reviewedBy,
+    this.reviewedAt,
+    this.publishedBy,
+    this.publishedAt,
+    this.rejectionReason,
     this.conditionName,
     this.conditionBodySystem,
     this.remedyHerbs = const [],
   });
 
   /// User-facing display name generated from the herbs in this remedy.
-  ///
-  /// 1 herb  → "Aloe vera"
-  /// 2 herbs → "Aloe vera + Lippia javanica"
-  /// 3 herbs → "Aloe vera + Lippia javanica + Moringa"
-  ///
-  /// Falls back to the stored [name] if no herb names are available yet
-  /// (e.g. when the remedy_herbs join hasn't been loaded).
   String get displayName {
     final herbNames = remedyHerbs
         .map((rh) => rh.herbName)
@@ -125,5 +137,52 @@ class Remedy {
 
     if (herbNames.isEmpty) return name;
     return herbNames.join(' + ');
+  }
+
+  /// Computes the chronological validation history timeline.
+  List<RecordAuditEntry> get auditHistory {
+    final status = validationStatus;
+    final isRej = status == RecordValidationStatus.rejected || rejectedBy != null;
+
+    return [
+      RecordAuditEntry(
+        stage: RecordValidationStatus.submitted,
+        actorId: submittedBy ?? createdBy,
+        timestamp: submittedAt ?? createdAt,
+        isCompleted: true,
+        isCurrent: status == RecordValidationStatus.submitted && !isRej,
+      ),
+      RecordAuditEntry(
+        stage: RecordValidationStatus.underReview,
+        actorId: reviewedBy,
+        timestamp: reviewedAt,
+        isCompleted: status.stepIndex >= 2 && !isRej,
+        isCurrent: status == RecordValidationStatus.underReview && !isRej,
+      ),
+      RecordAuditEntry(
+        stage: RecordValidationStatus.validated,
+        actorId: approvedBy,
+        timestamp: approvedAt,
+        isCompleted: status.stepIndex >= 3 && !isRej,
+        isCurrent: status == RecordValidationStatus.validated && !isRej,
+      ),
+      if (!isRej)
+        RecordAuditEntry(
+          stage: RecordValidationStatus.published,
+          actorId: publishedBy ?? approvedBy,
+          timestamp: publishedAt ?? approvedAt,
+          isCompleted: status == RecordValidationStatus.published,
+          isCurrent: status == RecordValidationStatus.published,
+        )
+      else
+        RecordAuditEntry(
+          stage: RecordValidationStatus.rejected,
+          actorId: rejectedBy,
+          timestamp: rejectedAt ?? updatedAt,
+          notes: rejectionReason ?? moderationComments,
+          isCompleted: true,
+          isCurrent: true,
+        ),
+    ];
   }
 }

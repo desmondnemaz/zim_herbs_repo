@@ -18,6 +18,7 @@
 /// Domain / Cubit
 library;
 
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import '../../domain/entities/remedy.dart';
@@ -42,6 +43,7 @@ class RemedyModel {
   final String? disclaimer;
 
   final bool isApproved;
+  final RecordValidationStatus validationStatus;
   final String? approvedBy;
   final DateTime? approvedAt;
   final String? moderationComments;
@@ -52,6 +54,15 @@ class RemedyModel {
   final DateTime? updatedAt;
   final String? createdBy;
   final String? updatedBy;
+
+  // Granular stage tracking
+  final String? submittedBy;
+  final DateTime? submittedAt;
+  final String? reviewedBy;
+  final DateTime? reviewedAt;
+  final String? publishedBy;
+  final DateTime? publishedAt;
+  final String? rejectionReason;
 
   final ConditionModel? condition;
   final List<RemedyHerbModel> remedyHerbs;
@@ -71,6 +82,7 @@ class RemedyModel {
     this.sideEffects,
     this.disclaimer,
     this.isApproved = false,
+    this.validationStatus = RecordValidationStatus.submitted,
     this.approvedBy,
     this.approvedAt,
     this.moderationComments,
@@ -80,6 +92,13 @@ class RemedyModel {
     this.updatedAt,
     this.createdBy,
     this.updatedBy,
+    this.submittedBy,
+    this.submittedAt,
+    this.reviewedBy,
+    this.reviewedAt,
+    this.publishedBy,
+    this.publishedAt,
+    this.rejectionReason,
     this.condition,
     this.remedyHerbs = const [],
   });
@@ -106,6 +125,10 @@ class RemedyModel {
       sideEffects: json['side_effects'] as String?,
       disclaimer: json['disclaimer'] as String?,
       isApproved: json['is_approved'] as bool? ?? false,
+      validationStatus: RecordValidationStatus.fromString(
+        json['validation_status'] as String?,
+        isApproved: json['is_approved'] as bool? ?? false,
+      ),
       approvedBy: json['approved_by'] as String?,
       approvedAt:
           json['approved_at'] != null
@@ -127,6 +150,20 @@ class RemedyModel {
               : null,
       createdBy: json['created_by'] as String?,
       updatedBy: json['updated_by'] as String?,
+      submittedBy: json['submitted_by'] as String?,
+      submittedAt: json['submitted_at'] != null
+          ? DateTime.tryParse(json['submitted_at'] as String)
+          : null,
+      reviewedBy: json['reviewed_by'] as String?,
+      reviewedAt: json['reviewed_at'] != null
+          ? DateTime.tryParse(json['reviewed_at'] as String)
+          : null,
+      publishedBy: json['published_by'] as String?,
+      publishedAt: json['published_at'] != null
+          ? DateTime.tryParse(json['published_at'] as String)
+          : null,
+      rejectionReason:
+          (json['rejection_reason'] ?? json['moderation_comments']) as String?,
       condition:
           json['conditions'] != null
               ? ConditionModel.fromJson(
@@ -163,10 +200,18 @@ class RemedyModel {
       'side_effects': sideEffects,
       'disclaimer': disclaimer,
       'is_approved': isApproved,
+      'validation_status': validationStatus.dbValue,
       'approved_by': approvedBy,
       'moderation_comments': moderationComments,
       if (createdBy != null) 'created_by': createdBy,
       if (updatedBy != null) 'updated_by': updatedBy,
+      if (submittedBy != null) 'submitted_by': submittedBy,
+      if (submittedAt != null) 'submitted_at': submittedAt!.toIso8601String(),
+      if (reviewedBy != null) 'reviewed_by': reviewedBy,
+      if (reviewedAt != null) 'reviewed_at': reviewedAt!.toIso8601String(),
+      if (publishedBy != null) 'published_by': publishedBy,
+      if (publishedAt != null) 'published_at': publishedAt!.toIso8601String(),
+      if (rejectionReason != null) 'rejection_reason': rejectionReason,
     };
   }
 
@@ -189,6 +234,7 @@ class RemedyModel {
       sideEffects: sideEffects,
       disclaimer: disclaimer,
       isApproved: isApproved,
+      validationStatus: validationStatus,
       approvedBy: approvedBy,
       approvedAt: approvedAt,
       moderationComments: moderationComments,
@@ -198,6 +244,13 @@ class RemedyModel {
       updatedAt: updatedAt,
       createdBy: createdBy,
       updatedBy: updatedBy,
+      submittedBy: submittedBy,
+      submittedAt: submittedAt,
+      reviewedBy: reviewedBy,
+      reviewedAt: reviewedAt,
+      publishedBy: publishedBy,
+      publishedAt: publishedAt,
+      rejectionReason: rejectionReason,
       conditionName: condition?.name,
       conditionBodySystem: condition?.bodySystem,
       remedyHerbs:
@@ -226,6 +279,7 @@ class RemedyModel {
       sideEffects: remedy.sideEffects,
       disclaimer: remedy.disclaimer,
       isApproved: remedy.isApproved,
+      validationStatus: remedy.validationStatus,
       approvedBy: remedy.approvedBy,
       approvedAt: remedy.approvedAt,
       moderationComments: remedy.moderationComments,
@@ -235,6 +289,13 @@ class RemedyModel {
       updatedAt: remedy.updatedAt,
       createdBy: remedy.createdBy,
       updatedBy: remedy.updatedBy,
+      submittedBy: remedy.submittedBy,
+      submittedAt: remedy.submittedAt,
+      reviewedBy: remedy.reviewedBy,
+      reviewedAt: remedy.reviewedAt,
+      publishedBy: remedy.publishedBy,
+      publishedAt: remedy.publishedAt,
+      rejectionReason: remedy.rejectionReason,
       remedyHerbs:
           remedy.remedyHerbs
               .map((rh) => RemedyHerbModel.fromEntity(rh))

@@ -106,3 +106,39 @@ String getBodySystemSvg(BodySystem system) {
       return 'assets/icons/body_systems/endocrinology.svg';
   }
 }
+
+/// Represents the 4-stage validation lifecycle + rejection state
+enum RecordValidationStatus {
+  submitted('submitted', 'Submitted', 1, Color(0xFF64748B), Icons.upload_file_rounded),
+  underReview('under_review', 'Under Review', 2, Color(0xFFD97706), Icons.rate_review_outlined),
+  validated('validated', 'Validated', 3, Color(0xFF0284C7), Icons.verified_outlined),
+  published('published', 'Published', 4, Color(0xFF16A34A), Icons.check_circle_outline_rounded),
+  rejected('rejected', 'Rejected', 0, Color(0xFFDC2626), Icons.cancel_outlined);
+
+  final String dbValue;
+  final String label;
+  final int stepIndex; // 1 to 4, 0 for rejected
+  final Color color;
+  final IconData icon;
+
+  const RecordValidationStatus(
+    this.dbValue,
+    this.label,
+    this.stepIndex,
+    this.color,
+    this.icon,
+  );
+
+  bool get isTerminal => this == published || this == rejected;
+  bool get isApproved => this == published;
+
+  static RecordValidationStatus fromString(String? val, {bool isApproved = false}) {
+    if (val == null) {
+      return isApproved ? RecordValidationStatus.published : RecordValidationStatus.submitted;
+    }
+    return RecordValidationStatus.values.firstWhere(
+      (e) => e.dbValue == val,
+      orElse: () => isApproved ? RecordValidationStatus.published : RecordValidationStatus.submitted,
+    );
+  }
+}

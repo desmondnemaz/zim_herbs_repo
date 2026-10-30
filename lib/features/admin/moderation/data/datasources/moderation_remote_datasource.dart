@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/models/remedy_model.dart';
 import '../models/herbalist_moderation_model.dart';
@@ -49,15 +50,68 @@ class ModerationRemoteDataSource {
     final now = DateTime.now().toIso8601String();
     final updateData = <String, dynamic>{
       'is_approved': isApproved,
+      'validation_status': isApproved
+          ? RecordValidationStatus.published.dbValue
+          : RecordValidationStatus.rejected.dbValue,
       'updated_at': now,
     };
 
     if (moderatorId != null) {
-      updateData['verified_by'] = isApproved ? moderatorId : null;
-      updateData['verified_at'] = isApproved ? now : null;
+      if (isApproved) {
+        updateData['verified_by'] = moderatorId;
+        updateData['verified_at'] = now;
+        updateData['published_by'] = moderatorId;
+        updateData['published_at'] = now;
+      } else {
+        updateData['rejected_by'] = moderatorId;
+        updateData['rejected_at'] = now;
+      }
     }
     if (comments != null) {
       updateData['moderation_notes'] = comments;
+      updateData['rejection_reason'] = comments;
+    }
+
+    await client.from('herbs').update(updateData).eq('id', herbId);
+  }
+
+  /// Advances or transitions herb validation status (submitted, under_review, validated, published, rejected)
+  Future<void> updateHerbValidationStatus(
+    String herbId,
+    RecordValidationStatus status, {
+    String? moderatorId,
+    String? reason,
+  }) async {
+    final now = DateTime.now().toIso8601String();
+    final updateData = <String, dynamic>{
+      'validation_status': status.dbValue,
+      'is_approved': status.isApproved,
+      'updated_at': now,
+    };
+
+    switch (status) {
+      case RecordValidationStatus.underReview:
+        updateData['reviewed_by'] = moderatorId;
+        updateData['reviewed_at'] = now;
+        break;
+      case RecordValidationStatus.validated:
+        updateData['verified_by'] = moderatorId;
+        updateData['verified_at'] = now;
+        break;
+      case RecordValidationStatus.published:
+        updateData['published_by'] = moderatorId;
+        updateData['published_at'] = now;
+        updateData['verified_by'] = moderatorId;
+        updateData['verified_at'] = now;
+        break;
+      case RecordValidationStatus.rejected:
+        updateData['rejected_by'] = moderatorId;
+        updateData['rejected_at'] = now;
+        updateData['rejection_reason'] = reason;
+        updateData['moderation_notes'] = reason;
+        break;
+      case RecordValidationStatus.submitted:
+        break;
     }
 
     await client.from('herbs').update(updateData).eq('id', herbId);
@@ -102,13 +156,19 @@ class ModerationRemoteDataSource {
 
     final updateData = <String, dynamic>{
       'is_approved': isApproved,
+      'validation_status': isApproved
+          ? RecordValidationStatus.published.dbValue
+          : RecordValidationStatus.rejected.dbValue,
       'moderation_comments': comments,
+      'rejection_reason': comments,
       'updated_at': now,
     };
 
     if (isApproved) {
       updateData['approved_by'] = moderatorId;
       updateData['approved_at'] = now;
+      updateData['published_by'] = moderatorId;
+      updateData['published_at'] = now;
       updateData['rejected_by'] = null;
       updateData['rejected_at'] = null;
     } else {
@@ -116,6 +176,48 @@ class ModerationRemoteDataSource {
       updateData['rejected_at'] = now;
       updateData['approved_by'] = null;
       updateData['approved_at'] = null;
+    }
+
+    await client.from('remedies').update(updateData).eq('id', remedyId);
+  }
+
+  /// Advances or transitions remedy validation status (submitted, under_review, validated, published, rejected)
+  Future<void> updateRemedyValidationStatus(
+    String remedyId,
+    RecordValidationStatus status, {
+    String? moderatorId,
+    String? reason,
+  }) async {
+    final now = DateTime.now().toIso8601String();
+    final updateData = <String, dynamic>{
+      'validation_status': status.dbValue,
+      'is_approved': status.isApproved,
+      'updated_at': now,
+    };
+
+    switch (status) {
+      case RecordValidationStatus.underReview:
+        updateData['reviewed_by'] = moderatorId;
+        updateData['reviewed_at'] = now;
+        break;
+      case RecordValidationStatus.validated:
+        updateData['validated_by'] = moderatorId;
+        updateData['validated_at'] = now;
+        break;
+      case RecordValidationStatus.published:
+        updateData['published_by'] = moderatorId;
+        updateData['published_at'] = now;
+        updateData['approved_by'] = moderatorId;
+        updateData['approved_at'] = now;
+        break;
+      case RecordValidationStatus.rejected:
+        updateData['rejected_by'] = moderatorId;
+        updateData['rejected_at'] = now;
+        updateData['rejection_reason'] = reason;
+        updateData['moderation_comments'] = reason;
+        break;
+      case RecordValidationStatus.submitted:
+        break;
     }
 
     await client.from('remedies').update(updateData).eq('id', remedyId);
