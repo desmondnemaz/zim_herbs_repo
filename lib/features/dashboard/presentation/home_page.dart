@@ -324,6 +324,25 @@ class _OfflineBadge extends StatelessWidget {
 class _ProfileAvatar extends StatelessWidget {
   const _ProfileAvatar();
 
+  static String _extractInitials(String name, [String? email]) {
+    final trimmed = name.trim();
+    if (trimmed.isNotEmpty) {
+      final parts = trimmed.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+      if (parts.length >= 2) {
+        return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+      } else if (parts.isNotEmpty && parts.first.isNotEmpty) {
+        return parts.first[0].toUpperCase();
+      }
+    }
+    if (email != null && email.trim().isNotEmpty) {
+      final emailName = email.trim().split('@').first;
+      if (emailName.isNotEmpty) {
+        return emailName[0].toUpperCase();
+      }
+    }
+    return 'U';
+  }
+
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
@@ -333,7 +352,9 @@ class _ProfileAvatar extends StatelessWidget {
     return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, state) {
         final userName = state is Authenticated ? state.user.name : 'User';
+        final userEmail = state is Authenticated ? state.user.email : null;
         final userRole = state is Authenticated ? state.user.role.displayName : 'Customer';
+        final initials = _extractInitials(userName, userEmail);
 
         return GestureDetector(
           onTap: () {
@@ -352,9 +373,9 @@ class _ProfileAvatar extends StatelessWidget {
                         radius: 30,
                         backgroundColor: theme.colorScheme.primary,
                         child: Text(
-                          userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                          initials,
                           style: const TextStyle(
-                            fontSize: 24,
+                            fontSize: 22,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
@@ -426,10 +447,14 @@ class _ProfileAvatar extends StatelessWidget {
             child: CircleAvatar(
               radius: radius,
               backgroundColor: theme.colorScheme.secondary,
-              child: Icon(
-                Icons.person_outline,
-                color: theme.colorScheme.primary,
-                size: radius,
+              child: Text(
+                initials,
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontSize: rs.pick(mobile: 12, tablet: 13, desktop: 14),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.2,
+                ),
               ),
             ),
           ),
