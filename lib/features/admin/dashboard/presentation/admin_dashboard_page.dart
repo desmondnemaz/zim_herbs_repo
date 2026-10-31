@@ -12,6 +12,7 @@ import 'package:zim_herbs_repo/features/dashboard/bloc/dashboard_cubit.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/components/admin_drawer_sidebar.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/components/admin_dashboard_screen.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
+import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final UserModel user;
@@ -294,12 +295,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 color: Colors.white.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(10),
                                 child: InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => const HomePage()),
+                                  onTap: () async {
+                                    final confirmed = await showPortalSwitchConfirmation(
+                                      context: context,
+                                      toAdmin: false,
                                     );
+                                    if (confirmed && context.mounted) {
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) => const HomePage()),
+                                      );
+                                    }
                                   },
                                   borderRadius: BorderRadius.circular(10),
                                   child: Padding(
@@ -518,12 +525,18 @@ class _AdminProfileAvatar extends StatelessWidget {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         subtitle:
                             const Text('Switch to public herbal repository & store'),
-                        onTap: () {
+                        onTap: () async {
                           Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const HomePage()),
+                          final confirmed = await showPortalSwitchConfirmation(
+                            context: context,
+                            toAdmin: false,
                           );
+                          if (confirmed && context.mounted) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const HomePage()),
+                            );
+                          }
                         },
                       ),
                       ListTile(

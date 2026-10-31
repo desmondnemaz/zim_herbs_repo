@@ -18,6 +18,7 @@ import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_r
 import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
+import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
 import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 
 
@@ -403,12 +404,18 @@ class _ProfileAvatar extends StatelessWidget {
                           leading: const Icon(Icons.admin_panel_settings, color: Colors.amber),
                           title: const Text('Admin Console', style: TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: const Text('Switch to admin & moderation console'),
-                          onTap: () {
+                          onTap: () async {
                             Navigator.pop(context);
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => AdminDashboardPage(user: state.user)),
+                            final confirmed = await showPortalSwitchConfirmation(
+                              context: context,
+                              toAdmin: true,
                             );
+                            if (confirmed && context.mounted) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => AdminDashboardPage(user: state.user)),
+                              );
+                            }
                           },
                         ),
                       ],

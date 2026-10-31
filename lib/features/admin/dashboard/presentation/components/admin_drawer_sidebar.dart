@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
+import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
 
 class AdminDrawerSideBar extends StatefulWidget {
   final bool isExpanded;
@@ -206,6 +208,20 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
             color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.2),
           ),
           const SizedBox(height: 8),
+          _buildNavItem(
+            context,
+            -2,
+            const _AdminNavItem(
+              index: -2,
+              label: 'View Public App',
+              icon: Icons.open_in_new_rounded,
+              activeIcon: Icons.open_in_new_rounded,
+              accentColor: Color(0xFF81C784),
+            ),
+            isPublicApp: true,
+            forceCollapsed: showCollapsed,
+          ),
+          const SizedBox(height: 6),
           if (showCollapsed)
             _buildNavItem(
               context,
@@ -241,19 +257,20 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
     int index,
     _AdminNavItem item, {
     bool isSignOut = false,
+    bool isPublicApp = false,
     bool forceCollapsed = false,
   }) {
     final isDesktop = Responsive.isDesktop(context);
     final isExpanded = !isDesktop || widget.isExpanded;
-    final isActive = !isSignOut && widget.activeIndex == item.index;
+    final isActive = !isSignOut && !isPublicApp && widget.activeIndex == item.index;
 
-    final iconColor = isSignOut
+    final iconColor = (isSignOut || isPublicApp)
         ? Colors.white
         : isActive
             ? item.accentColor
             : item.accentColor.withValues(alpha: 0.88);
 
-    final tileBackground = isSignOut
+    final tileBackground = (isSignOut || isPublicApp)
         ? Colors.white.withValues(alpha: 0.12)
         : isActive
             ? item.accentColor.withValues(alpha: 0.22)
@@ -324,8 +341,24 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
       );
     }
 
+    void showPublicAppConfirmation() async {
+      final confirmed = await showPortalSwitchConfirmation(
+        context: context,
+        toAdmin: false,
+      );
+      if (confirmed && context.mounted) {
+        if (!Responsive.isDesktop(context)) Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      }
+    }
+
     void handleTap() {
-      if (isSignOut) {
+      if (isPublicApp) {
+        showPublicAppConfirmation();
+      } else if (isSignOut) {
         showSignOutConfirmation();
       } else {
         widget.onNavTap(item.index);
@@ -388,7 +421,7 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
                     style: TextStyle(
                       color: textColor,
                       fontWeight:
-                          (isActive || isSignOut) ? FontWeight.bold : FontWeight.w500,
+                          (isActive || isSignOut || isPublicApp) ? FontWeight.bold : FontWeight.w500,
                       fontSize: 14,
                     ),
                   ),

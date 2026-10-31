@@ -9,6 +9,7 @@ import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
 import 'package:zim_herbs_repo/features/notifications/presentation/notifications_page.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
+import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
 
 
 class DrawerSideBar extends StatefulWidget {
@@ -298,16 +299,22 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                             icon: Icons.admin_panel_settings,
                             iconColor: const Color(0xFFCE93D8),
                             isActive: false,
-                            onTap: () {
-                              if (!Responsive.isDesktop(context)) {
-                                Navigator.pop(context);
-                              }
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => AdminDashboardPage(user: authState.user),
-                                ),
+                            onTap: () async {
+                              final confirmed = await showPortalSwitchConfirmation(
+                                context: context,
+                                toAdmin: true,
                               );
+                              if (confirmed && context.mounted) {
+                                if (!Responsive.isDesktop(context)) {
+                                  Navigator.pop(context);
+                                }
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AdminDashboardPage(user: authState.user),
+                                  ),
+                                );
+                              }
                             },
                           );
                         }
