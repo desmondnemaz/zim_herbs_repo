@@ -18,6 +18,7 @@ import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_r
 import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -137,40 +138,25 @@ class _HomePageState extends State<HomePage> {
             drawer: !isDesktop ? const DrawerSideBar() : null,
 
             // ================= AppBar for Mobile/Tablet =================
-            appBar:
-                !isDesktop
-                    ? AppBar(
-                      toolbarHeight: rs.appBarHeight,
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      elevation: 4,
-                      shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
-                      leading: Navigator.canPop(context)
-                          ? IconButton(
-                              icon: const Icon(Icons.arrow_back),
-                              onPressed: () => Navigator.pop(context),
-                              tooltip: 'Back',
-                            )
-                          : null,
-                      title: const _BrandLogo(),
-                      centerTitle: false,
-                      actions: const [
-                        _OfflineBadge(),
-                        SizedBox(width: 4),
-                        _ProfileAvatar(),
-                        SizedBox(width: 8),
-                      ],
-                      iconTheme: IconThemeData(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        size: rs.appBarIcon,
-                      ),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(20),
-                          bottomRight: Radius.circular(20),
-                        ),
-                      ),
-                    )
-                    : null,
+            appBar: !isDesktop
+                ? AppPageAppBar(
+                    toolbarHeight: rs.appBarHeight,
+                    elevation: 4,
+                    shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                    titleWidget: const _BrandLogo(),
+                    centerTitle: false,
+                    iconTheme: IconThemeData(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      size: rs.appBarIcon,
+                    ),
+                    actions: const [
+                      _OfflineBadge(),
+                      SizedBox(width: 4),
+                      _ProfileAvatar(),
+                      SizedBox(width: 8),
+                    ],
+                  )
+                : null,
 
             body: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,

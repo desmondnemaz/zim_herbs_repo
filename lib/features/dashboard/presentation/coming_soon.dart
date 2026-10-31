@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 
 class ComingSoonPage extends StatefulWidget {
   const ComingSoonPage({super.key});
@@ -41,19 +42,9 @@ class _ComingSoonPageState extends State<ComingSoonPage>
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            }
-          },
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: const AppPageAppBar(
+        title: 'Coming Soon',
       ),
-      extendBodyBehindAppBar: true,
       body: Container(
         padding: const EdgeInsets.all(24),
         width: double.infinity,

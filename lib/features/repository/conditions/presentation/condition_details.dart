@@ -7,6 +7,7 @@ import 'package:zim_herbs_repo/features/repository/conditions/data/repositories/
 import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_detail_cubit.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
@@ -69,23 +70,20 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
         builder: (context, state) {
           if (state is ConditionDetailLoading ||
               state is ConditionDetailInitial) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+            return Scaffold(
+              appBar: AppPageAppBar(
+                title: 'Condition Details',
+                onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+              ),
+              body: const Center(child: CircularProgressIndicator()),
             );
           }
 
           if (state is ConditionDetailError) {
             return Scaffold(
-              appBar: AppBar(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
+              appBar: AppPageAppBar(
+                title: 'Condition Details',
+                onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
               ),
               body: AppErrorView(
                 failure: state.failure,

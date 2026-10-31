@@ -8,22 +8,25 @@ import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/r
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/condition_list.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/presentation/store_page.dart';
 import 'package:zim_herbs_repo/features/telemedicine/presentation/telemedicine_page.dart';
+import 'package:zim_herbs_repo/features/repository/contributions/presentation/contributions_page.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/coming_soon.dart';
 
 // --- Route Resolution Helper ---
 Widget getPageForRoute(String routeName) {
   switch (routeName) {
     case '/herbs':
-      return const HerbsList();
+      return const HerbsList(isPublicView: true);
     case '/remedies':
     case '/treatments':
-      return const RemediesList();
+      return const RemediesList(isPublicView: true);
     case '/conditions':
-      return const ConditionsListPage();
+      return const ConditionsListPage(isPublicView: true);
     case '/store':
       return const StorePage();
     case '/telemed':
       return const TelemedicinePage();
+    case '/contributions':
+      return const ContributionsPage();
     default:
       return const ComingSoonPage();
   }
@@ -70,7 +73,10 @@ class _MenuSectionState extends State<MenuSection> {
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.symmetric(horizontal: rs.defaultPadding - 4, vertical: 8.0),
           child: Row(
-            children: MenuCategory.values.map((category) {
+            children: MenuCategory.values.where((category) {
+              if (category == MenuCategory.all) return true;
+              return zimHerbalMenuItems.any((item) => item.category == category);
+            }).map((category) {
               final isSelected = _selectedCategory == category;
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -136,6 +142,87 @@ class _MenuSectionState extends State<MenuSection> {
   }
 }
 
+class _MenuItemTheme {
+  final Color primaryColor;
+  final Color gradientEnd;
+  final Color pastelBackground;
+
+  const _MenuItemTheme({
+    required this.primaryColor,
+    required this.gradientEnd,
+    required this.pastelBackground,
+  });
+}
+
+_MenuItemTheme _getMenuItemTheme(String title) {
+  switch (title.toLowerCase().trim()) {
+    case 'herbs':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFF22633C),
+        gradientEnd: Color(0xFF1B5E20),
+        pastelBackground: Color(0xFFEAF5EB),
+      );
+    case 'conditions':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFF106F74),
+        gradientEnd: Color(0xFF0D5458),
+        pastelBackground: Color(0xFFE6F5F5),
+      );
+    case 'remedies':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFF295CA2),
+        gradientEnd: Color(0xFF1D447B),
+        pastelBackground: Color(0xFFEBF3FC),
+      );
+    case 'herbal store':
+    case 'store':
+    case 'marketplace':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFFA85B18),
+        gradientEnd: Color(0xFF85450E),
+        pastelBackground: Color(0xFFFEF5EB),
+      );
+    case 'telemedicine':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFF684B8A),
+        gradientEnd: Color(0xFF50386C),
+        pastelBackground: Color(0xFFF4EEF9),
+      );
+    case 'practitioners':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFF4F46E5),
+        gradientEnd: Color(0xFF3730A3),
+        pastelBackground: Color(0xFFEEF2FF),
+      );
+    case 'ai chatbot':
+    case 'chatbot':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFF0F766E),
+        gradientEnd: Color(0xFF115E59),
+        pastelBackground: Color(0xFFF0FDF4),
+      );
+    case 'knowledge':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFF7C3AED),
+        gradientEnd: Color(0xFF5B21B6),
+        pastelBackground: Color(0xFFF5F3FF),
+      );
+    case 'contributions':
+    case 'innovation':
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFFD97706),
+        gradientEnd: Color(0xFFB45309),
+        pastelBackground: Color(0xFFFFFBEB),
+      );
+    default:
+      return const _MenuItemTheme(
+        primaryColor: Color(0xFF22633C),
+        gradientEnd: Color(0xFF1B5E20),
+        pastelBackground: Color(0xFFEAF5EB),
+      );
+  }
+}
+
 class _MenuCard extends StatelessWidget {
   final MenuItemModel item;
   final ResponsiveSize rs;
@@ -143,33 +230,47 @@ class _MenuCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final itemTheme = _getMenuItemTheme(item.title);
 
     if (!item.isAvailable) {
-      // --- Frosted Glass Display Strategy for locked assets ---
+      // --- Pastel styling for locked / coming soon items ---
       return ClipRRect(
         borderRadius: BorderRadius.circular(rs.borderRadius * 1.5),
         child: Stack(
           children: [
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: itemTheme.pastelBackground,
                 borderRadius: BorderRadius.circular(rs.borderRadius * 1.5),
-                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
+                border: Border.all(
+                  color: itemTheme.primaryColor.withValues(alpha: 0.22),
+                  width: 1.0,
+                ),
               ),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(item.icon, color: theme.colorScheme.primary.withValues(alpha: 0.4), size: rs.icon),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: itemTheme.primaryColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        item.icon,
+                        color: itemTheme.primaryColor.withValues(alpha: 0.65),
+                        size: rs.icon,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       item.title,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.6), 
-                        fontSize: rs.subtitleFont * 0.95, 
-                        fontWeight: FontWeight.w600
+                        color: const Color(0xFF1E293B),
+                        fontSize: rs.subtitleFont * 0.95,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -182,17 +283,21 @@ class _MenuCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.secondary.withValues(alpha: 0.85),
+                  color: itemTheme.primaryColor.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.lock_outline, size: 10, color: theme.colorScheme.onSecondary),
-                    const SizedBox(width: 2),
+                    Icon(Icons.lock_outline, size: 10, color: Colors.white),
+                    SizedBox(width: 2),
                     Text(
                       "SOON",
-                      style: TextStyle(color: theme.colorScheme.onSecondary, fontSize: 8, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -209,25 +314,33 @@ class _MenuCard extends StatelessWidget {
       );
     }
 
-    // --- Active Premium Layout ---
+    // --- Active Premium Layout with Admin Dashboard Domain Color ---
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.85)],
+          colors: [
+            itemTheme.primaryColor,
+            itemTheme.gradientEnd,
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(rs.borderRadius * 1.5),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            blurRadius: 8,
+            color: itemTheme.primaryColor.withValues(alpha: 0.28),
+            blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
         border: Border.all(
-          color: theme.colorScheme.secondary.withValues(alpha: 0.35),
-          width: 1.5,
+          color: Colors.white.withValues(alpha: 0.18),
+          width: 1.2,
         ),
       ),
       child: Material(
@@ -243,7 +356,14 @@ class _MenuCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(item.icon, color: theme.colorScheme.secondary, size: rs.icon),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(item.icon, color: Colors.white, size: rs.icon),
+              ),
               const SizedBox(height: 8),
               Text(
                 item.title,
@@ -252,6 +372,7 @@ class _MenuCard extends StatelessWidget {
                   color: Colors.white,
                   fontSize: rs.titleFont * 0.95,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
 import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -26,17 +27,17 @@ class SettingsPage extends StatelessWidget {
             appBar:
                 Responsive.isDesktop(context)
                     ? null
-                    : AppBar(
-                      toolbarHeight: 0,
-                      elevation: 0,
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                    ),
+                    : const AppPageAppBar(
+                        title: 'Settings',
+                      ),
             body: SafeArea(
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _buildHeader(context, rs),
-                  const SizedBox(height: 16),
+                  if (Responsive.isDesktop(context)) ...[
+                    _buildHeader(context, rs),
+                    const SizedBox(height: 16),
+                  ],
                   _buildSection(
                     context: context,
                     title: 'Appearance',

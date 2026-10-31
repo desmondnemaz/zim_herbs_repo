@@ -46,27 +46,15 @@ const List<MenuItemModel> zimHerbalMenuItems = [
       category: MenuCategory.services,
       routeName: '/telemed'),
   MenuItemModel(
-      title: "Practitioners",
-      icon: Icons.groups,
+      title: "Contributions",
+      icon: Icons.volunteer_activism_outlined,
       category: MenuCategory.services,
-      isAvailable: false,
-      routeName: ''),
+      isAvailable: true,
+      routeName: '/contributions'),
   MenuItemModel(
       title: "AI Chatbot",
       icon: Icons.smart_toy_outlined,
       category: MenuCategory.services,
-      isAvailable: false,
-      routeName: ''),
-  MenuItemModel(
-      title: "Knowledge",
-      icon: Icons.psychology_alt,
-      category: MenuCategory.insights,
-      isAvailable: false,
-      routeName: ''),
-  MenuItemModel(
-      title: "Innovation",
-      icon: Icons.lightbulb_outline,
-      category: MenuCategory.insights,
       isAvailable: false,
       routeName: ''),
 ];

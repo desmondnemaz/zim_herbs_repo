@@ -6,6 +6,7 @@ import 'package:zim_herbs_repo/features/marketplace/store/bloc/product_detail_cu
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
 import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
@@ -34,14 +35,21 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       child: BlocBuilder<ProductDetailCubit, ProductDetailState>(
         builder: (context, state) {
           if (state is ProductDetailLoading || state is ProductDetailInitial) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+            return Scaffold(
+              appBar: AppPageAppBar(
+                title: 'Product Details',
+                onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+              ),
+              body: const Center(child: CircularProgressIndicator()),
             );
           }
 
           if (state is ProductDetailError) {
             return Scaffold(
-              appBar: AppBar(backgroundColor: colorScheme.primary),
+              appBar: AppPageAppBar(
+                title: 'Product Details',
+                onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+              ),
               body: AppErrorView(
                 failure: state.failure,
                 message: state.message,

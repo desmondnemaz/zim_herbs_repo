@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:zim_herbs_repo/core/components/condition_review_card.dart';
+import 'package:zim_herbs_repo/core/components/public_condition_card.dart';
+import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/condition_details.dart';
-import 'package:zim_herbs_repo/core/utils/enums.dart';
-import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 class MobileConditionList extends StatelessWidget {
   const MobileConditionList({
@@ -13,6 +13,7 @@ class MobileConditionList extends StatelessWidget {
     required this.onRefresh,
     this.onEdit,
     this.onDelete,
+    this.isPublicView = false,
   });
 
   final List<Condition> conditions;
@@ -20,6 +21,7 @@ class MobileConditionList extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final Function(Condition)? onEdit;
   final Function(Condition)? onDelete;
+  final bool isPublicView;
 
   @override
   Widget build(BuildContext context) {
@@ -32,107 +34,38 @@ class MobileConditionList extends StatelessWidget {
       child: ListView.separated(
         padding: EdgeInsets.all(rs.defaultPadding),
         itemCount: conditions.length,
-        separatorBuilder: (_, _) => SizedBox(height: rs.rowSpacing),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final condition = conditions[index];
-          return Card(
-            color: Theme.of(context).colorScheme.primary,
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(rs.borderRadius),
-            ),
-            child: ListTile(
+
+          if (isPublicView) {
+            return PublicConditionCard(
+              condition: condition,
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) =>
-                            ConditionDetailsPage(conditionId: condition.id),
+                    builder: (context) =>
+                        ConditionDetailsPage(conditionId: condition.id),
                   ),
                 );
               },
-              leading: CircleAvatar(
-                radius: rs.icon / 2.5,
-                backgroundColor: getBodySystemColor(
-                  condition.bodySystem,
-                ).withValues(alpha: 0.2),
-                child: SvgPicture.asset(
-                  getBodySystemSvg(condition.bodySystem),
-                  width: rs.icon / 2,
-                  height: rs.icon / 2,
-                  colorFilter: ColorFilter.mode(
-                    getBodySystemColor(condition.bodySystem),
-                    BlendMode.srcIn,
-                  ),
+            );
+          }
+
+          return ConditionReviewCard(
+            condition: condition,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ConditionDetailsPage(conditionId: condition.id),
                 ),
-              ),
-              title: Text(
-                condition.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: rs.subtitleFont,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              subtitle: Text(
-                bodySystemLabel(condition.bodySystem),
-                style: TextStyle(
-                  fontSize: rs.captionFont,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              trailing:
-                  (onEdit != null || onDelete != null)
-                      ? PopupMenuButton<String>(
-                        icon: Icon(
-                          Icons.more_vert,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            onEdit?.call(condition);
-                          } else if (value == 'delete') {
-                            onDelete?.call(condition);
-                          }
-                        },
-                        itemBuilder:
-                            (context) => [
-                              if (onEdit != null)
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 20),
-                                      SizedBox(width: 8),
-                                      Text('Edit'),
-                                    ],
-                                  ),
-                                ),
-                              if (onDelete != null)
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.delete,
-                                        size: 20,
-                                        color: Colors.red,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Delete',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                      )
-                      : null,
-            ),
+              );
+            },
+            onEdit: onEdit != null ? () => onEdit!(condition) : null,
+            onDelete: onDelete != null ? () => onDelete!(condition) : null,
           );
         },
       ),

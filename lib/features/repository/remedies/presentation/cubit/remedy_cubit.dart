@@ -192,18 +192,58 @@ class RemedyCubit extends Cubit<RemedyState> {
     }
   }
 
-  // ============================================================
-  // APPROVE REMEDY
-  // ============================================================
-
-  /// Approves or disapproves a remedy.
-  Future<void> approveRemedy(String id, {bool approved = true}) async {
+  /// Deletes multiple remedies in a single batch operation.
+  Future<void> deleteRemedies(List<String> ids) async {
+    if (ids.isEmpty) return;
     try {
       emit(RemedyLoading());
 
-      await repository.approveRemedy(id, approved: approved);
+      await repository.deleteRemedies(ids);
 
-      final message = approved ? 'Remedy approved' : 'Remedy unapproved';
+      _allRemedies.removeWhere((r) => ids.contains(r.id));
+
+      final count = ids.length;
+      emit(RemedyOperationSuccess(
+        '$count ${count == 1 ? 'remedy' : 'remedies'} deleted successfully',
+      ));
+
+      emit(
+        RemedyLoaded(
+          _allRemedies,
+          searchQuery: '',
+          filteredConditionId: _currentConditionId,
+        ),
+      );
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(RemedyError(failure.message, failure: failure));
+    }
+  }
+
+  // ============================================================
+  // APPROVE / VERIFY REMEDY
+  // ============================================================
+
+  /// Approves or disapproves a remedy.
+  Future<void> approveRemedy(
+    String id, {
+    bool approved = true,
+    String? verifiedBy,
+    String? moderationNotes,
+  }) async {
+    try {
+      emit(RemedyLoading());
+
+      await repository.approveRemedy(
+        id,
+        approved: approved,
+        verifiedBy: verifiedBy,
+        moderationNotes: moderationNotes,
+      );
+
+      final message = approved
+          ? 'Remedy approved and published'
+          : 'Remedy marked as unapproved';
       emit(RemedyOperationSuccess(message));
 
       await refreshRemedies();
@@ -211,6 +251,21 @@ class RemedyCubit extends Cubit<RemedyState> {
       final failure = ErrorHandler.handle(e, stackTrace);
       emit(RemedyError(failure.message, failure: failure));
     }
+  }
+
+  /// Updates remedy verification status with audit traceability.
+  Future<void> updateRemedyVerification(
+    String remedyId,
+    bool isApproved, {
+    String? verifiedBy,
+    String? moderationNotes,
+  }) async {
+    await approveRemedy(
+      remedyId,
+      approved: isApproved,
+      verifiedBy: verifiedBy,
+      moderationNotes: moderationNotes,
+    );
   }
 
   // ============================================================

@@ -53,7 +53,7 @@ class DashboardScreen extends StatelessWidget {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const HerbsList(),
+                                      builder: (_) => const HerbsList(isPublicView: true),
                                     ),
                                   );
                                 },

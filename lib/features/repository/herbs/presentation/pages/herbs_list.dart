@@ -11,19 +11,33 @@ import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb
 
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/components/desktop_herb_list.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/components/mobile_herb_list.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/presentation/pages/herb_details.dart';
 
-import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/components/app_filter_bar.dart';
+import 'package:zim_herbs_repo/core/components/app_page_header.dart';
 import 'package:zim_herbs_repo/core/components/batch_action_toolbar.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
-import 'package:zim_herbs_repo/features/admin/moderation/presentation/screens/unverified_herbs_screen.dart';
+
+enum HerbFilterOption {
+  all,
+  published,
+  pendingReview,
+  myCreations,
+}
 
 class HerbsList extends StatefulWidget {
   final VoidCallback? onBack;
-  const HerbsList({super.key, this.onBack});
+  final bool isPublicView;
+
+  const HerbsList({
+    super.key,
+    this.onBack,
+    this.isPublicView = false,
+  });
 
   @override
   State<HerbsList> createState() => _HerbsListState();
@@ -32,6 +46,7 @@ class HerbsList extends StatefulWidget {
 class _HerbsListState extends State<HerbsList> {
   bool _isSelectionMode = false;
   final Set<String> _selectedHerbIds = {};
+  HerbFilterOption _currentFilter = HerbFilterOption.all;
 
   @override
   void initState() {
@@ -39,6 +54,13 @@ class _HerbsListState extends State<HerbsList> {
   }
 
   void _enterSelectionMode([Herb? initialHerb]) {
+    if (widget.isPublicView) return;
+    // Called from event handlers (tap / long press), so we must use a
+    // non-listening read. `context.watch` is only legal inside build().
+    final authState = _readAuthState(context);
+    final canManage = authState is Authenticated && authState.user.canModerate;
+    if (!canManage) return;
+
     setState(() {
       _isSelectionMode = true;
       if (initialHerb != null) {
@@ -211,12 +233,51 @@ class _HerbsListState extends State<HerbsList> {
   }
 
   // ============================================================
+  // OPEN FULL HERB DETAILS (Edits happen on detail page)
+  // ============================================================
+
+  Future<void> _openHerbDetails(BuildContext context, Herb herb) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HerbDetailsPage(herbId: herb.id),
+      ),
+    );
+
+    if (mounted && context.mounted) {
+      context.read<HerbCubit>().refreshHerbs();
+    }
+  }
+
+  // ============================================================
   // BUILD
   // ============================================================
+
+  AuthState? _getAuthState(BuildContext context) {
+    try {
+      return context.watch<AuthCubit>().state;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Non-listening variant for use inside callbacks (outside build).
+  AuthState? _readAuthState(BuildContext context) {
+    try {
+      return context.read<AuthCubit>().state;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
+    final authState = _getAuthState(context);
+    final currentUserId = authState is Authenticated ? authState.user.id : null;
+    final canManage = !widget.isPublicView &&
+        authState is Authenticated &&
+        authState.user.canModerate;
 
     return Builder(
       builder: (context) {
@@ -228,16 +289,85 @@ class _HerbsListState extends State<HerbsList> {
           context.read<HerbCubit>().loadHerbs();
         }
 
-        final currentHerbs = currentCubitState is HerbLoaded
+        final rawHerbs = currentCubitState is HerbLoaded
             ? currentCubitState.herbs
             : <Herb>[];
+
+        // Step 1: Baseline visibility (Learner vs Staff boundary)
+        // Public/Learner sees published herbs + their own creations (even when pending).
+        // Staff/Moderators see all herbs across the system.
+        final visibleHerbs = rawHerbs.where((herb) {
+          if (canManage) return true;
+          if (herb.isApproved || herb.validationStatus.isApproved) return true;
+          if (!widget.isPublicView &&
+              currentUserId != null &&
+              herb.createdBy != null &&
+              herb.createdBy == currentUserId) {
+            return true;
+          }
+          return false;
+        }).toList();
+
+        // Step 2: Tab / Chip filter selection
+        final currentHerbs = visibleHerbs.where((herb) {
+          final isAuthor = currentUserId != null &&
+              herb.createdBy != null &&
+              herb.createdBy == currentUserId;
+          final isApproved = herb.isApproved || herb.validationStatus.isApproved;
+
+          switch (_currentFilter) {
+            case HerbFilterOption.all:
+              return true;
+            case HerbFilterOption.published:
+              return canManage ? isApproved : (isAuthor && isApproved);
+            case HerbFilterOption.pendingReview:
+              return canManage ? !isApproved : (isAuthor && !isApproved);
+            case HerbFilterOption.myCreations:
+              return isAuthor;
+          }
+        }).toList();
+
+        final allCount = visibleHerbs.length;
+        final publishedCount = canManage
+            ? visibleHerbs
+                .where((h) => h.isApproved || h.validationStatus.isApproved)
+                .length
+            : (currentUserId != null
+                ? visibleHerbs
+                    .where((h) =>
+                        h.createdBy != null &&
+                        h.createdBy == currentUserId &&
+                        (h.isApproved || h.validationStatus.isApproved))
+                    .length
+                : 0);
+
+        final pendingCount = canManage
+            ? visibleHerbs
+                .where((h) => !h.isApproved && !h.validationStatus.isApproved)
+                .length
+            : (currentUserId != null
+                ? visibleHerbs
+                    .where((h) =>
+                        h.createdBy != null &&
+                        h.createdBy == currentUserId &&
+                        (!h.isApproved && !h.validationStatus.isApproved))
+                    .length
+                : 0);
+
+        final myCreationsCount = currentUserId != null
+            ? visibleHerbs
+                .where((h) => h.createdBy != null && h.createdBy == currentUserId)
+                .length
+            : 0;
 
         return BlocListener<HerbCubit, HerbState>(
           listener: (context, state) {
             // Successful operation
             if (state is HerbOperationSuccess) {
-              _selectedHerbIds.clear();
-              _isSelectionMode = false;
+              setState(() {
+                _selectedHerbIds.clear();
+                _isSelectionMode = false;
+              });
               ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -262,20 +392,17 @@ class _HerbsListState extends State<HerbsList> {
 
               appBar: Responsive.isDesktop(context)
                   ? null
-                  : AppBar(
-                      toolbarHeight: 10,
-                      elevation: 0,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primary,
+                  : AppPageAppBar(
+                      title: widget.isPublicView ? 'Herbal Catalog' : 'Herbs',
+                      onBack: widget.onBack,
                     ),
 
               // ==================================================
-              // ADD HERB BUTTON
+              // ADD / CONTRIBUTE HERB BUTTON
               // ==================================================
 
-              floatingActionButton: _isSelectionMode
-                  ? null
-                  : FloatingActionButton(
+              floatingActionButton: (!_isSelectionMode && canManage)
+                  ? FloatingActionButton(
                       tooltip: 'Add Herb',
 
                       onPressed: () {
@@ -298,7 +425,8 @@ class _HerbsListState extends State<HerbsList> {
                         Icons.add,
                         color: Colors.white,
                       ),
-                    ),
+                    )
+                  : null,
 
               // ==================================================
               // BODY
@@ -324,9 +452,25 @@ class _HerbsListState extends State<HerbsList> {
                       _buildSearchBar(context),
 
                       // ==========================================
-                      // ACTION TOOLBAR / MARK TOGGLE (RIGHT ABOVE LIST)
+                      // FILTER TABS (All / Published / My Creations)
                       // ==========================================
-                      _buildActionToolbar(context, rs, currentHerbs),
+                      if (!widget.isPublicView)
+                        _buildFilterBar(
+                          context,
+                          allCount: allCount,
+                          publishedCount: publishedCount,
+                          pendingCount: pendingCount,
+                          myCreationsCount: myCreationsCount,
+                          canManage: canManage,
+                          hasUser: currentUserId != null,
+                        ),
+
+                      // ==========================================
+                      // ACTION TOOLBAR / MARK TOGGLE (RIGHT ABOVE LIST)
+                      // (Only displayed for staff/admin with management rights)
+                      // ==========================================
+                      if (canManage)
+                        _buildActionToolbar(context, rs, currentHerbs),
 
                       // ==========================================
                       // HERB LIST
@@ -366,10 +510,11 @@ class _HerbsListState extends State<HerbsList> {
                           // ====================================
 
                           if (state is HerbLoaded) {
-                            // No herbs
-                            if (state.herbs.isEmpty) {
+                            // No herbs matching
+                            if (currentHerbs.isEmpty) {
                               return _buildEmptyView(
                                 state.searchQuery,
+                                canManage: canManage,
                               );
                             }
 
@@ -379,36 +524,19 @@ class _HerbsListState extends State<HerbsList> {
 
                             if (Responsive.isMobile(context)) {
                               return MobileHerbList(
-                                filteredHerbs: state.herbs,
+                                filteredHerbs: currentHerbs,
                                 rs: rs,
-                                isSelectionMode: _isSelectionMode,
-                                selectedHerbIds: _selectedHerbIds,
-                                onToggleSelect: _toggleHerbSelection,
-                                onLongPress: (herb) =>
-                                    _enterSelectionMode(herb),
-                                onVerify: (herb) => _handleVerify(context, herb),
-
-                                // Herb entity → HerbModel
-                                // because AddEditHerbPage
-                                // expects HerbModel.
-                                onEdit: (herb) {
-                                  _showAddEditDialog(
-                                    context,
-                                    herb:
-                                        HerbModel.fromEntity(
-                                      herb,
-                                    ),
-                                  );
-                                },
-
-                                // Delete uses the domain
-                                // entity directly.
-                                onDelete: (herb) {
-                                  _handleDelete(
-                                    context,
-                                    herb,
-                                  );
-                                },
+                                isPublicView: widget.isPublicView,
+                                isSelectionMode: canManage && _isSelectionMode,
+                                selectedHerbIds: canManage ? _selectedHerbIds : const {},
+                                onToggleSelect: canManage ? _toggleHerbSelection : null,
+                                onLongPress: canManage
+                                    ? (herb) => _enterSelectionMode(herb)
+                                    : null,
+                                onView: (herb) =>
+                                    _openHerbDetails(context, herb),
+                                showStatusChip: canManage,
+                                currentUserId: currentUserId,
                               );
                             }
 
@@ -417,34 +545,25 @@ class _HerbsListState extends State<HerbsList> {
                             // =================================
 
                             return DesktopHerbList(
-                              filteredHerbs: state.herbs,
+                              filteredHerbs: currentHerbs,
                               rs: rs,
-                              isSelectionMode: _isSelectionMode,
-                              selectedHerbIds: _selectedHerbIds,
-                              onToggleSelect: _toggleHerbSelection,
-                              onLongPress: (herb) =>
-                                  _enterSelectionMode(herb),
-                              onVerify: (herb) => _handleVerify(context, herb),
-
-                              // Herb entity → HerbModel
-                              // for AddEditHerbPage.
-                              onEdit: (herb) {
-                                _showAddEditDialog(
-                                  context,
-                                  herb:
-                                      HerbModel.fromEntity(
-                                    herb,
-                                  ),
-                                );
-                              },
-
-                              // Delete uses Herb entity.
-                              onDelete: (herb) {
-                                _handleDelete(
-                                  context,
-                                  herb,
-                                );
-                              },
+                              isPublicView: widget.isPublicView,
+                              isSelectionMode: canManage && _isSelectionMode,
+                              selectedHerbIds: canManage ? _selectedHerbIds : const {},
+                              onToggleSelect: canManage ? _toggleHerbSelection : null,
+                              onLongPress: canManage
+                                  ? (herb) => _enterSelectionMode(herb)
+                                  : null,
+                              onTapHerb: (herb) =>
+                                  _openHerbDetails(context, herb),
+                              onVerify: canManage
+                                  ? (herb) => _handleVerify(context, herb)
+                                  : null,
+                              onDelete: canManage
+                                  ? (herb) => _handleDelete(context, herb)
+                                  : null,
+                              showStatusChip: canManage,
+                              currentUserId: currentUserId,
                             );
                           }
 
@@ -472,112 +591,13 @@ class _HerbsListState extends State<HerbsList> {
     ResponsiveSize rs,
     List<Herb> currentHerbs,
   ) {
-    final theme = Theme.of(context);
-    final canGoBack = widget.onBack != null || Navigator.canPop(context);
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: defaultPadding,
-        vertical: defaultPadding * 0.75,
-      ),
-      color: theme.scaffoldBackgroundColor,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Modern back button (when applicable)
-          if (canGoBack) ...[
-            InkWell(
-              onTap: () {
-                if (widget.onBack != null) {
-                  widget.onBack!();
-                } else if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                }
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: theme.colorScheme.onSurface,
-                  size: 20,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-          ],
-
-          // Title & Subtitle block
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "All Herbs",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
-                    fontSize: rs.titleFont * 1.25,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                Text(
-                  "Botanical catalog & repository",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Unverified shortcut chip
-          OutlinedButton.icon(
-            onPressed: () async {
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const UnverifiedHerbsScreen(),
-                ),
-              );
-              if (context.mounted) {
-                context.read<HerbCubit>().loadHerbs();
-              }
-            },
-            icon: Icon(
-              Icons.verified_user_outlined,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-            label: Text(
-              'Unverified',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: theme.colorScheme.primary.withValues(alpha: 0.35),
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              visualDensity: VisualDensity.compact,
-            ),
-          ),
-        ],
-      ),
+    return AppPageHeader(
+      title: widget.isPublicView ? "Herbal Catalog" : "All Herbs",
+      subtitle: widget.isPublicView
+          ? "Indigenous Zimbabwean medicinal flora"
+          : "Botanical catalog & repository",
+      icon: Icons.local_florist_rounded,
+      onBack: widget.onBack,
     );
   }
 
@@ -596,8 +616,8 @@ class _HerbsListState extends State<HerbsList> {
 
     return BlocBuilder<HerbCubit, HerbState>(
       builder: (context, state) {
-        final count =
-            state is HerbLoaded ? state.herbs.length : currentHerbs.length;
+        // Count reflects the currently filtered list (All / Published / Pending).
+        final count = currentHerbs.length;
 
         return BatchActionToolbar(
           isSelectionMode: _isSelectionMode,
@@ -660,39 +680,116 @@ class _HerbsListState extends State<HerbsList> {
   }
 
   // ============================================================
+  // FILTER BAR
+  // ============================================================
+
+  Widget _buildFilterBar(
+    BuildContext context, {
+    required int allCount,
+    required int publishedCount,
+    required int pendingCount,
+    required int myCreationsCount,
+    required bool canManage,
+    required bool hasUser,
+  }) {
+    final options = <FilterOption<HerbFilterOption>>[
+      FilterOption(
+        label: 'All',
+        value: HerbFilterOption.all,
+        count: allCount,
+      ),
+      if (hasUser && !canManage)
+        FilterOption(
+          label: 'My Creations',
+          value: HerbFilterOption.myCreations,
+          count: myCreationsCount,
+          activeColor: Colors.teal.shade700,
+        ),
+      if (canManage || hasUser) ...[
+        FilterOption(
+          label: 'Published',
+          value: HerbFilterOption.published,
+          count: publishedCount,
+          activeColor: Colors.green.shade700,
+        ),
+        FilterOption(
+          label: 'Pending Review',
+          value: HerbFilterOption.pendingReview,
+          count: pendingCount,
+          activeColor: Colors.amber.shade800,
+        ),
+      ],
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+      child: AppFilterBar<HerbFilterOption>(
+        options: options,
+        selectedValue: _currentFilter,
+        onSelected: (val) {
+          setState(() {
+            _currentFilter = val;
+            // Prevent hidden (filtered-out) herbs from staying marked and
+            // being deleted unintentionally.
+            _selectedHerbIds.clear();
+          });
+        },
+      ),
+    );
+  }
+
+  // ============================================================
   // EMPTY VIEW
   // ============================================================
 
   Widget _buildEmptyView(
-    String query,
-  ) {
+    String query, {
+    bool canManage = false,
+  }) {
+    String emptyMessage;
+    IconData emptyIcon = Icons.search_off;
+
+    if (query.isNotEmpty) {
+      emptyMessage = 'No herbs found for "$query"';
+    } else if (_currentFilter == HerbFilterOption.myCreations) {
+      emptyMessage =
+          'You have not submitted any herbs yet.\nVisit Contributions to submit your first herb!';
+      emptyIcon = Icons.eco_outlined;
+    } else if (_currentFilter == HerbFilterOption.pendingReview) {
+      emptyMessage = canManage
+          ? 'No herbs currently pending review.'
+          : 'You have no herbs currently pending review.';
+      emptyIcon = Icons.verified_user_outlined;
+    } else if (_currentFilter == HerbFilterOption.published && !canManage) {
+      emptyMessage =
+          'You have no published herbs yet.\nOnce reviewed and approved, your creations will appear here.';
+      emptyIcon = Icons.check_circle_outline;
+    } else {
+      emptyMessage = 'No herbs available';
+    }
+
     return Center(
-      child: Column(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
-
-        children: [
-          const Icon(
-            Icons.search_off,
-            size: 64,
-            color: Colors.grey,
-          ),
-
-          const SizedBox(
-            height: 16,
-          ),
-
-          Text(
-            query.isEmpty
-                ? 'No herbs available'
-                : 'No herbs found for "$query"',
-
-            style: const TextStyle(
-              fontSize: 18,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              emptyIcon,
+              size: 64,
               color: Colors.grey,
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              emptyMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

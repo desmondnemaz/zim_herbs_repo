@@ -12,7 +12,13 @@ import 'package:zim_herbs_repo/core/components/rejection_reason_dialog.dart';
 import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
-import 'unverified_herbs_screen.dart';
+import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
+import 'package:zim_herbs_repo/core/components/app_badged_tab_bar.dart';
+import 'package:zim_herbs_repo/core/components/app_filter_bar.dart';
+import 'package:zim_herbs_repo/core/components/app_search_bar.dart';
+import 'package:zim_herbs_repo/core/components/herb_review_card.dart';
+import 'package:zim_herbs_repo/core/components/remedy_review_card.dart';
+import 'package:zim_herbs_repo/core/components/practitioner_review_card.dart';
 import '../../data/datasources/moderation_remote_datasource.dart';
 import '../../data/models/herbalist_moderation_model.dart';
 
@@ -43,7 +49,7 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
   bool _loadingRemedies = true;
   Failure? _remediesError;
   String _remedySearchQuery = '';
-  String _remedyFilter = 'all'; // 'all', 'pending', 'verified'
+  String _remedyFilter = 'pending'; // Default to 'pending' unverified remedies for moderators!
 
   // Herbalists State
   List<HerbalistModerationModel> _herbalists = [];
@@ -95,77 +101,6 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
           _herbsError = ErrorHandler.handle(e, st);
           _loadingHerbs = false;
         });
-      }
-    }
-  }
-
-  Future<void> _toggleHerbApproval(HerbModel herb) async {
-    final newStatus = !herb.isApproved;
-    String? rejectionReason;
-
-    if (!newStatus) {
-      rejectionReason = await RejectionReasonDialog.show(
-        context,
-        recordName: herb.nameEn,
-        recordType: 'Herb',
-      );
-      if (rejectionReason == null) {
-        return; // User cancelled
-      }
-    }
-
-    try {
-      await _datasource.updateHerbApproval(
-        herb.id,
-        newStatus,
-        moderatorId: widget.moderator.id,
-        comments: rejectionReason,
-      );
-      if (mounted) {
-        setState(() {
-          final index = _herbs.indexWhere((h) => h.id == herb.id);
-          if (index != -1) {
-            _herbs[index] = HerbModel(
-              id: herb.id,
-              nameEn: herb.nameEn,
-              nameSn: herb.nameSn,
-              nameNd: herb.nameNd,
-              description: herb.description,
-              isApproved: newStatus,
-              images: herb.images,
-              remedies: herb.remedies,
-              createdAt: herb.createdAt,
-              updatedAt: DateTime.now(),
-              createdBy: herb.createdBy,
-              updatedBy: widget.moderator.id,
-              verifiedBy: newStatus ? widget.moderator.id : null,
-              verifiedAt: newStatus ? DateTime.now() : null,
-              publishedBy: newStatus ? widget.moderator.id : null,
-              publishedAt: newStatus ? DateTime.now() : null,
-              rejectedBy: !newStatus ? widget.moderator.id : null,
-              rejectedAt: !newStatus ? DateTime.now() : null,
-              rejectionReason: rejectionReason,
-              moderationNotes: rejectionReason ?? herb.moderationNotes,
-              validationStatus: newStatus
-                  ? RecordValidationStatus.published
-                  : RecordValidationStatus.rejected,
-            );
-          }
-        });
-        showAppErrorSnackBar(
-          context,
-          title: newStatus ? 'Herb Verified' : 'Submission Rejected',
-          message:
-              '${herb.nameEn} has been ${newStatus ? 'verified and published' : 'rejected with contributor feedback'}.',
-          type: FailureType.validation,
-        );
-      }
-    } catch (e, st) {
-      if (mounted) {
-        showAppErrorSnackBar(
-          context,
-          failure: ErrorHandler.handle(e, st),
-        );
       }
     }
   }
@@ -562,25 +497,68 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
     );
 
     if (reason != null && reason.trim().isNotEmpty) {
+      _updateRemedyStage(
+        remedy,
+        RecordValidationStatus.rejected,
+        reason: reason.trim(),
+      );
+    }
+  }
+
+  Future<void> _openEditRemedy(RemedyModel remedy) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddEditRemedyPage(remedy: remedy.toEntity()),
+      ),
+    );
+
+    if (result == true || result != null) {
+      _loadRemedies();
+    }
+  }
+
+  Future<void> _deleteRemedy(RemedyModel remedy) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Remedy Submission'),
+        content: Text(
+          'Are you sure you want to permanently delete "${remedy.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
       try {
-        await _datasource.updateRemedyApproval(
-          remedy.id,
-          false,
-          moderatorId: widget.moderator.id,
-          comments: reason.trim(),
+        await _datasource.deleteRemedy(remedy.id);
+        setState(() {
+          _remedies.removeWhere((r) => r.id == remedy.id);
+        });
+        if (!mounted) return;
+        showAppErrorSnackBar(
+          context,
+          title: 'Remedy Deleted',
+          message: '${remedy.name} has been deleted.',
+          type: FailureType.validation,
         );
-        if (mounted) {
-          _loadRemedies();
-          showAppErrorSnackBar(
-            context,
-            title: 'Remedy Rejected',
-            message: '${remedy.name} submission has been rejected with feedback.',
-            type: FailureType.validation,
-          );
-        }
       } catch (e, st) {
         if (mounted) {
-          showAppErrorSnackBar(context, failure: ErrorHandler.handle(e, st));
+          showAppErrorSnackBar(
+            context,
+            failure: ErrorHandler.handle(e, st),
+          );
         }
       }
     }
@@ -664,16 +642,548 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
     }
   }
 
+  Widget _metaDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRemedyDetailsSheet(RemedyModel remedy) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.healing_rounded,
+                            size: 32, color: Colors.teal.shade700),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              remedy.name,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                ValidationStatusChip(
+                                  status: remedy.validationStatus,
+                                ),
+                                if (remedy.condition != null) ...[
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: Colors.green.shade200),
+                                      ),
+                                      child: Text(
+                                        'For: ${remedy.condition!.name}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          color: Colors.green.shade900,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (remedy.preparation.trim().isNotEmpty) ...[
+                    const Text('Preparation Instructions:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(
+                      remedy.preparation.trim(),
+                      style: TextStyle(color: Colors.grey.shade800, height: 1.4),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (remedy.methodOfUse.trim().isNotEmpty) ...[
+                    const Text('Method of Use:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(
+                      remedy.methodOfUse.trim(),
+                      style: TextStyle(color: Colors.grey.shade800, height: 1.4),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (remedy.dosageAdults != null ||
+                      remedy.dosageInfants != null ||
+                      remedy.duration != null ||
+                      remedy.frequency != null) ...[
+                    const Text('Dosage & Administration:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          if (remedy.dosageAdults != null &&
+                              remedy.dosageAdults!.trim().isNotEmpty)
+                            _metaDetailRow('Adult Dosage', remedy.dosageAdults!.trim()),
+                          if (remedy.dosageInfants != null &&
+                              remedy.dosageInfants!.trim().isNotEmpty)
+                            _metaDetailRow('Infant Dosage', remedy.dosageInfants!.trim()),
+                          if (remedy.frequency != null &&
+                              remedy.frequency!.trim().isNotEmpty)
+                            _metaDetailRow('Frequency', remedy.frequency!.trim()),
+                          if (remedy.duration != null &&
+                              remedy.duration!.trim().isNotEmpty)
+                            _metaDetailRow('Duration', remedy.duration!.trim()),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (remedy.remedyHerbs.isNotEmpty) ...[
+                    Text('Herbal Ingredients (${remedy.remedyHerbs.length}):',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    ...remedy.remedyHerbs.map(
+                      (rh) => ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.eco_rounded,
+                            size: 18, color: Colors.green),
+                        title: Text(rh.herb?.nameEn ?? 'Herb ${rh.herbId}'),
+                        subtitle: rh.quantity != null
+                            ? Text('${rh.quantity} ${rh.unit ?? ''}'.trim())
+                            : (rh.preparation != null
+                                ? Text(rh.preparation!)
+                                : null),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (remedy.precautions != null &&
+                      remedy.precautions!.trim().isNotEmpty) ...[
+                    const Text('Precautions & Warnings:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(
+                      remedy.precautions!.trim(),
+                      style: TextStyle(color: Colors.amber.shade900, height: 1.4),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (remedy.sideEffects != null &&
+                      remedy.sideEffects!.trim().isNotEmpty) ...[
+                    const Text('Side Effects:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(
+                      remedy.sideEffects!.trim(),
+                      style: TextStyle(color: Colors.red.shade800, height: 1.4),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (remedy.moderationComments != null &&
+                      remedy.moderationComments!.trim().isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.feedback_outlined,
+                              size: 18, color: Colors.red.shade700),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Moderation Feedback: ${remedy.moderationComments!.trim()}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.red.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  RecordAuditTimeline(
+                    history: remedy.toEntity().auditHistory,
+                    currentStatus: remedy.validationStatus,
+                    title: 'Verification & Audit History',
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.edit_note_rounded),
+                        label: const Text('Update Remedy'),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _openEditRemedy(remedy);
+                        },
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _deleteRemedy(remedy);
+                        },
+                      ),
+                      if (remedy.validationStatus == RecordValidationStatus.submitted) ...[
+                        FilledButton.icon(
+                          icon: const Icon(Icons.rate_review_outlined),
+                          label: const Text('Start Review'),
+                          style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFD97706)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateRemedyStage(
+                                remedy, RecordValidationStatus.underReview);
+                          },
+                        ),
+                        FilledButton.icon(
+                          icon: const Icon(Icons.verified_outlined),
+                          label: const Text('Validate Remedy'),
+                          style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF0284C7)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateRemedyStage(
+                                remedy, RecordValidationStatus.validated);
+                          },
+                        ),
+                      ] else if (remedy.validationStatus ==
+                          RecordValidationStatus.underReview) ...[
+                        FilledButton.icon(
+                          icon: const Icon(Icons.verified_outlined),
+                          label: const Text('Validate Remedy'),
+                          style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF0284C7)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateRemedyStage(
+                                remedy, RecordValidationStatus.validated);
+                          },
+                        ),
+                      ] else if (remedy.validationStatus ==
+                          RecordValidationStatus.validated) ...[
+                        FilledButton.icon(
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text('Publish to Public'),
+                          style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateRemedyStage(
+                                remedy, RecordValidationStatus.published);
+                          },
+                        ),
+                      ] else if (remedy.validationStatus ==
+                          RecordValidationStatus.published) ...[
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.visibility_off_outlined),
+                          label: const Text('Unpublish'),
+                          style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.orange.shade800),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateRemedyStage(
+                                remedy, RecordValidationStatus.validated);
+                          },
+                        ),
+                      ] else if (remedy.validationStatus ==
+                          RecordValidationStatus.rejected) ...[
+                        FilledButton.icon(
+                          icon: const Icon(Icons.restart_alt_rounded),
+                          label: const Text('Re-open for Review'),
+                          style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFD97706)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _updateRemedyStage(
+                                remedy, RecordValidationStatus.underReview);
+                          },
+                        ),
+                      ],
+                      if (remedy.validationStatus != RecordValidationStatus.rejected)
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.cancel_outlined, size: 16),
+                          label: const Text('Reject Submission'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626),
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _rejectRemedyDialog(remedy);
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showPractitionerDetailsSheet(HerbalistModerationModel herbalist) {
+    final statusColor = herbalist.isVerified
+        ? Colors.green
+        : (herbalist.isRejected
+            ? Colors.red
+            : Colors.amber.shade800);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.indigo.shade100,
+                        backgroundImage: herbalist.avatarUrl != null
+                            ? NetworkImage(herbalist.avatarUrl!)
+                            : null,
+                        child: herbalist.avatarUrl == null
+                            ? Text(
+                                herbalist.fullName.isNotEmpty
+                                    ? herbalist.fullName[0].toUpperCase()
+                                    : 'P',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22,
+                                  color: Colors.indigo.shade800,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              herbalist.fullName,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              herbalist.email,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            PractitionerReviewCard.buildStatusBadge(
+                              herbalist.verificationStatus.toUpperCase(),
+                              statusColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Professional Credentials:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        _metaDetailRow('Specialisation', herbalist.specialisation),
+                        _metaDetailRow('Experience', '${herbalist.yearsOfExperience} years'),
+                        if (herbalist.location != null)
+                          _metaDetailRow('Location', herbalist.location!),
+                        if (herbalist.phoneNumber != null)
+                          _metaDetailRow('Phone', herbalist.phoneNumber!),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (!herbalist.isRejected)
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _setHerbalistStatus(herbalist, 'rejected');
+                          },
+                          icon: const Icon(Icons.close, size: 16),
+                          label: const Text('Reject Practitioner'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red.shade700,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      if (!herbalist.isVerified)
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _setHerbalistStatus(herbalist, 'verified');
+                          },
+                          icon: const Icon(Icons.verified, size: 16),
+                          label: const Text('Verify Practitioner'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final rs = ResponsiveSize(context);
-
-    // Pending counts for badges
-    final pendingHerbsCount = _herbs.where((h) => !h.isApproved).length;
-    final pendingRemediesCount = _remedies.where((r) => !r.isApproved).length;
-    final pendingHerbalistsCount =
-        _herbalists.where((h) => h.isPending).length;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -719,119 +1229,45 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                       ],
                     ),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context)
-                        .push(
-                          MaterialPageRoute(
-                            builder: (_) => const UnverifiedHerbsScreen(),
-                          ),
-                        )
-                        .then((_) => _loadAll()),
-                    icon: Icon(
-                      Icons.pending_actions_rounded,
-                      size: 16,
-                      color: theme.colorScheme.primary,
-                    ),
-                    label: Text(
-                      'Unverified ($pendingHerbsCount)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.35),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
                 ],
               ),
             ),
 
             // Segmented TabBar Container
-            Container(
+            AppBadgedTabBar(
+              controller: _tabController,
+              backgroundColor: Colors.white,
               margin: EdgeInsets.symmetric(
                 horizontal: rs.defaultPadding,
                 vertical: 4,
               ),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.15),
+              tabs: [
+                BadgedTabItem(
+                  label: 'Herbs',
+                  icon: Icons.local_florist_rounded,
+                  count: _herbs
+                      .where((h) =>
+                          h.validationStatus == RecordValidationStatus.submitted ||
+                          h.validationStatus == RecordValidationStatus.underReview)
+                      .length,
                 ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: theme.colorScheme.primary,
-                unselectedLabelColor:
-                    theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                indicatorColor: theme.colorScheme.primary,
-                indicatorWeight: 3,
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.local_florist_rounded, size: 16),
-                        const SizedBox(width: 6),
-                        const Text('Herbs'),
-                        if (pendingHerbsCount > 0) ...[
-                          const SizedBox(width: 6),
-                          _buildCountBadge(
-                            pendingHerbsCount,
-                            Colors.amber.shade700,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.healing_rounded, size: 16),
-                        const SizedBox(width: 6),
-                        const Text('Remedies'),
-                        if (pendingRemediesCount > 0) ...[
-                          const SizedBox(width: 6),
-                          _buildCountBadge(
-                            pendingRemediesCount,
-                            Colors.amber.shade700,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.medical_services_rounded, size: 16),
-                        const SizedBox(width: 6),
-                        const Text('Practitioners'),
-                        if (pendingHerbalistsCount > 0) ...[
-                          const SizedBox(width: 6),
-                          _buildCountBadge(
-                            pendingHerbalistsCount,
-                            Colors.amber.shade700,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                BadgedTabItem(
+                  label: 'Remedies',
+                  icon: Icons.healing_rounded,
+                  count: _remedies
+                      .where((r) =>
+                          r.validationStatus == RecordValidationStatus.submitted ||
+                          r.validationStatus == RecordValidationStatus.underReview)
+                      .length,
+                ),
+                BadgedTabItem(
+                  label: 'Practitioners',
+                  icon: Icons.medical_services_rounded,
+                  count: _herbalists
+                      .where((h) => !h.isVerified && !h.isRejected)
+                      .length,
+                ),
+              ],
             ),
 
             // TabBarView Content
@@ -846,24 +1282,6 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCountBadge(int count, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        '$count',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -910,72 +1328,50 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
             padding: EdgeInsets.all(rs.defaultPadding),
             child: Column(
               children: [
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search herbs by English, Shona or Ndebele name...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-                  ),
+                AppSearchBar(
+                  hintText: 'Search herbs by English, Shona or Ndebele name...',
                   onChanged: (val) => setState(() => _herbSearchQuery = val),
                 ),
-                const SizedBox(height: 10),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _filterChip('All (${_herbs.length})', 'all', _herbFilter,
-                          (v) => setState(() => _herbFilter = v)),
-                      const SizedBox(width: 8),
-                      _filterChip(
-                        'Pending (${_herbs.where((h) => h.validationStatus == RecordValidationStatus.submitted || h.validationStatus == RecordValidationStatus.underReview).length})',
-                        'pending',
-                        _herbFilter,
-                        (v) => setState(() => _herbFilter = v),
-                        activeColor: const Color(0xFFD97706),
-                      ),
-                      const SizedBox(width: 8),
-                      _filterChip(
-                        'Validated (${_herbs.where((h) => h.validationStatus == RecordValidationStatus.validated).length})',
-                        'validated',
-                        _herbFilter,
-                        (v) => setState(() => _herbFilter = v),
-                        activeColor: const Color(0xFF0284C7),
-                      ),
-                      const SizedBox(width: 8),
-                      _filterChip(
-                        'Published (${_herbs.where((h) => h.validationStatus == RecordValidationStatus.published).length})',
-                        'published',
-                        _herbFilter,
-                        (v) => setState(() => _herbFilter = v),
-                        activeColor: const Color(0xFF16A34A),
-                      ),
-                      const SizedBox(width: 8),
-                      _filterChip(
-                        'Rejected (${_herbs.where((h) => h.validationStatus == RecordValidationStatus.rejected).length})',
-                        'rejected',
-                        _herbFilter,
-                        (v) => setState(() => _herbFilter = v),
-                        activeColor: const Color(0xFFDC2626),
-                      ),
-                      const SizedBox(width: 16),
-                      TextButton.icon(
-                        icon: const Icon(Icons.pending_actions_rounded, size: 16),
-                        label: const Text('Dedicated View', style: TextStyle(fontSize: 12)),
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const UnverifiedHerbsScreen(),
-                            ),
-                          );
-                          _loadHerbs();
-                        },
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 8),
+                AppFilterBar<String>(
+                  selectedValue: _herbFilter,
+                  onSelected: (v) => setState(() => _herbFilter = v),
+                  options: [
+                    FilterOption(
+                      label: 'All',
+                      value: 'all',
+                      count: _herbs.length,
+                    ),
+                    FilterOption(
+                      label: 'Pending',
+                      value: 'pending',
+                      count: _herbs.where((h) =>
+                          h.validationStatus == RecordValidationStatus.submitted ||
+                          h.validationStatus == RecordValidationStatus.underReview).length,
+                      activeColor: const Color(0xFFD97706),
+                    ),
+                    FilterOption(
+                      label: 'Validated',
+                      value: 'validated',
+                      count: _herbs.where((h) =>
+                          h.validationStatus == RecordValidationStatus.validated).length,
+                      activeColor: const Color(0xFF0284C7),
+                    ),
+                    FilterOption(
+                      label: 'Published',
+                      value: 'published',
+                      count: _herbs.where((h) =>
+                          h.validationStatus == RecordValidationStatus.published).length,
+                      activeColor: const Color(0xFF16A34A),
+                    ),
+                    FilterOption(
+                      label: 'Rejected',
+                      value: 'rejected',
+                      count: _herbs.where((h) =>
+                          h.validationStatus == RecordValidationStatus.rejected).length,
+                      activeColor: const Color(0xFFDC2626),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1015,166 +1411,9 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final herb = filtered[index];
-                      return Card(
-                        elevation: 1.5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: herb.isApproved
-                                ? Colors.green.shade300
-                                : Colors.amber.shade400,
-                            width: 1.2,
-                          ),
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: () => _showHerbDetailsSheet(herb),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Herb Thumbnail
-                                    Container(
-                                      width: 60,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.shade50,
-                                        borderRadius: BorderRadius.circular(10),
-                                        image: herb.primaryImageUrl != null
-                                            ? DecorationImage(
-                                                image: NetworkImage(
-                                                    herb.primaryImageUrl!),
-                                                fit: BoxFit.cover,
-                                              )
-                                            : null,
-                                      ),
-                                      child: herb.primaryImageUrl == null
-                                          ? Icon(Icons.local_florist,
-                                              color: Colors.green.shade700)
-                                          : null,
-                                    ),
-                                    const SizedBox(width: 14),
-                                    // Info
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  herb.nameEn,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                              ),
-                                              ValidationStatusChip(
-                                                status: herb.validationStatus,
-                                              ),
-                                            ],
-                                          ),
-                                          if (herb.nameSn != null ||
-                                              herb.nameNd != null) ...[
-                                            const SizedBox(height: 3),
-                                            Text(
-                                              [
-                                                if (herb.nameSn != null)
-                                                  'SN: ${herb.nameSn}',
-                                                if (herb.nameNd != null)
-                                                  'ND: ${herb.nameNd}',
-                                              ].join(' | '),
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey.shade700,
-                                              ),
-                                            ),
-                                          ],
-                                          if (herb.description != null &&
-                                              herb.description!.isNotEmpty) ...[
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              herb.description!,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 12.5,
-                                                color: Colors.grey.shade800,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                const Divider(height: 1),
-                                const SizedBox(height: 8),
-                                // Action Buttons Row
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    TextButton.icon(
-                                      icon: const Icon(Icons.visibility_outlined,
-                                          size: 16),
-                                      label: const Text('Inspect'),
-                                      style: TextButton.styleFrom(
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      onPressed: () =>
-                                          _showHerbDetailsSheet(herb),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    OutlinedButton.icon(
-                                      icon: const Icon(Icons.edit_note_rounded,
-                                          size: 18),
-                                      label: const Text('Update'),
-                                      style: OutlinedButton.styleFrom(
-                                        visualDensity: VisualDensity.compact,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      onPressed: () => _openEditHerb(herb),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    FilledButton.icon(
-                                      icon: Icon(
-                                        herb.isApproved
-                                            ? Icons.remove_circle_outline
-                                            : Icons.verified_rounded,
-                                        size: 16,
-                                      ),
-                                      label: Text(herb.isApproved
-                                          ? 'Revoke'
-                                          : 'Verify Herb'),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: herb.isApproved
-                                            ? Colors.orange.shade800
-                                            : Colors.green.shade700,
-                                        visualDensity: VisualDensity.compact,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      onPressed: () =>
-                                          _toggleHerbApproval(herb),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      return HerbReviewCard(
+                        herb: herb,
+                        onTap: () => _showHerbDetailsSheet(herb),
                       );
                     },
                   ),
@@ -1223,66 +1462,82 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
             padding: EdgeInsets.all(rs.defaultPadding),
             child: Column(
               children: [
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search remedies by name or condition...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-                  ),
+                AppSearchBar(
+                  hintText: 'Search remedies by name or condition...',
                   onChanged: (val) => setState(() => _remedySearchQuery = val),
                 ),
-                const SizedBox(height: 10),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _filterChip('All (${_remedies.length})', 'all',
-                          _remedyFilter, (v) => setState(() => _remedyFilter = v)),
-                      const SizedBox(width: 8),
-                      _filterChip(
-                        'Pending (${_remedies.where((r) => r.validationStatus == RecordValidationStatus.submitted || r.validationStatus == RecordValidationStatus.underReview).length})',
-                        'pending',
-                        _remedyFilter,
-                        (v) => setState(() => _remedyFilter = v),
-                        activeColor: const Color(0xFFD97706),
-                      ),
-                      const SizedBox(width: 8),
-                      _filterChip(
-                        'Validated (${_remedies.where((r) => r.validationStatus == RecordValidationStatus.validated).length})',
-                        'validated',
-                        _remedyFilter,
-                        (v) => setState(() => _remedyFilter = v),
-                        activeColor: const Color(0xFF0284C7),
-                      ),
-                      const SizedBox(width: 8),
-                      _filterChip(
-                        'Published (${_remedies.where((r) => r.validationStatus == RecordValidationStatus.published).length})',
-                        'published',
-                        _remedyFilter,
-                        (v) => setState(() => _remedyFilter = v),
-                        activeColor: const Color(0xFF16A34A),
-                      ),
-                      const SizedBox(width: 8),
-                      _filterChip(
-                        'Rejected (${_remedies.where((r) => r.validationStatus == RecordValidationStatus.rejected).length})',
-                        'rejected',
-                        _remedyFilter,
-                        (v) => setState(() => _remedyFilter = v),
-                        activeColor: const Color(0xFFDC2626),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 8),
+                AppFilterBar<String>(
+                  selectedValue: _remedyFilter,
+                  onSelected: (v) => setState(() => _remedyFilter = v),
+                  options: [
+                    FilterOption(
+                      label: 'All',
+                      value: 'all',
+                      count: _remedies.length,
+                    ),
+                    FilterOption(
+                      label: 'Pending',
+                      value: 'pending',
+                      count: _remedies.where((r) =>
+                          r.validationStatus == RecordValidationStatus.submitted ||
+                          r.validationStatus == RecordValidationStatus.underReview).length,
+                      activeColor: const Color(0xFFD97706),
+                    ),
+                    FilterOption(
+                      label: 'Validated',
+                      value: 'validated',
+                      count: _remedies.where((r) =>
+                          r.validationStatus == RecordValidationStatus.validated).length,
+                      activeColor: const Color(0xFF0284C7),
+                    ),
+                    FilterOption(
+                      label: 'Published',
+                      value: 'published',
+                      count: _remedies.where((r) =>
+                          r.validationStatus == RecordValidationStatus.published).length,
+                      activeColor: const Color(0xFF16A34A),
+                    ),
+                    FilterOption(
+                      label: 'Rejected',
+                      value: 'rejected',
+                      count: _remedies.where((r) =>
+                          r.validationStatus == RecordValidationStatus.rejected).length,
+                      activeColor: const Color(0xFFDC2626),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           Expanded(
             child: filtered.isEmpty
-                ? const Center(
-                    child: Text('No remedies found matching criteria.'),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.task_alt_rounded,
+                          size: 54,
+                          color: Colors.green.shade600,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No remedies found matching criteria.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _remedyFilter == 'pending'
+                              ? 'All remedies have been reviewed and verified!'
+                              : 'Try adjusting your search or filter.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
                   )
                 : ListView.separated(
                     padding: EdgeInsets.symmetric(horizontal: rs.defaultPadding),
@@ -1290,185 +1545,22 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final remedy = filtered[index];
-                      return Card(
-                        elevation: 1.5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: remedy.isApproved
-                                ? Colors.green.shade300
-                                : Colors.amber.shade400,
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          remedy.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        if (remedy.condition != null)
-                                          Text(
-                                            'For: ${remedy.condition!.name}',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.green.shade800,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  ValidationStatusChip(
-                                    status: remedy.validationStatus,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              if (remedy.preparation.isNotEmpty) ...[
-                                Text(
-                                  'Preparation: ${remedy.preparation}',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                              ],
-                              if (remedy.dosageAdults != null) ...[
-                                Text(
-                                  'Dosage (Adults): ${remedy.dosageAdults}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                              if (remedy.moderationComments != null &&
-                                  remedy.moderationComments!.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                        color: Colors.red.shade200),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.feedback_outlined,
-                                          size: 15, color: Colors.red.shade700),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          'Moderator Note: ${remedy.moderationComments}',
-                                          style: TextStyle(
-                                            fontSize: 11.5,
-                                            color: Colors.red.shade800,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 12),
-                              // Action Row
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (remedy.validationStatus != RecordValidationStatus.rejected &&
-                                      remedy.validationStatus != RecordValidationStatus.published) ...[
-                                    OutlinedButton.icon(
-                                      onPressed: () => _rejectRemedyDialog(remedy),
-                                      icon: const Icon(Icons.close, size: 16),
-                                      label: const Text('Reject / Reason'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.red.shade700,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  if (remedy.validationStatus == RecordValidationStatus.submitted ||
-                                      remedy.validationStatus == RecordValidationStatus.underReview) ...[
-                                    ElevatedButton.icon(
-                                      onPressed: () => _updateRemedyStage(
-                                        remedy,
-                                        RecordValidationStatus.validated,
-                                      ),
-                                      icon: const Icon(Icons.verified_outlined, size: 16),
-                                      label: const Text('Validate Remedy'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF0284C7),
-                                        foregroundColor: Colors.white,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                  ] else if (remedy.validationStatus == RecordValidationStatus.validated) ...[
-                                    ElevatedButton.icon(
-                                      onPressed: () => _updateRemedyStage(
-                                        remedy,
-                                        RecordValidationStatus.published,
-                                      ),
-                                      icon: const Icon(Icons.check_circle_outline, size: 16),
-                                      label: const Text('Publish to Public'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF16A34A),
-                                        foregroundColor: Colors.white,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                  ] else if (remedy.validationStatus == RecordValidationStatus.published) ...[
-                                    OutlinedButton.icon(
-                                      onPressed: () => _updateRemedyStage(
-                                        remedy,
-                                        RecordValidationStatus.validated,
-                                      ),
-                                      icon: const Icon(Icons.visibility_off_outlined, size: 16),
-                                      label: const Text('Unpublish'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.orange.shade800,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                  ] else if (remedy.validationStatus == RecordValidationStatus.rejected) ...[
-                                    ElevatedButton.icon(
-                                      onPressed: () => _updateRemedyStage(
-                                        remedy,
-                                        RecordValidationStatus.underReview,
-                                      ),
-                                      icon: const Icon(Icons.restart_alt_rounded, size: 16),
-                                      label: const Text('Re-open for Review'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFFD97706),
-                                        foregroundColor: Colors.white,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                      return RemedyReviewCard(
+                        remedy: remedy,
+                        onTap: () => _showRemedyDetailsSheet(remedy),
+                        onToggleApproval: () {
+                          final isApproved = remedy.isApproved ||
+                              remedy.validationStatus.isApproved;
+                          _updateRemedyStage(
+                            remedy,
+                            isApproved
+                                ? RecordValidationStatus.submitted
+                                : RecordValidationStatus.published,
+                          );
+                        },
+                        onReject: () => _rejectRemedyDialog(remedy),
+                        onEdit: () => _openEditRemedy(remedy),
+                        onDelete: () => _deleteRemedy(remedy),
                       );
                     },
                   ),
@@ -1517,44 +1609,37 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
             padding: EdgeInsets.all(rs.defaultPadding),
             child: Column(
               children: [
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search practitioners by name, email, specialty, location...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-                  ),
+                AppSearchBar(
+                  hintText: 'Search practitioners by name, email, specialty, location...',
                   onChanged: (val) =>
                       setState(() => _herbalistSearchQuery = val),
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    _filterChip('All (${_herbalists.length})', 'all',
-                        _herbalistFilter, (v) => setState(() => _herbalistFilter = v)),
-                    _filterChip(
-                      'Pending (${_herbalists.where((h) => h.isPending).length})',
-                      'pending',
-                      _herbalistFilter,
-                      (v) => setState(() => _herbalistFilter = v),
+                const SizedBox(height: 8),
+                AppFilterBar<String>(
+                  selectedValue: _herbalistFilter,
+                  onSelected: (v) => setState(() => _herbalistFilter = v),
+                  options: [
+                    FilterOption(
+                      label: 'All',
+                      value: 'all',
+                      count: _herbalists.length,
+                    ),
+                    FilterOption(
+                      label: 'Pending',
+                      value: 'pending',
+                      count: _herbalists.where((h) => h.isPending).length,
                       activeColor: Colors.amber.shade800,
                     ),
-                    _filterChip(
-                      'Verified (${_herbalists.where((h) => h.isVerified).length})',
-                      'verified',
-                      _herbalistFilter,
-                      (v) => setState(() => _herbalistFilter = v),
+                    FilterOption(
+                      label: 'Verified',
+                      value: 'verified',
+                      count: _herbalists.where((h) => h.isVerified).length,
                       activeColor: Colors.green.shade700,
                     ),
-                    _filterChip(
-                      'Rejected (${_herbalists.where((h) => h.isRejected).length})',
-                      'rejected',
-                      _herbalistFilter,
-                      (v) => setState(() => _herbalistFilter = v),
+                    FilterOption(
+                      label: 'Rejected',
+                      value: 'rejected',
+                      count: _herbalists.where((h) => h.isRejected).length,
                       activeColor: Colors.red.shade700,
                     ),
                   ],
@@ -1573,212 +1658,15 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final herbalist = filtered[index];
-                      final statusColor = herbalist.isVerified
-                          ? Colors.green
-                          : (herbalist.isRejected
-                              ? Colors.red
-                              : Colors.amber.shade800);
-
-                      return Card(
-                        elevation: 1.5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: statusColor.withValues(alpha: 0.5),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor: Colors.indigo.shade100,
-                                    backgroundImage: herbalist.avatarUrl != null
-                                        ? NetworkImage(herbalist.avatarUrl!)
-                                        : null,
-                                    child: herbalist.avatarUrl == null
-                                        ? Text(
-                                            herbalist.fullName.isNotEmpty
-                                                ? herbalist.fullName[0].toUpperCase()
-                                                : 'P',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.indigo.shade800,
-                                            ),
-                                          )
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          herbalist.fullName,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        Text(
-                                          herbalist.email,
-                                          style: TextStyle(
-                                            fontSize: 12.5,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
-                                        if (herbalist.phoneNumber != null)
-                                          Text(
-                                            'Phone: ${herbalist.phoneNumber}',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  _statusBadge(
-                                    herbalist.verificationStatus.toUpperCase(),
-                                    statusColor,
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: 24),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _metaInfo(
-                                      Icons.school_outlined,
-                                      'Specialisation',
-                                      herbalist.specialisation,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _metaInfo(
-                                      Icons.history_toggle_off_rounded,
-                                      'Experience',
-                                      '${herbalist.yearsOfExperience} years',
-                                    ),
-                                  ),
-                                  if (herbalist.location != null)
-                                    Expanded(
-                                      child: _metaInfo(
-                                        Icons.location_on_outlined,
-                                        'Location',
-                                        herbalist.location!,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (!herbalist.isRejected)
-                                    OutlinedButton.icon(
-                                      onPressed: () => _setHerbalistStatus(
-                                          herbalist, 'rejected'),
-                                      icon: const Icon(Icons.close, size: 16),
-                                      label: const Text('Reject Practitioner'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.red.shade700,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                  const SizedBox(width: 8),
-                                  if (!herbalist.isVerified)
-                                    ElevatedButton.icon(
-                                      onPressed: () => _setHerbalistStatus(
-                                          herbalist, 'verified'),
-                                      icon: const Icon(Icons.verified, size: 16),
-                                      label: const Text('Verify Practitioner'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green.shade700,
-                                        foregroundColor: Colors.white,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                      return PractitionerReviewCard(
+                        herbalist: herbalist,
+                        onTap: () =>
+                            _showPractitionerDetailsSheet(herbalist),
                       );
                     },
                   ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _metaInfo(IconData icon, String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 14, color: Colors.grey.shade600),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(value,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-      ],
-    );
-  }
-
-  Widget _filterChip(
-    String label,
-    String value,
-    String current,
-    ValueChanged<String> onSelected, {
-    Color? activeColor,
-  }) {
-    final isSelected = value == current;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => onSelected(value),
-      selectedColor: (activeColor ?? Theme.of(context).colorScheme.primary)
-          .withValues(alpha: 0.15),
-      labelStyle: TextStyle(
-        fontSize: 12,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        color: isSelected
-            ? (activeColor ?? Theme.of(context).colorScheme.primary)
-            : Colors.grey.shade700,
-      ),
-      visualDensity: VisualDensity.compact,
-    );
-  }
-
-  Widget _statusBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
       ),
     );
   }

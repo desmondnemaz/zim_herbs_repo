@@ -223,6 +223,11 @@ class ModerationRemoteDataSource {
     await client.from('remedies').update(updateData).eq('id', remedyId);
   }
 
+  /// Delete a remedy (e.g. invalid or duplicate submission)
+  Future<void> deleteRemedy(String remedyId) async {
+    await client.from('remedies').delete().eq('id', remedyId);
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   // 3. Practitioner / Herbalist Moderation
   // ───────────────────────────────────────────────────────────────────────────

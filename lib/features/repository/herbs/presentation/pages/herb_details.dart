@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
@@ -12,11 +12,16 @@ import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/re
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedies_list.dart';
 
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
 import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 
 class HerbDetailsPage extends StatefulWidget {
   final String herbId;
@@ -75,6 +80,21 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
     super.dispose();
   }
 
+  Future<void> _openEditHerb(BuildContext context, Herb herb) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditHerbPage(
+          herb: HerbModel.fromEntity(herb),
+        ),
+      ),
+    );
+
+    if (result == true && mounted && context.mounted) {
+      context.read<HerbDetailCubit>().loadHerb(widget.herbId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
@@ -99,8 +119,12 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
 
           if (state is HerbDetailInitial ||
               state is HerbDetailLoading) {
-            return const Scaffold(
-              body: Center(
+            return Scaffold(
+              appBar: AppPageAppBar(
+                title: 'Herb Details',
+                onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+              ),
+              body: const Center(
                 child: CircularProgressIndicator(),
               ),
             );
@@ -112,21 +136,9 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
 
           if (state is HerbDetailError) {
             return Scaffold(
-              appBar: AppBar(
-                backgroundColor:
-                    Theme.of(context).colorScheme.primary,
-                leading: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back,
-                    color:
-                        Theme.of(context).colorScheme.secondary,
-                  ),
-                  onPressed: () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
+              appBar: AppPageAppBar(
+                title: 'Herb Details',
+                onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
               ),
               body: AppErrorView(
                 failure: state.failure,
@@ -148,6 +160,15 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
           if (state is HerbDetailLoaded) {
             final herb = state.herb;
             final treatments = state.treatments;
+
+            AuthState? authState;
+            try {
+              authState = context.watch<AuthCubit>().state;
+            } catch (_) {}
+            final canEdit = authState is Authenticated &&
+                (authState.user.canModerate ||
+                    (herb.createdBy != null &&
+                        authState.user.id == herb.createdBy));
 
             return Scaffold(
               backgroundColor:
@@ -192,6 +213,29 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                         }
                       },
                     ),
+
+                    actions: [
+                      if (canEdit)
+                        IconButton(
+                          tooltip: 'Edit Herb',
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.black26,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.edit_note_rounded,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondary,
+                              size: rs.appBarIcon,
+                            ),
+                          ),
+                          onPressed: () => _openEditHerb(context, herb),
+                        ),
+                      const SizedBox(width: 8),
+                    ],
 
                     flexibleSpace: FlexibleSpaceBar(
                       centerTitle: true,
@@ -676,6 +720,33 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                     const SizedBox(
                                       height: 32,
                                     ),
+                                  ],
+
+                                  if (canEdit) ...[
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton.icon(
+                                        icon: const Icon(Icons.edit_note_rounded),
+                                        label: const Text(
+                                          'Edit Herb Details',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        onPressed: () =>
+                                            _openEditHerb(context, herb),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
                                   ],
 
                                   RecordAuditTimeline(

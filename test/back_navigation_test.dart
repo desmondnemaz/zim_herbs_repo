@@ -7,6 +7,7 @@ import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.da
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb_cubit.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/condition_list.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/domain/repositories/condition_repository.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/body_part.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/condition.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_cubit.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedies_list.dart';
@@ -44,6 +45,9 @@ class MockConditionRepository implements ConditionRepository {
   dynamic noSuchMethod(Invocation invocation) {
     if (invocation.memberName == #getAllConditions || invocation.memberName == #getConditions) {
       return Future.value(<Condition>[]);
+    }
+    if (invocation.memberName == #getAllBodyParts || invocation.memberName == #getBodyParts) {
+      return Future.value(<BodyPart>[]);
     }
     return super.noSuchMethod(invocation);
   }

@@ -33,6 +33,12 @@ class BatchActionToolbar extends StatelessWidget {
   /// Primary delete action callback when items are marked.
   final VoidCallback? onDeleteSelected;
 
+  /// Primary favorite action callback when items are marked (e.g. for public/learner catalog).
+  final VoidCallback? onFavoriteSelected;
+
+  /// Custom label for the favorite action button (defaults to 'Mark as Favorite').
+  final String favoriteButtonText;
+
   /// Custom label for the mark toggle button (defaults to 'Mark / Select').
   final String markButtonText;
 
@@ -56,6 +62,8 @@ class BatchActionToolbar extends StatelessWidget {
     required this.onCancelSelection,
     this.onToggleSelectAll,
     this.onDeleteSelected,
+    this.onFavoriteSelected,
+    this.favoriteButtonText = 'Mark as Favorite',
     this.markButtonText = 'Mark / Select',
     this.customLeading,
     this.additionalSelectionActions,
@@ -114,6 +122,27 @@ class BatchActionToolbar extends StatelessWidget {
             if (additionalSelectionActions != null) ...[
               const SizedBox(width: 4),
               ...additionalSelectionActions!,
+            ],
+            if (onFavoriteSelected != null) ...[
+              const SizedBox(width: 6),
+              ElevatedButton.icon(
+                onPressed: selectedCount == 0 ? null : onFavoriteSelected,
+                icon: const Icon(Icons.favorite, size: 16),
+                label: Text(
+                  selectedCount > 0
+                      ? '$favoriteButtonText ($selectedCount)'
+                      : favoriteButtonText,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.pink.shade600,
+                  foregroundColor: Colors.white,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 0,
+                  ),
+                ),
+              ),
             ],
             if (onDeleteSelected != null) ...[
               const SizedBox(width: 6),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
 
 class NotificationsPage extends StatelessWidget {
@@ -34,11 +35,8 @@ class NotificationsPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Notifications"),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        elevation: 0,
+      appBar: const AppPageAppBar(
+        title: "Notifications",
       ),
       body: ListView.builder(
           padding: const EdgeInsets.all(defaultPadding),

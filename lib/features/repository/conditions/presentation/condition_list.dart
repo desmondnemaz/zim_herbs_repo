@@ -10,12 +10,20 @@ import 'package:zim_herbs_repo/features/repository/conditions/data/models/condit
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/components/desktop_condition_list.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/components/mobile_condition_list.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
-import 'package:zim_herbs_repo/core/theme/spacing.dart';
+import 'package:zim_herbs_repo/core/components/app_page_header.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 
 class ConditionsListPage extends StatefulWidget {
   final VoidCallback? onBack;
-  const ConditionsListPage({super.key, this.onBack});
+  final bool isPublicView;
+
+  const ConditionsListPage({
+    super.key,
+    this.onBack,
+    this.isPublicView = false,
+  });
 
   @override
   State<ConditionsListPage> createState() => _ConditionsListPageState();
@@ -24,10 +32,7 @@ class ConditionsListPage extends StatefulWidget {
 class _ConditionsListPageState extends State<ConditionsListPage> {
   BodySystem? _selectedBodySystem;
 
-  Future<void> _handleDelete(
-    BuildContext context,
-    Condition condition,
-  ) async {
+  Future<void> _handleDelete(BuildContext context, Condition condition) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder:
@@ -65,21 +70,22 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
       context: context,
       builder:
           (dialogContext) => AddEditConditionDialog(
-            condition: condition != null ? ConditionModel.fromEntity(condition) : null,
+            condition:
+                condition != null ? ConditionModel.fromEntity(condition) : null,
             onSave: (newConditionModel) async {
               final newCondition = newConditionModel.toEntity();
               final bodyPartIds =
                   newConditionModel.bodyParts.map((bp) => bp.id).toList();
               if (condition == null) {
                 context.read<ConditionCubit>().createCondition(
-                      newCondition,
-                      bodyPartIds: bodyPartIds,
-                    );
+                  newCondition,
+                  bodyPartIds: bodyPartIds,
+                );
               } else {
                 context.read<ConditionCubit>().updateCondition(
-                      newCondition,
-                      bodyPartIds: bodyPartIds,
-                    );
+                  newCondition,
+                  bodyPartIds: bodyPartIds,
+                );
               }
             },
           ),
@@ -89,6 +95,14 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
+    AuthState? authState;
+    try {
+      authState = context.watch<AuthCubit>().state;
+    } catch (_) {}
+    final canManage =
+        !widget.isPublicView &&
+        authState is Authenticated &&
+        authState.user.canModerate;
 
     return Builder(
       builder: (context) {
@@ -110,11 +124,13 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
             appBar:
                 Responsive.isDesktop(context)
                     ? null
-                    : AppBar(
-                      toolbarHeight: 10,
-                      elevation: 0,
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                    ),
+                    : AppPageAppBar(
+                        title:
+                            widget.isPublicView
+                                ? 'Conditions Catalog'
+                                : 'Conditions',
+                        onBack: widget.onBack,
+                      ),
             body: SafeArea(
               child: Container(
                 decoration: BoxDecoration(
@@ -138,29 +154,43 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
                             return AppErrorView(
                               failure: state.failure,
                               message: state.message,
-                              onRetry: () =>
-                                  context.read<ConditionCubit>().loadConditions(),
+                              onRetry:
+                                  () =>
+                                      context
+                                          .read<ConditionCubit>()
+                                          .loadConditions(),
                             );
                           }
 
                           if (state is ConditionLoaded) {
                             final filteredBySystem =
-                                state.conditions.where((c) {
-                                  return _selectedBodySystem == null ||
-                                      c.bodySystem == _selectedBodySystem;
-                                }).toList();
+                                _selectedBodySystem == null
+                                    ? state.conditions
+                                    : state.conditions
+                                        .where(
+                                          (c) =>
+                                              c.bodySystem ==
+                                              _selectedBodySystem,
+                                        )
+                                        .toList();
 
                             return Column(
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: 8,
-                                    right: 20,
-                                    bottom: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
                                   ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
+                                      Text(
+                                        "Conditions Found: ${filteredBySystem.length}",
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleSmall,
+                                      ),
                                       Text(
                                         "Total: ${state.conditions.length}",
                                         style: TextStyle(
@@ -184,59 +214,77 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
                                             mobile: MobileConditionList(
                                               conditions: filteredBySystem,
                                               rs: rs,
+                                              isPublicView: widget.isPublicView,
                                               onRefresh: () async {
                                                 context
                                                     .read<ConditionCubit>()
                                                     .refreshConditions();
                                               },
                                               onEdit:
-                                                  (cond) => _showAddEditDialog(
-                                                    context: context,
-                                                    condition: cond,
-                                                  ),
+                                                  canManage
+                                                      ? (cond) =>
+                                                          _showAddEditDialog(
+                                                            context: context,
+                                                            condition: cond,
+                                                          )
+                                                      : null,
                                               onDelete:
-                                                  (cond) => _handleDelete(
-                                                    context,
-                                                    cond,
-                                                  ),
+                                                  canManage
+                                                      ? (cond) => _handleDelete(
+                                                        context,
+                                                        cond,
+                                                      )
+                                                      : null,
                                             ),
                                             tablet: DesktopConditionList(
                                               conditions: filteredBySystem,
                                               rs: rs,
+                                              isPublicView: widget.isPublicView,
                                               onRefresh: () async {
                                                 context
                                                     .read<ConditionCubit>()
                                                     .refreshConditions();
                                               },
                                               onEdit:
-                                                  (cond) => _showAddEditDialog(
-                                                    context: context,
-                                                    condition: cond,
-                                                  ),
+                                                  canManage
+                                                      ? (cond) =>
+                                                          _showAddEditDialog(
+                                                            context: context,
+                                                            condition: cond,
+                                                          )
+                                                      : null,
                                               onDelete:
-                                                  (cond) => _handleDelete(
-                                                    context,
-                                                    cond,
-                                                  ),
+                                                  canManage
+                                                      ? (cond) => _handleDelete(
+                                                        context,
+                                                        cond,
+                                                      )
+                                                      : null,
                                             ),
                                             desktop: DesktopConditionList(
                                               conditions: filteredBySystem,
                                               rs: rs,
+                                              isPublicView: widget.isPublicView,
                                               onRefresh: () async {
                                                 context
                                                     .read<ConditionCubit>()
                                                     .refreshConditions();
                                               },
                                               onEdit:
-                                                  (cond) => _showAddEditDialog(
-                                                    context: context,
-                                                    condition: cond,
-                                                  ),
+                                                  canManage
+                                                      ? (cond) =>
+                                                          _showAddEditDialog(
+                                                            context: context,
+                                                            condition: cond,
+                                                          )
+                                                      : null,
                                               onDelete:
-                                                  (cond) => _handleDelete(
-                                                    context,
-                                                    cond,
-                                                  ),
+                                                  canManage
+                                                      ? (cond) => _handleDelete(
+                                                        context,
+                                                        cond,
+                                                      )
+                                                      : null,
                                             ),
                                           ),
                                 ),
@@ -252,22 +300,27 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
                 ),
               ),
             ),
-            floatingActionButton: Builder(
-              builder:
-                  (context) => FloatingActionButton(
-                    tooltip: 'Add Condition',
-                    onPressed: () => _showAddEditDialog(context: context),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.secondary,
-                        width: 4,
-                      ),
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white),
-                  ),
-            ),
+            floatingActionButton:
+                canManage
+                    ? Builder(
+                      builder:
+                          (context) => FloatingActionButton(
+                            tooltip: 'Add Condition',
+                            onPressed:
+                                () => _showAddEditDialog(context: context),
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.secondary,
+                                width: 4,
+                              ),
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white),
+                          ),
+                    )
+                    : null,
           ),
         );
       },
@@ -275,72 +328,14 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
   }
 
   Widget _buildHeader(BuildContext context, ResponsiveSize rs) {
-    final theme = Theme.of(context);
-    final canGoBack = widget.onBack != null || Navigator.canPop(context);
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: defaultPadding,
-        vertical: defaultPadding * 0.75,
-      ),
-      color: theme.scaffoldBackgroundColor,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (canGoBack) ...[
-            InkWell(
-              onTap: () {
-                if (widget.onBack != null) {
-                  widget.onBack!();
-                } else if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                }
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: theme.colorScheme.onSurface,
-                  size: 20,
-                ),
-              ),
-            ),
-            SizedBox(width: defaultPadding),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Conditions",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
-                    fontSize: rs.titleFont * 1.25,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                Text(
-                  "Medical conditions & targeted remedies",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return AppPageHeader(
+      title: widget.isPublicView ? "Conditions Catalog" : "Conditions",
+      subtitle:
+          widget.isPublicView
+              ? "Explore health conditions & targeted remedies"
+              : "Medical conditions & targeted remedies",
+      icon: Icons.medical_information_rounded,
+      onBack: widget.onBack,
     );
   }
 

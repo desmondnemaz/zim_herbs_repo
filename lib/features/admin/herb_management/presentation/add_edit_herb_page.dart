@@ -36,16 +36,29 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
       HerbRemoteDataSource(Supabase.instance.client);
   bool _isApproved = true;
 
+  bool _initializedStatus = false;
+
   @override
   void initState() {
     super.initState();
-    _isApproved = widget.herb?.isApproved ?? true;
     _nameEnController = TextEditingController(text: widget.herb?.nameEn ?? '');
     _nameSnController = TextEditingController(text: widget.herb?.nameSn ?? '');
     _nameNdController = TextEditingController(text: widget.herb?.nameNd ?? '');
     _descriptionController = TextEditingController(
       text: widget.herb?.description ?? '',
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initializedStatus) {
+      _initializedStatus = true;
+      final authState = context.read<AuthCubit>().state;
+      final canModerate =
+          authState is Authenticated && authState.user.canModerate;
+      _isApproved = widget.herb?.isApproved ?? (canModerate ? true : false);
+    }
   }
 
   @override
@@ -89,6 +102,10 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
         final currentUserId = authState is Authenticated
             ? authState.user.id
             : Supabase.instance.client.auth.currentUser?.id;
+        final canModerate =
+            authState is Authenticated && authState.user.canModerate;
+        final effectiveIsApproved =
+            canModerate ? _isApproved : (widget.herb?.isApproved ?? false);
 
         // 1. Create/Construct Herb Model
         var newHerb = HerbModel(
@@ -102,16 +119,16 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
               _descriptionController.text.isEmpty
                   ? null
                   : _descriptionController.text,
-          isApproved: _isApproved,
+          isApproved: effectiveIsApproved,
           createdAt: widget.herb?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
           createdBy:
               widget.herb == null ? currentUserId : widget.herb?.createdBy,
           updatedBy: currentUserId,
-          verifiedBy: _isApproved
+          verifiedBy: effectiveIsApproved
               ? (widget.herb?.verifiedBy ?? currentUserId)
               : null,
-          verifiedAt: _isApproved
+          verifiedAt: effectiveIsApproved
               ? (widget.herb?.verifiedAt ?? DateTime.now())
               : null,
           moderationNotes: widget.herb?.moderationNotes,
@@ -352,57 +369,127 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
                         maxLines: 5,
                       ),
                       const SizedBox(height: 24),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: _isApproved
-                              ? Colors.green.shade50
-                              : Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _isApproved
-                                ? Colors.green.shade300
-                                : Colors.amber.shade400,
-                          ),
-                        ),
-                        child: SwitchListTile(
-                          value: _isApproved,
-                          activeThumbColor: Theme.of(context).colorScheme.primary,
-                          title: Text(
-                            _isApproved
-                                ? 'Verified Herb'
-                                : 'Unverified (Pending Review)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                      Builder(
+                        builder: (context) {
+                          final authState = context.watch<AuthCubit>().state;
+                          final canModerate =
+                              authState is Authenticated && authState.user.canModerate;
+
+                          if (canModerate) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: _isApproved
+                                    ? Colors.green.shade50
+                                    : Colors.amber.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _isApproved
+                                      ? Colors.green.shade300
+                                      : Colors.amber.shade400,
+                                ),
+                              ),
+                              child: SwitchListTile(
+                                value: _isApproved,
+                                activeThumbColor:
+                                    Theme.of(context).colorScheme.primary,
+                                title: Text(
+                                  _isApproved
+                                      ? 'Verified Herb'
+                                      : 'Unverified (Pending Review)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: _isApproved
+                                        ? Colors.green.shade900
+                                        : Colors.amber.shade900,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  _isApproved
+                                      ? 'This herb is verified by moderators and visible to all users.'
+                                      : 'This herb is unverified and pending moderator review.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: _isApproved
+                                        ? Colors.green.shade800
+                                        : Colors.amber.shade800,
+                                  ),
+                                ),
+                                secondary: Icon(
+                                  _isApproved
+                                      ? Icons.verified_user_rounded
+                                      : Icons.pending_actions_rounded,
+                                  color: _isApproved
+                                      ? Colors.green.shade700
+                                      : Colors.amber.shade800,
+                                ),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _isApproved = val;
+                                  });
+                                },
+                              ),
+                            );
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
                               color: _isApproved
-                                  ? Colors.green.shade900
-                                  : Colors.amber.shade900,
+                                  ? Colors.green.shade50
+                                  : Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _isApproved
+                                    ? Colors.green.shade300
+                                    : Colors.amber.shade400,
+                              ),
                             ),
-                          ),
-                          subtitle: Text(
-                            _isApproved
-                                ? 'This herb is verified by moderators and visible to all users.'
-                                : 'This herb is unverified and pending moderator review.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _isApproved
-                                  ? Colors.green.shade800
-                                  : Colors.amber.shade800,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _isApproved
+                                      ? Icons.verified_user_rounded
+                                      : Icons.pending_actions_rounded,
+                                  color: _isApproved
+                                      ? Colors.green.shade700
+                                      : Colors.amber.shade800,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _isApproved
+                                            ? 'Verified Submission'
+                                            : 'Pending Moderator Review',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: _isApproved
+                                              ? Colors.green.shade900
+                                              : Colors.amber.shade900,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _isApproved
+                                            ? 'This herb has been verified by moderators.'
+                                            : 'Your herb contribution will be submitted for review and will be visible under "My Creations" on your learner dashboard.',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: _isApproved
+                                              ? Colors.green.shade800
+                                              : Colors.amber.shade800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          secondary: Icon(
-                            _isApproved
-                                ? Icons.verified_user_rounded
-                                : Icons.pending_actions_rounded,
-                            color: _isApproved
-                                ? Colors.green.shade700
-                                : Colors.amber.shade800,
-                          ),
-                          onChanged: (val) {
-                            setState(() {
-                              _isApproved = val;
-                            });
-                          },
-                        ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 40),
 

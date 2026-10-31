@@ -99,6 +99,67 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
   }
 
+  /// Sections whose screens render their own header with a back button
+  /// (HerbsList, ConditionsListPage, RemediesList, StorePage via `onBack`).
+  /// The shell must not stack its navbar on top of them.
+  static const _sectionsWithOwnHeader = {2, 3, 4, 5};
+
+  /// Mobile/Tablet app bar, chosen per section:
+  /// - Overview (home): brand navbar with drawer, offline badge and profile.
+  /// - Sections with their own header: no shell app bar at all.
+  /// - Other sections: a plain back app bar that returns to Overview.
+  PreferredSizeWidget? _buildMobileAppBar(
+    BuildContext context,
+    ResponsiveSize rs,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (_sectionsWithOwnHeader.contains(_activeIndex)) {
+      return null;
+    }
+
+    if (_activeIndex != 0) {
+      return AppBar(
+        toolbarHeight: rs.appBarHeight,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 2,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: () => setState(() => _activeIndex = 0),
+        ),
+        title: Text(
+          _getSectionTitle(_activeIndex),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: const [
+          _OfflineBadge(),
+          SizedBox(width: 8),
+        ],
+      );
+    }
+
+    return AppBar(
+      toolbarHeight: rs.appBarHeight,
+      backgroundColor: colorScheme.primary,
+      elevation: 4,
+      shadowColor: colorScheme.primary.withValues(alpha: 0.4),
+      title: const _AdminBrandLogo(),
+      centerTitle: false,
+      actions: const [
+        _OfflineBadge(),
+        SizedBox(width: 4),
+        _AdminProfileAvatar(),
+        SizedBox(width: 8),
+      ],
+      iconTheme: IconThemeData(
+        color: colorScheme.onPrimary,
+        size: rs.appBarIcon,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
@@ -155,33 +216,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 : null,
 
             // ================= AppBar for Mobile/Tablet =================
-            appBar: !isDesktop
-                ? AppBar(
-                    toolbarHeight: rs.appBarHeight,
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    elevation: 4,
-                    shadowColor:
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
-                    title: const _AdminBrandLogo(),
-                    centerTitle: false,
-                    actions: const [
-                      _OfflineBadge(),
-                      SizedBox(width: 4),
-                      _AdminProfileAvatar(),
-                      SizedBox(width: 8),
-                    ],
-                    iconTheme: IconThemeData(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      size: rs.appBarIcon,
-                    ),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                      ),
-                    ),
-                  )
-                : null,
+            appBar: !isDesktop ? _buildMobileAppBar(context, rs) : null,
 
             body: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,

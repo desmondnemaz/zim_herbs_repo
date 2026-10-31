@@ -36,6 +36,22 @@ abstract class RemedyRepository {
   /// Delete a remedy by its ID.
   Future<void> deleteRemedy(String id);
 
+  /// Delete multiple remedies by their IDs.
+  Future<void> deleteRemedies(List<String> ids);
+
   /// Approve or disapprove a remedy.
-  Future<void> approveRemedy(String id, {bool approved = true});
+  Future<void> approveRemedy(
+    String id, {
+    bool approved = true,
+    String? verifiedBy,
+    String? moderationNotes,
+  });
+
+  /// Updates remedy verification status with audit attribution and feedback notes.
+  Future<void> updateRemedyVerification(
+    String remedyId,
+    bool isApproved, {
+    String? verifiedBy,
+    String? moderationNotes,
+  });
 }

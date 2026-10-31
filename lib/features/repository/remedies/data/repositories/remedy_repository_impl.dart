@@ -70,7 +70,37 @@ class RemedyRepositoryImpl implements RemedyRepository {
   }
 
   @override
-  Future<void> approveRemedy(String id, {bool approved = true}) {
-    return dataSource.approveRemedy(id, approved: approved);
+  Future<void> deleteRemedies(List<String> ids) {
+    return dataSource.deleteRemediesBatch(ids);
+  }
+
+  @override
+  Future<void> approveRemedy(
+    String id, {
+    bool approved = true,
+    String? verifiedBy,
+    String? moderationNotes,
+  }) {
+    return dataSource.approveRemedy(
+      id,
+      approved: approved,
+      verifiedBy: verifiedBy,
+      moderationNotes: moderationNotes,
+    );
+  }
+
+  @override
+  Future<void> updateRemedyVerification(
+    String remedyId,
+    bool isApproved, {
+    String? verifiedBy,
+    String? moderationNotes,
+  }) {
+    return dataSource.updateRemedyVerification(
+      remedyId,
+      isApproved,
+      verifiedBy: verifiedBy,
+      moderationNotes: moderationNotes,
+    );
   }
 }

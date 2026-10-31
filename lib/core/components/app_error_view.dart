@@ -364,9 +364,10 @@ class _AppErrorViewState extends State<AppErrorView> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: widget.compact ? 420 : 480),
-        child: Padding(
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: widget.compact ? 420 : 480),
+          child: Padding(
           padding: widget.padding,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -579,8 +580,9 @@ class _AppErrorViewState extends State<AppErrorView> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+ }
 }
 
 /// A Sliver wrapper for [AppErrorView], suitable for CustomScrollView sliver lists.

@@ -8,6 +8,7 @@ import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/r
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_state.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_detail_cubit.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
 import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
 import 'package:zim_herbs_repo/core/theme/spacing.dart';
@@ -146,23 +147,20 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
           builder: (context, state) {
             if (state is RemedyDetailLoading ||
                 state is RemedyDetailInitial) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+              return Scaffold(
+                appBar: AppPageAppBar(
+                  title: 'Remedy Details',
+                  onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+                ),
+                body: const Center(child: CircularProgressIndicator()),
               );
             }
 
             if (state is RemedyDetailError) {
               return Scaffold(
-                appBar: AppBar(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      }
-                    },
-                  ),
+                appBar: AppPageAppBar(
+                  title: 'Remedy Details',
+                  onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
                 ),
                 body: AppErrorView(
                   failure: state.failure,

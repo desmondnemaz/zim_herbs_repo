@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import '../models/remedy_model.dart';
 
 /// Communicates directly with the Supabase `remedies` table.
@@ -227,19 +228,71 @@ class RemedyRemoteDataSource {
   // ============================================================
 
   /// Delete a remedy by its ID.
+  /// Delete a remedy by its ID.
   Future<void> deleteRemedy(String id) async {
     await client.from('remedies').delete().eq('id', id);
   }
 
+  /// Delete multiple remedies by their IDs.
+  Future<void> deleteRemediesBatch(List<String> ids) async {
+    if (ids.isEmpty) return;
+    await client.from('remedies').delete().inFilter('id', ids);
+  }
+
   // ============================================================
-  // APPROVE REMEDY
+  // APPROVE / VERIFY REMEDY
   // ============================================================
 
-  /// Approve or disapprove a remedy.
-  Future<void> approveRemedy(String id, {bool approved = true}) async {
-    await client
-        .from('remedies')
-        .update({'is_approved': approved})
-        .eq('id', id);
+  /// Approve or disapprove a remedy with full audit traceability.
+  Future<void> approveRemedy(
+    String id, {
+    bool approved = true,
+    String? verifiedBy,
+    String? moderationNotes,
+  }) async {
+    final now = DateTime.now().toIso8601String();
+    final updateData = <String, dynamic>{
+      'is_approved': approved,
+      'validation_status': approved
+          ? RecordValidationStatus.published.dbValue
+          : RecordValidationStatus.submitted.dbValue,
+      'updated_at': now,
+    };
+
+    if (verifiedBy != null) {
+      if (approved) {
+        updateData['approved_by'] = verifiedBy;
+        updateData['approved_at'] = now;
+        updateData['published_by'] = verifiedBy;
+        updateData['published_at'] = now;
+        updateData['rejected_by'] = null;
+        updateData['rejected_at'] = null;
+      } else {
+        updateData['approved_by'] = null;
+        updateData['approved_at'] = null;
+      }
+    }
+
+    if (moderationNotes != null) {
+      updateData['moderation_comments'] = moderationNotes;
+      updateData['rejection_reason'] = moderationNotes;
+    }
+
+    await client.from('remedies').update(updateData).eq('id', id);
+  }
+
+  /// Updates remedy verification status with audit attribution and feedback notes.
+  Future<void> updateRemedyVerification(
+    String remedyId,
+    bool isApproved, {
+    String? verifiedBy,
+    String? moderationNotes,
+  }) async {
+    await approveRemedy(
+      remedyId,
+      approved: isApproved,
+      verifiedBy: verifiedBy,
+      moderationNotes: moderationNotes,
+    );
   }
 }
