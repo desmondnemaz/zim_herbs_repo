@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 final ThemeData pharmacyTheme = ThemeData(
@@ -18,6 +19,11 @@ final ThemeData pharmacyTheme = ThemeData(
     backgroundColor: Color(0xFF2E7D32),
     foregroundColor: Colors.white,
     elevation: 0,
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+    ),
   ),
   cardColor: Colors.white,
   cardTheme: const CardThemeData(

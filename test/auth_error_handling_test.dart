@@ -16,6 +16,9 @@ import 'package:zim_herbs_repo/features/auth/presentation/login_page.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/auth_gate.dart';
 
 class MockTestAuthRepository implements AuthRepository {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   final StreamController<UserModel?> _controller =
       StreamController<UserModel?>.broadcast();
   UserModel? currentUser;
@@ -47,10 +50,24 @@ class MockTestAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserModel> signUpWithCredentials(
-      {required String email,
-      required String password,
-      String? fullName}) async {
+  Future<UserModel> signUpWithCredentials({
+    required String email,
+    required String password,
+    String? fullName,
+    String? username,
+    String? phoneNumber,
+    String? location,
+    String? primaryRole,
+    List<String>? healthInterests,
+    String? bio,
+    String? practitionerSpecialisation,
+    int? practitionerYearsOfExperience,
+    String? supplierName,
+    String? supplierLocation,
+    String? supplierCategories,
+    int? supplierYearsInOperation,
+    bool applySupplier = false,
+  }) async {
     if (errorToThrowOnSignUp != null) {
       throw errorToThrowOnSignUp!;
     }

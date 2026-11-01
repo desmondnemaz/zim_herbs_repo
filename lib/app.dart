@@ -12,8 +12,6 @@ import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb
 import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/repositories/condition_repository_impl.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_cubit.dart';
-import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
-import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
 import 'package:zim_herbs_repo/core/connection/bloc/connection_bloc.dart' as conn;
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/store_bloc.dart';
@@ -49,10 +47,6 @@ class _MyAppState extends State<MyApp> {
     create: (context) => AuthCubit(_authRepository)..checkAuth(),
   ),
 
-  BlocProvider(
-    create: (context) =>
-        SettingsCubit(SettingsRepository())..loadSettings(),
-  ),
 
   BlocProvider(
     create: (context) =>
@@ -99,9 +93,7 @@ class _MyAppState extends State<MyApp> {
   ),
 ],
 
-      child: BlocBuilder<SettingsCubit, SettingsState>(
-        builder: (context, state) {
-          return BlocListener<AuthCubit, AuthState>(
+      child: BlocListener<AuthCubit, AuthState>(
             listenWhen: (previous, current) {
               if (current is Authenticated) {
                 _wasAuthenticated = true;
@@ -171,9 +163,7 @@ class _MyAppState extends State<MyApp> {
                 child: const AuthGate(),
               ),
             ),
-          );
-        },
-      ),
+          ),
     );
   }
 }

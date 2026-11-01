@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// A reusable green top AppBar styled to match the Zim Herbs design system.
 ///
 /// Features solid primary green background, white typography and icons,
+/// seamless edge-to-edge status bar integration,
 /// and contextual back navigation (invoking [onBack] when supplied,
 /// or [Navigator.pop] when a route can be popped).
 ///
@@ -18,6 +20,7 @@ class AppPageAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool centerTitle;
   final double toolbarHeight;
   final IconThemeData? iconTheme;
+  final SystemUiOverlayStyle? systemOverlayStyle;
 
   const AppPageAppBar({
     super.key,
@@ -31,6 +34,7 @@ class AppPageAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.centerTitle = false,
     this.toolbarHeight = kToolbarHeight,
     this.iconTheme,
+    this.systemOverlayStyle,
   }) : assert(
           title != null || titleWidget != null,
           'Either title or titleWidget must be provided.',
@@ -46,6 +50,15 @@ class AppPageAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       toolbarHeight: toolbarHeight,
+      primary: true,
+      systemOverlayStyle: systemOverlayStyle ??
+          const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+            systemNavigationBarColor: Colors.white,
+            systemNavigationBarIconBrightness: Brightness.dark,
+          ),
       backgroundColor: theme.colorScheme.primary,
       foregroundColor: theme.colorScheme.onPrimary,
       elevation: elevation,

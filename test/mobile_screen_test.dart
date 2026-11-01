@@ -9,6 +9,9 @@ import 'package:zim_herbs_repo/features/auth/presentation/portal_selection_page.
 
 class MockAuthRepo implements AuthRepository {
   @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+  @override
   Stream<UserModel?> get authStateChanges => const Stream.empty();
   @override
   Future<UserModel?> getCurrentUser() async => null;
@@ -16,7 +19,24 @@ class MockAuthRepo implements AuthRepository {
   Future<UserModel> signInWithCredentials({required String email, required String password}) async =>
       const UserModel(id: '1', name: 'Test', email: 'test@example.com', role: UserRole.admin);
   @override
-  Future<UserModel> signUpWithCredentials({required String email, required String password, String? fullName}) async =>
+  Future<UserModel> signUpWithCredentials({
+    required String email,
+    required String password,
+    String? fullName,
+    String? username,
+    String? phoneNumber,
+    String? location,
+    String? primaryRole,
+    List<String>? healthInterests,
+    String? bio,
+    String? practitionerSpecialisation,
+    int? practitionerYearsOfExperience,
+    String? supplierName,
+    String? supplierLocation,
+    String? supplierCategories,
+    int? supplierYearsInOperation,
+    bool applySupplier = false,
+  }) async =>
       const UserModel(id: '1', name: 'Test', email: 'test@example.com', role: UserRole.customer);
   @override
   Future<void> signOut() async {}

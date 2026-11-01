@@ -9,6 +9,7 @@ import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
 import 'package:zim_herbs_repo/features/notifications/presentation/notifications_page.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
+import 'package:zim_herbs_repo/features/profile/presentation/profile_page.dart';
 import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
 
 
@@ -253,7 +254,17 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                     svgSrc: "assets/icons/menu_profile.svg",
                     iconColor: const Color(0xFF81C784),
                     isActive: _activeRoute == "Profile",
-                    onTap: () => setState(() => _activeRoute = "Profile"),
+                    onTap: () {
+                      if (!Responsive.isDesktop(context)) {
+                        Navigator.pop(context);
+                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProfilePage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuItem(
                     title: "Notifications",

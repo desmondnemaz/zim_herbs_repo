@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/core/services/user_export_service.dart';
+import 'package:zim_herbs_repo/core/components/app_page_header.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 
 class UserManagementScreen extends StatefulWidget {
-  const UserManagementScreen({super.key});
+  final VoidCallback? onBack;
+  const UserManagementScreen({super.key, this.onBack});
 
   @override
   State<UserManagementScreen> createState() => _UserManagementScreenState();
@@ -15,11 +20,23 @@ class UserManagementScreen extends StatefulWidget {
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
   final SupabaseClient _client = Supabase.instance.client;
+
+  String? get _currentUserId {
+    try {
+      final authState = context.read<AuthCubit>().state;
+      if (authState is Authenticated) {
+        return authState.user.id;
+      }
+    } catch (_) {}
+    return _client.auth.currentUser?.id;
+  }
+
   List<Map<String, dynamic>> _users = [];
   bool _isLoading = true;
   Failure? _errorFailure;
   String _searchQuery = '';
-  String _selectedRoleFilter = 'all'; // 'all', 'admin', 'moderator', 'supplier'
+  String _selectedRoleFilter =
+      'all'; // 'all', 'admin', 'moderator', 'practitioner', 'supplier', 'deactivated'
   bool _isExporting = false;
 
   // Table sorting & pagination state
@@ -85,12 +102,136 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     });
   }
 
-  Future<void> _toggleAdminRole(String userId, bool currentStatus) async {
+  Future<bool> _confirmActionDialog({
+    required String title,
+    required String message,
+    required String confirmLabel,
+    Color confirmColor = const Color(0xFF2E7D32),
+    IconData icon = Icons.security_rounded,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: confirmColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: confirmColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF334155),
+            height: 1.45,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: confirmColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  Future<void> _toggleAdminRole(Map<String, dynamic> user) async {
+    final userId = user['id'] as String;
+    if (userId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('You cannot change administrator privileges on your own account.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final currentStatus = user['is_admin'] as bool? ?? false;
     final newStatus = !currentStatus;
+    final userName = (user['full_name'] as String?)?.trim().isNotEmpty == true
+        ? user['full_name'] as String
+        : (user['email'] as String? ?? 'User');
+
+    final confirmed = await _confirmActionDialog(
+      title: newStatus ? 'Grant Administrator Role' : 'Revoke Administrator Role',
+      message: newStatus
+          ? 'Are you sure you want to promote "$userName" to Administrator?\n\n'
+              '• "user_profiles.is_admin" will be set to TRUE.\n'
+              '• "user_profiles.is_moderator" will be set to TRUE.\n'
+              '• "user_profiles.primary_role" will be updated to "admin".\n'
+              '• Unrestricted access to user management, moderation, and settings.\n\n'
+              'Confirm updating and persisting to the database?'
+          : 'Are you sure you want to revoke Administrator privileges from "$userName"?\n\n'
+              '• "user_profiles.is_admin" will be set to FALSE.\n'
+              '• The user will lose access to administrative consoles.',
+      confirmLabel: newStatus ? 'Confirm & Grant Role' : 'Confirm & Revoke Role',
+      confirmColor: newStatus ? const Color(0xFF2E7D32) : Colors.red.shade700,
+      icon: Icons.admin_panel_settings_rounded,
+    );
+
+    if (!confirmed) return;
+
     try {
-      final updateData = <String, dynamic>{'is_admin': newStatus};
+      final updateData = <String, dynamic>{
+        'is_admin': newStatus,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
       if (newStatus) {
         updateData['is_moderator'] = true;
+        updateData['primary_role'] = 'admin';
       }
       await _client
           .from('user_profiles')
@@ -104,17 +245,27 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             _users[index]['is_admin'] = newStatus;
             if (newStatus) {
               _users[index]['is_moderator'] = true;
+              _users[index]['primary_role'] = 'admin';
             }
           }
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              newStatus
-                  ? 'User promoted to Administrator'
-                  : 'Administrator role revoked',
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    newStatus
+                        ? 'Administrator privileges granted to $userName and persisted to database.'
+                        : 'Administrator privileges revoked from $userName and updated in database.',
+                  ),
+                ),
+              ],
             ),
-            backgroundColor: newStatus ? Colors.green : Colors.orange,
+            backgroundColor:
+                newStatus ? const Color(0xFF2E7D32) : Colors.orange.shade800,
           ),
         );
       }
@@ -128,12 +279,59 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  Future<void> _toggleModeratorRole(String userId, bool currentStatus) async {
+  Future<void> _toggleModeratorRole(Map<String, dynamic> user) async {
+    final userId = user['id'] as String;
+    if (userId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('You cannot change moderator privileges on your own account.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final currentStatus = user['is_moderator'] as bool? ?? false;
     final newStatus = !currentStatus;
+    final userName = (user['full_name'] as String?)?.trim().isNotEmpty == true
+        ? user['full_name'] as String
+        : (user['email'] as String? ?? 'User');
+
+    final confirmed = await _confirmActionDialog(
+      title: newStatus ? 'Grant Moderator Role' : 'Revoke Moderator Role',
+      message: newStatus
+          ? 'Are you sure you want to assign Moderator privileges to "$userName"?\n\n'
+              '• "user_profiles.is_moderator" will be set to TRUE.\n'
+              '• The user can review, verify, approve, and reject botanical submissions.\n\n'
+              'Confirm updating and persisting to the database?'
+          : 'Are you sure you want to revoke Moderator privileges from "$userName"?\n\n'
+              '• "user_profiles.is_moderator" will be set to FALSE.\n'
+              '• The user will lose access to the Moderation Hub.',
+      confirmLabel: newStatus ? 'Confirm & Grant Role' : 'Confirm & Revoke Role',
+      confirmColor: newStatus ? Colors.indigo.shade700 : Colors.orange.shade800,
+      icon: Icons.verified_user_rounded,
+    );
+
+    if (!confirmed) return;
+
     try {
+      final updateData = <String, dynamic>{
+        'is_moderator': newStatus,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (newStatus && (user['is_admin'] != true)) {
+        updateData['primary_role'] = 'moderator';
+      }
       await _client
           .from('user_profiles')
-          .update({'is_moderator': newStatus})
+          .update(updateData)
           .eq('id', userId);
 
       if (mounted) {
@@ -145,12 +343,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              newStatus
-                  ? 'User assigned Moderator privileges'
-                  : 'Moderator role revoked',
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    newStatus
+                        ? 'Moderator privileges granted to $userName and persisted to database.'
+                        : 'Moderator privileges revoked from $userName and updated in database.',
+                  ),
+                ),
+              ],
             ),
-            backgroundColor: newStatus ? Colors.indigo : Colors.orange,
+            backgroundColor: newStatus ? Colors.indigo : Colors.orange.shade800,
           ),
         );
       }
@@ -164,13 +370,174 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  Future<void> _toggleSupplierRole(String userId, bool currentStatus) async {
+  Future<void> _togglePractitionerRole(Map<String, dynamic> user) async {
+    final userId = user['id'] as String;
+    if (userId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('You cannot change practitioner role on your own account.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final currentStatus = user['is_practitioner'] as bool? ?? false;
     final newStatus = !currentStatus;
+    final userName = (user['full_name'] as String?)?.trim().isNotEmpty == true
+        ? user['full_name'] as String
+        : (user['email'] as String? ?? 'User');
+
+    final confirmed = await _confirmActionDialog(
+      title: newStatus ? 'Grant Practitioner Role' : 'Revoke Practitioner Role',
+      message: newStatus
+          ? 'Are you sure you want to verify and grant Practitioner privileges to "$userName"?\n\n'
+              '• "user_profiles.is_practitioner" will be set to TRUE.\n'
+              '• "herbalist_profiles.verification_status" will be persisted as VERIFIED.\n'
+              '• Telemedicine consultation booking will be enabled.\n\n'
+              'Confirm updating and persisting to the database?'
+          : 'Are you sure you want to revoke Practitioner privileges from "$userName"?\n\n'
+              '• "user_profiles.is_practitioner" will be set to FALSE.\n'
+              '• "herbalist_profiles.verification_status" will be set to REJECTED.',
+      confirmLabel: newStatus ? 'Confirm & Grant Role' : 'Confirm & Revoke Role',
+      confirmColor: newStatus ? Colors.teal.shade700 : Colors.red.shade700,
+      icon: Icons.medical_services_rounded,
+    );
+
+    if (!confirmed) return;
+
     try {
+      final updateData = <String, dynamic>{
+        'is_practitioner': newStatus,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (newStatus &&
+          (user['is_admin'] != true) &&
+          (user['is_moderator'] != true)) {
+        updateData['primary_role'] = 'practitioner';
+      }
       await _client
           .from('user_profiles')
-          .update({'is_supplier': newStatus})
+          .update(updateData)
           .eq('id', userId);
+
+      // Synchronize herbalist_profiles verification_status
+      try {
+        await _client.from('herbalist_profiles').update({
+          'verification_status': newStatus ? 'verified' : 'rejected',
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', userId);
+      } catch (_) {}
+
+      if (mounted) {
+        setState(() {
+          final index = _users.indexWhere((u) => u['id'] == userId);
+          if (index != -1) {
+            _users[index]['is_practitioner'] = newStatus;
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    newStatus
+                        ? 'Practitioner privileges granted to $userName and persisted to database.'
+                        : 'Practitioner privileges revoked from $userName and updated in database.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor:
+                newStatus ? Colors.teal.shade700 : Colors.grey.shade700,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      if (mounted) {
+        showAppErrorSnackBar(
+          context,
+          failure: ErrorHandler.handle(e, stackTrace),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleSupplierRole(Map<String, dynamic> user) async {
+    final userId = user['id'] as String;
+    if (userId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('You cannot change supplier role on your own account.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final currentStatus = user['is_supplier'] as bool? ?? false;
+    final newStatus = !currentStatus;
+    final userName = (user['full_name'] as String?)?.trim().isNotEmpty == true
+        ? user['full_name'] as String
+        : (user['email'] as String? ?? 'User');
+
+    final confirmed = await _confirmActionDialog(
+      title: newStatus ? 'Grant Supplier Role' : 'Revoke Supplier Role',
+      message: newStatus
+          ? 'Are you sure you want to grant Supplier privileges to "$userName"?\n\n'
+              '• "user_profiles.is_supplier" will be set to TRUE.\n'
+              '• "supplier_profiles.verification_status" will be persisted as VERIFIED.\n'
+              '• Marketplace product catalog publishing will be enabled.\n\n'
+              'Confirm updating and persisting to the database?'
+          : 'Are you sure you want to revoke Supplier privileges from "$userName"?\n\n'
+              '• "user_profiles.is_supplier" will be set to FALSE.\n'
+              '• "supplier_profiles.verification_status" will be set to REJECTED.',
+      confirmLabel: newStatus ? 'Confirm & Grant Role' : 'Confirm & Revoke Role',
+      confirmColor: newStatus ? Colors.orange.shade800 : Colors.grey.shade700,
+      icon: Icons.storefront_rounded,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      final updateData = <String, dynamic>{
+        'is_supplier': newStatus,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (newStatus &&
+          (user['is_admin'] != true) &&
+          (user['is_moderator'] != true)) {
+        updateData['primary_role'] = 'supplier';
+      }
+      await _client
+          .from('user_profiles')
+          .update(updateData)
+          .eq('id', userId);
+
+      // Synchronize supplier_profiles verification_status if record exists
+      try {
+        await _client.from('supplier_profiles').update({
+          'verification_status': newStatus ? 'verified' : 'rejected',
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', userId);
+      } catch (_) {}
 
       if (mounted) {
         setState(() {
@@ -181,12 +548,110 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              newStatus
-                  ? 'User granted Supplier privileges'
-                  : 'Supplier role revoked',
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    newStatus
+                        ? 'Supplier privileges granted to $userName and persisted to database.'
+                        : 'Supplier privileges revoked from $userName and updated in database.',
+                  ),
+                ),
+              ],
             ),
-            backgroundColor: newStatus ? Colors.orange : Colors.grey,
+            backgroundColor:
+                newStatus ? Colors.orange.shade800 : Colors.grey.shade700,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      if (mounted) {
+        showAppErrorSnackBar(
+          context,
+          failure: ErrorHandler.handle(e, stackTrace),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleUserActiveStatus(Map<String, dynamic> user) async {
+    final userId = user['id'] as String;
+    if (userId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('You cannot deactivate your own account.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final currentActive = (user['is_active'] as bool?) ?? true;
+    final newActive = !currentActive;
+    final userName = (user['full_name'] as String?)?.trim().isNotEmpty == true
+        ? user['full_name'] as String
+        : (user['email'] as String? ?? 'User');
+
+    final confirmed = await _confirmActionDialog(
+      title: newActive ? 'Reactivate User Account' : 'Deactivate User Account',
+      message: newActive
+          ? 'Are you sure you want to restore and reactivate the account for "$userName"?\n\n'
+              '• "user_profiles.is_active" will be persisted as TRUE.\n'
+              '• The user will regain normal access to app services and portals.'
+          : 'Are you sure you want to deactivate "$userName"?\n\n'
+              '• "user_profiles.is_active" will be persisted as FALSE.\n'
+              '• The user will be immediately locked out of all repository, consultation, and store features.\n'
+              '• Upon next access or app resume, they will see the Account Deactivated screen.',
+      confirmLabel: newActive ? 'Confirm & Reactivate' : 'Confirm & Deactivate',
+      confirmColor: newActive ? const Color(0xFF2E7D32) : Colors.red.shade700,
+      icon: newActive ? Icons.person_add_rounded : Icons.person_off_rounded,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await _client.from('user_profiles').update({
+        'is_active': newActive,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
+
+      if (mounted) {
+        setState(() {
+          final index = _users.indexWhere((u) => u['id'] == userId);
+          if (index != -1) {
+            _users[index]['is_active'] = newActive;
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  newActive ? Icons.check_circle_outline : Icons.block_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    newActive
+                        ? 'Account for $userName reactivated successfully.'
+                        : 'Account for $userName deactivated and locked out.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor:
+                newActive ? const Color(0xFF2E7D32) : Colors.red.shade800,
           ),
         );
       }
@@ -202,21 +667,84 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Future<void> _updateUserRights({
     required String userId,
+    required String userName,
     required bool isAdmin,
     required bool isModerator,
+    required bool isPractitioner,
     required bool isSupplier,
+    bool isActive = true,
   }) async {
+    if (userId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('You cannot modify roles or status for your own account.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final confirmed = await _confirmActionDialog(
+      title: 'Confirm Updated Roles & Privileges',
+      message: 'Are you sure you want to update permissions for "$userName"?\n\n'
+          '• Account Status: ${isActive ? "ACTIVE" : "DEACTIVATED"}\n'
+          '• Administrator: ${isAdmin ? "GRANTED" : "REVOKED"}\n'
+          '• Moderator: ${(isAdmin || isModerator) ? "GRANTED" : "REVOKED"}\n'
+          '• Practitioner: ${isPractitioner ? "GRANTED" : "REVOKED"}\n'
+          '• Supplier / Vendor: ${isSupplier ? "GRANTED" : "REVOKED"}\n\n'
+          'All updates will be written directly and persisted to the database.',
+      confirmLabel: 'Confirm & Persist to DB',
+      confirmColor: const Color(0xFF2E7D32),
+      icon: Icons.verified_user_rounded,
+    );
+
+    if (!confirmed) return;
+
     try {
       final updateData = <String, dynamic>{
         'is_admin': isAdmin,
         'is_moderator': isAdmin ? true : isModerator,
+        'is_practitioner': isPractitioner,
         'is_supplier': isSupplier,
+        'is_active': isActive,
+        'updated_at': DateTime.now().toIso8601String(),
       };
+      if (isAdmin) {
+        updateData['primary_role'] = 'admin';
+      } else if (isModerator) {
+        updateData['primary_role'] = 'moderator';
+      } else if (isPractitioner) {
+        updateData['primary_role'] = 'practitioner';
+      } else if (isSupplier) {
+        updateData['primary_role'] = 'supplier';
+      }
 
       await _client
           .from('user_profiles')
           .update(updateData)
           .eq('id', userId);
+
+      // Synchronize related profile statuses
+      try {
+        await _client.from('supplier_profiles').update({
+          'verification_status': isSupplier ? 'verified' : 'rejected',
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', userId);
+      } catch (_) {}
+
+      try {
+        await _client.from('herbalist_profiles').update({
+          'verification_status': isPractitioner ? 'verified' : 'rejected',
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', userId);
+      } catch (_) {}
 
       if (mounted) {
         setState(() {
@@ -224,13 +752,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           if (index != -1) {
             _users[index]['is_admin'] = isAdmin;
             _users[index]['is_moderator'] = isAdmin ? true : isModerator;
+            _users[index]['is_practitioner'] = isPractitioner;
             _users[index]['is_supplier'] = isSupplier;
+            _users[index]['is_active'] = isActive;
           }
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User rights updated successfully.'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('User rights for $userName persisted to database successfully.'),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
           ),
         );
       }
@@ -248,13 +786,32 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     BuildContext context,
     Map<String, dynamic> user,
   ) async {
+    final userId = user['id'] as String;
+    if (userId == _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('Self-management restricted: You cannot modify roles or status for your own account.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final theme = Theme.of(context);
     bool isAdmin = user['is_admin'] as bool? ?? false;
     bool isModerator = user['is_moderator'] as bool? ?? false;
+    bool isPractitioner = user['is_practitioner'] as bool? ?? false;
     bool isSupplier = user['is_supplier'] as bool? ?? false;
+    bool isActive = (user['is_active'] as bool?) ?? true;
     final fullName = (user['full_name'] as String?)?.trim() ?? '';
     final email = user['email'] as String? ?? '';
-    final userId = user['id'] as String;
 
     await showDialog(
       context: context,
@@ -366,6 +923,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text(
+                        'Traditional Practitioner',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Can conduct telemedicine consultations and publish clinical profile',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                      activeThumbColor: Colors.teal,
+                      value: isPractitioner,
+                      onChanged: (val) {
+                        setDialogState(() => isPractitioner = val);
+                      },
+                    ),
+                    const Divider(height: 1, thickness: 0.5, color: Color(0xFFE2E8F0)),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
                         'Supplier / Vendor',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
@@ -380,6 +957,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       value: isSupplier,
                       onChanged: (val) {
                         setDialogState(() => isSupplier = val);
+                      },
+                    ),
+                    const Divider(height: 1, thickness: 0.5, color: Color(0xFFE2E8F0)),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Account Active',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'When deactivated, the user is locked out from accessing the app',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                      activeThumbColor: const Color(0xFF2E7D32),
+                      value: isActive,
+                      onChanged: (val) {
+                        setDialogState(() => isActive = val);
                       },
                     ),
                   ],
@@ -405,9 +1002,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     Navigator.of(ctx).pop();
                     _updateUserRights(
                       userId: userId,
+                      userName: fullName.isNotEmpty ? fullName : email,
                       isAdmin: isAdmin,
                       isModerator: isModerator,
+                      isPractitioner: isPractitioner,
                       isSupplier: isSupplier,
+                      isActive: isActive,
                     );
                   },
                   child: const Text('Save Rights'),
@@ -487,7 +1087,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       if (_selectedRoleFilter == 'moderator' && user['is_moderator'] != true) {
         return false;
       }
+      if (_selectedRoleFilter == 'practitioner' &&
+          user['is_practitioner'] != true) {
+        return false;
+      }
       if (_selectedRoleFilter == 'supplier' && user['is_supplier'] != true) {
+        return false;
+      }
+      if (_selectedRoleFilter == 'deactivated' && user['is_active'] != false) {
         return false;
       }
 
@@ -506,209 +1113,69 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ─── Header & Actions ───────────────────────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'User Management',
-                          style: TextStyle(
-                            fontSize: rs.titleFont * 1.2,
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
+              AppPageHeader(
+                title: 'User Management',
+                subtitle: 'Manage accounts, roles & privileges',
+                icon: Icons.manage_accounts_rounded,
+                onBack: widget.onBack,
+                padding: EdgeInsets.zero,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Export Menu
+                    PopupMenuButton<String>(
+                      tooltip: 'Export users',
+                      icon: _isExporting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.download_rounded),
+                      onSelected: (val) {
+                        if (val == 'pdf') {
+                          _exportPdf(filteredUsers);
+                        } else if (val == 'excel') {
+                          _exportCsv(filteredUsers);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'pdf',
+                          child: Row(
+                            children: [
+                              Icon(Icons.picture_as_pdf,
+                                  color: Colors.red, size: 20),
+                              SizedBox(width: 10),
+                              Text('Export PDF Report'),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Manage client accounts, roles, and administrative privileges for Zim Herbs',
-                          style: TextStyle(
-                            fontSize: rs.bodyFont * 0.9,
-                            color: Colors.grey.shade600,
+                        const PopupMenuItem(
+                          value: 'excel',
+                          child: Row(
+                            children: [
+                              Icon(Icons.table_view_rounded,
+                                  color: Colors.green, size: 20),
+                              SizedBox(width: 10),
+                              Text('Export Excel (CSV)'),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // View Mode Toggle (Table / Card)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            InkWell(
-                              borderRadius: const BorderRadius.horizontal(
-                                left: Radius.circular(9),
-                              ),
-                              onTap: () {
-                                if (!_isTableView) {
-                                  setState(() => _isTableView = true);
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _isTableView
-                                      ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                                      : Colors.transparent,
-                                  borderRadius: const BorderRadius.horizontal(
-                                    left: Radius.circular(9),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.table_chart_outlined,
-                                      size: 16,
-                                      color: _isTableView
-                                          ? theme.colorScheme.primary
-                                          : Colors.grey.shade600,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Table',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: _isTableView
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        color: _isTableView
-                                            ? theme.colorScheme.primary
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 1,
-                              height: 20,
-                              color: Colors.grey.shade300,
-                            ),
-                            InkWell(
-                              borderRadius: const BorderRadius.horizontal(
-                                right: Radius.circular(9),
-                              ),
-                              onTap: () {
-                                if (_isTableView) {
-                                  setState(() => _isTableView = false);
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: !_isTableView
-                                      ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                                      : Colors.transparent,
-                                  borderRadius: const BorderRadius.horizontal(
-                                    right: Radius.circular(9),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.view_agenda_outlined,
-                                      size: 16,
-                                      color: !_isTableView
-                                          ? theme.colorScheme.primary
-                                          : Colors.grey.shade600,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Cards',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: !_isTableView
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        color: !_isTableView
-                                            ? theme.colorScheme.primary
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 6),
 
-                      // Export Menu
-                      PopupMenuButton<String>(
-                        tooltip: 'Export users',
-                        icon: _isExporting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.download_rounded),
-                        onSelected: (val) {
-                          if (val == 'pdf') {
-                            _exportPdf(filteredUsers);
-                          } else if (val == 'excel') {
-                            _exportCsv(filteredUsers);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'pdf',
-                            child: Row(
-                              children: [
-                                Icon(Icons.picture_as_pdf,
-                                    color: Colors.red, size: 20),
-                                SizedBox(width: 10),
-                                Text('Export PDF Report'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'excel',
-                            child: Row(
-                              children: [
-                                Icon(Icons.table_view_rounded,
-                                    color: Colors.green, size: 20),
-                                SizedBox(width: 10),
-                                Text('Export Excel (CSV)'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        tooltip: 'Refresh Users',
-                        onPressed: _loadUsers,
-                      ),
-                    ],
-                  ),
-                ],
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      tooltip: 'Refresh Users',
+                      onPressed: _loadUsers,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
 
-              // ─── Search & Role Filters ───────────────────────────────────────
+              // ─── Search & View Mode (Inline) ───────────────────────────────────
               Row(
                 children: [
                   Expanded(
@@ -741,6 +1208,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       }),
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  _buildViewModeToggle(theme),
                 ],
               ),
               const SizedBox(height: 12),
@@ -767,10 +1236,24 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ),
                     const SizedBox(width: 8),
                     _buildFilterChip(
+                      'Practitioners',
+                      'practitioner',
+                      _users.where((u) => u['is_practitioner'] == true).length,
+                      color: Colors.teal,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
                       'Suppliers',
                       'supplier',
                       _users.where((u) => u['is_supplier'] == true).length,
                       color: Colors.orange,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      'Deactivated',
+                      'deactivated',
+                      _users.where((u) => u['is_active'] == false).length,
+                      color: Colors.red.shade700,
                     ),
                   ],
                 ),
@@ -853,6 +1336,124 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         _selectedRoleFilter = value;
         _currentPage = 0;
       }),
+    );
+  }
+
+  Widget _buildViewModeToggle(ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(9),
+            ),
+            onTap: () {
+              if (!_isTableView) {
+                setState(() => _isTableView = true);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 7,
+              ),
+              decoration: BoxDecoration(
+                color: _isTableView
+                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                    : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(9),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.table_chart_outlined,
+                    size: 16,
+                    color: _isTableView
+                        ? theme.colorScheme.primary
+                        : Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Table',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: _isTableView
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: _isTableView
+                          ? theme.colorScheme.primary
+                          : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 20,
+            color: Colors.grey.shade300,
+          ),
+          InkWell(
+            borderRadius: const BorderRadius.horizontal(
+              right: Radius.circular(9),
+            ),
+            onTap: () {
+              if (_isTableView) {
+                setState(() => _isTableView = false);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 7,
+              ),
+              decoration: BoxDecoration(
+                color: !_isTableView
+                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                    : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(
+                  right: Radius.circular(9),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.view_agenda_outlined,
+                    size: 16,
+                    color: !_isTableView
+                        ? theme.colorScheme.primary
+                        : Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Cards',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: !_isTableView
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: !_isTableView
+                          ? theme.colorScheme.primary
+                          : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1174,9 +1775,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final user = users[index];
+        final isCurrentUser =
+            _currentUserId != null && user['id'] == _currentUserId;
         final isAdmin = user['is_admin'] as bool? ?? false;
         final isModerator = user['is_moderator'] as bool? ?? false;
+        final isPractitioner = user['is_practitioner'] as bool? ?? false;
         final isSupplier = user['is_supplier'] as bool? ?? false;
+        final isActive = (user['is_active'] as bool?) ?? true;
         final fullName = (user['full_name'] as String?)?.trim();
         final email = user['email'] as String? ?? 'No email';
         final avatarUrl = user['avatar_url'] as String?;
@@ -1195,12 +1800,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isAdmin
-                  ? theme.colorScheme.primary.withValues(alpha: 0.3)
-                  : (isModerator
-                      ? Colors.indigo.shade200
-                      : Colors.grey.shade200),
-              width: isAdmin ? 1.5 : 1.0,
+              color: !isActive
+                  ? Colors.red.shade300
+                  : (isAdmin
+                      ? theme.colorScheme.primary.withValues(alpha: 0.3)
+                      : (isModerator
+                          ? Colors.indigo.shade200
+                          : Colors.grey.shade200)),
+              width: (!isActive || isAdmin) ? 1.5 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
@@ -1220,13 +1827,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   // Avatar with role indicator ring
                   CircleAvatar(
                     radius: 22,
-                    backgroundColor: isAdmin
-                        ? theme.colorScheme.primary
-                        : (isModerator
-                            ? Colors.indigo
-                            : (isSupplier
-                                ? Colors.orange
-                                : Colors.grey.shade300)),
+                    backgroundColor: !isActive
+                        ? Colors.red.shade400
+                        : (isAdmin
+                            ? theme.colorScheme.primary
+                            : (isModerator
+                                ? Colors.indigo
+                                : (isPractitioner
+                                    ? Colors.teal
+                                    : (isSupplier
+                                        ? Colors.orange
+                                        : Colors.grey.shade300)))),
                     backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
                         ? NetworkImage(avatarUrl)
                         : null,
@@ -1250,15 +1861,52 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          fullName != null && fullName.isNotEmpty
-                              ? fullName
-                              : 'Unnamed User',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: Color(0xFF1E293B),
-                          ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                fullName != null && fullName.isNotEmpty
+                                    ? fullName
+                                    : 'Unnamed User',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: !isActive
+                                      ? Colors.grey.shade600
+                                      : const Color(0xFF1E293B),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isCurrentUser) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: theme.colorScheme.primary
+                                        .withValues(alpha: 0.3),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  'YOU',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -1276,7 +1924,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     user: user,
                     isAdmin: isAdmin,
                     isModerator: isModerator,
+                    isPractitioner: isPractitioner,
                     isSupplier: isSupplier,
+                    isActive: isActive,
+                    isCurrentUser: isCurrentUser,
                   ),
                 ],
               ),
@@ -1289,13 +1940,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     spacing: 6,
                     runSpacing: 4,
                     children: [
+                      if (!isActive)
+                        _buildBadge('DEACTIVATED', Colors.red.shade700),
                       if (isAdmin)
                         _buildBadge('ADMIN', theme.colorScheme.primary),
                       if (isModerator && !isAdmin)
                         _buildBadge('MODERATOR', Colors.indigo),
+                      if (isPractitioner)
+                        _buildBadge('PRACTITIONER', Colors.teal),
                       if (isSupplier)
                         _buildBadge('SUPPLIER', Colors.orange),
-                      if (!isAdmin && !isModerator && !isSupplier)
+                      if (!isAdmin &&
+                          !isModerator &&
+                          !isPractitioner &&
+                          !isSupplier &&
+                          isActive)
                         _buildBadge('LEARNER', Colors.blueGrey),
                     ],
                   ),
@@ -1325,22 +1984,55 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.colorScheme.primary,
+                  if (isCurrentUser) ...[
+                    Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      visualDensity: VisualDensity.compact,
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade300),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.lock_outline_rounded,
+                            size: 14,
+                            color: Colors.amber.shade900,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Protected (Logged-in Account)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    icon: const Icon(Icons.admin_panel_settings_outlined,
-                        size: 18),
-                    label: const Text(
-                      'Manage Rights',
-                      style:
-                          TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ] else ...[
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      icon: const Icon(Icons.admin_panel_settings_outlined,
+                          size: 18),
+                      label: const Text(
+                        'Manage Rights',
+                        style:
+                            TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      onPressed: () => _showManageRightsDialog(context, user),
                     ),
-                    onPressed: () => _showManageRightsDialog(context, user),
-                  ),
+                  ],
                 ],
               ),
             ],
@@ -1373,8 +2065,39 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     required Map<String, dynamic> user,
     required bool isAdmin,
     required bool isModerator,
+    required bool isPractitioner,
     required bool isSupplier,
+    required bool isActive,
+    bool isCurrentUser = false,
   }) {
+    if (isCurrentUser) {
+      return PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert),
+        tooltip: 'Protected Account',
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            enabled: false,
+            child: Row(
+              children: [
+                Icon(Icons.lock_outline_rounded, color: Colors.grey, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Self-management restricted',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert),
       tooltip: 'Options',
@@ -1382,11 +2105,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         if (action == 'manage_rights') {
           _showManageRightsDialog(context, user);
         } else if (action == 'toggle_admin') {
-          _toggleAdminRole(user['id'] as String, isAdmin);
+          _toggleAdminRole(user);
         } else if (action == 'toggle_moderator') {
-          _toggleModeratorRole(user['id'] as String, isModerator);
+          _toggleModeratorRole(user);
+        } else if (action == 'toggle_practitioner') {
+          _togglePractitionerRole(user);
         } else if (action == 'toggle_supplier') {
-          _toggleSupplierRole(user['id'] as String, isSupplier);
+          _toggleSupplierRole(user);
+        } else if (action == 'toggle_active') {
+          _toggleUserActiveStatus(user);
         }
       },
       itemBuilder: (context) => [
@@ -1436,6 +2163,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
         ),
         PopupMenuItem(
+          value: 'toggle_practitioner',
+          child: Row(
+            children: [
+              Icon(
+                isPractitioner
+                    ? Icons.medical_services_outlined
+                    : Icons.medical_services_rounded,
+                color: isPractitioner ? Colors.grey : Colors.teal,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(isPractitioner ? 'Revoke Practitioner' : 'Make Practitioner'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
           value: 'toggle_supplier',
           child: Row(
             children: [
@@ -1451,14 +2194,40 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ],
           ),
         ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'toggle_active',
+          child: Row(
+            children: [
+              Icon(
+                isActive ? Icons.block_outlined : Icons.check_circle_outline,
+                color: isActive ? Colors.red.shade700 : const Color(0xFF2E7D32),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isActive ? 'Deactivate Account' : 'Reactivate Account',
+                style: TextStyle(
+                  color: isActive ? Colors.red.shade700 : const Color(0xFF2E7D32),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
+
   Widget _buildTableRow(BuildContext context, Map<String, dynamic> user) {
     final theme = Theme.of(context);
+    final isCurrentUser =
+        _currentUserId != null && user['id'] == _currentUserId;
     final isAdmin = user['is_admin'] as bool? ?? false;
     final isModerator = user['is_moderator'] as bool? ?? false;
+    final isPractitioner = user['is_practitioner'] as bool? ?? false;
     final isSupplier = user['is_supplier'] as bool? ?? false;
+    final isActive = (user['is_active'] as bool?) ?? true;
     final fullName = (user['full_name'] as String?)?.trim();
     final email = user['email'] as String? ?? 'No email';
     final avatarUrl = user['avatar_url'] as String?;
@@ -1484,13 +2253,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               children: [
                 CircleAvatar(
                   radius: 17,
-                  backgroundColor: isAdmin
-                      ? theme.colorScheme.primary
-                      : (isModerator
-                          ? Colors.indigo
-                          : (isSupplier
-                              ? Colors.orange
-                              : const Color(0xFFE2E8F0))),
+                  backgroundColor: !isActive
+                      ? Colors.red.shade400
+                      : (isAdmin
+                          ? theme.colorScheme.primary
+                          : (isModerator
+                              ? Colors.indigo
+                              : (isPractitioner
+                                  ? Colors.teal
+                                  : (isSupplier
+                                      ? Colors.orange
+                                      : const Color(0xFFE2E8F0))))),
                   backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
                       ? NetworkImage(avatarUrl)
                       : null,
@@ -1501,7 +2274,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   : email[0])
                               .toUpperCase(),
                           style: TextStyle(
-                            color: (isAdmin || isModerator || isSupplier)
+                            color: (isAdmin ||
+                                    isModerator ||
+                                    isPractitioner ||
+                                    isSupplier)
                                 ? Colors.white
                                 : const Color(0xFF475569),
                             fontSize: 12,
@@ -1512,14 +2288,51 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    fullName?.isNotEmpty == true ? fullName! : 'Unnamed User',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
-                      fontSize: 13,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          fullName?.isNotEmpty == true ? fullName! : 'Unnamed User',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: !isActive
+                                ? Colors.grey.shade600
+                                : const Color(0xFF1E293B),
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isCurrentUser) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: theme.colorScheme.primary
+                                  .withValues(alpha: 0.3),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            'YOU',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
@@ -1543,12 +2356,19 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               spacing: 4,
               runSpacing: 4,
               children: [
+                if (!isActive)
+                  _chip('DEACTIVATED', Colors.red.shade700),
                 if (isAdmin)
                   _chip('ADMIN', theme.colorScheme.primary)
                 else if (isModerator)
                   _chip('MODERATOR', Colors.indigo),
+                if (isPractitioner) _chip('PRACTITIONER', Colors.teal),
                 if (isSupplier) _chip('SUPPLIER', Colors.orange),
-                if (!isAdmin && !isModerator && !isSupplier)
+                if (!isAdmin &&
+                    !isModerator &&
+                    !isPractitioner &&
+                    !isSupplier &&
+                    isActive)
                   _chip('LEARNER', Colors.blueGrey),
               ],
             ),
@@ -1567,85 +2387,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           SizedBox(
             width: 60,
             child: Center(
-              child: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 20),
-                tooltip: 'User options',
-                onSelected: (action) {
-                  if (action == 'manage_rights') {
-                    _showManageRightsDialog(context, user);
-                  } else if (action == 'toggle_admin') {
-                    _toggleAdminRole(user['id'] as String, isAdmin);
-                  } else if (action == 'toggle_moderator') {
-                    _toggleModeratorRole(user['id'] as String, isModerator);
-                  } else if (action == 'toggle_supplier') {
-                    _toggleSupplierRole(user['id'] as String, isSupplier);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'manage_rights',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.admin_panel_settings_outlined,
-                          color: Color(0xFF2E7D32),
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Text('Manage Rights...'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: 'toggle_admin',
-                    child: Row(
-                      children: [
-                        Icon(
-                          isAdmin
-                              ? Icons.remove_moderator
-                              : Icons.admin_panel_settings,
-                          color: isAdmin ? Colors.red : Colors.green,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(isAdmin ? 'Revoke Admin' : 'Make Admin'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'toggle_moderator',
-                    child: Row(
-                      children: [
-                        Icon(
-                          isModerator
-                              ? Icons.verified_user_outlined
-                              : Icons.verified_user,
-                          color: isModerator ? Colors.orange : Colors.indigo,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(isModerator ? 'Revoke Moderator' : 'Make Moderator'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'toggle_supplier',
-                    child: Row(
-                      children: [
-                        Icon(
-                          isSupplier
-                              ? Icons.storefront_outlined
-                              : Icons.storefront,
-                          color: isSupplier ? Colors.grey : Colors.orange,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(isSupplier ? 'Revoke Supplier' : 'Make Supplier'),
-                      ],
-                    ),
-                  ),
-                ],
+              child: _buildUserActionMenu(
+                user: user,
+                isAdmin: isAdmin,
+                isModerator: isModerator,
+                isPractitioner: isPractitioner,
+                isSupplier: isSupplier,
+                isActive: isActive,
+                isCurrentUser: isCurrentUser,
               ),
             ),
           ),

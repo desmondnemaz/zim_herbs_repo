@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/cart_cubit.dart';
@@ -74,6 +75,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   // ================= App Bar =================
                   SliverAppBar(
                     centerTitle: true,
+                    systemOverlayStyle: const SystemUiOverlayStyle(
+                      statusBarColor: Colors.transparent,
+                      statusBarIconBrightness: Brightness.light,
+                      statusBarBrightness: Brightness.dark,
+                    ),
                     expandedHeight: Responsive.isMobile(context) ? 320 : null,
                     pinned: true,
                     backgroundColor: colorScheme.primary,

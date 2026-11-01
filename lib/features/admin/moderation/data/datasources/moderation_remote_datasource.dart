@@ -3,6 +3,7 @@ import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/models/remedy_model.dart';
 import '../models/herbalist_moderation_model.dart';
+import '../models/supplier_moderation_model.dart';
 
 class ModerationRemoteDataSource {
   final SupabaseClient client;
@@ -273,14 +274,81 @@ class ModerationRemoteDataSource {
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', herbalistId);
 
-    // 2. Synchronize is_practitioner in user_profiles
+    // 2. Synchronize is_practitioner and primary_role in user_profiles
     final isPractitioner = normalizedStatus == 'verified';
     try {
-      await client.from('user_profiles').update({
+      final updateData = <String, dynamic>{
         'is_practitioner': isPractitioner,
-      }).eq('id', herbalistId);
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (isPractitioner) {
+        updateData['primary_role'] = 'practitioner';
+      }
+      await client.from('user_profiles').update(updateData).eq('id', herbalistId);
     } catch (_) {
       // If user profile sync fails, herbalist_profile status still persists
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. Botanical Supplier Moderation & Publishing
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /// Fetch botanical supplier applications/profiles for review
+  Future<List<SupplierModerationModel>> getSuppliersForModeration({
+    String? statusFilter,
+  }) async {
+    var query = client.from('supplier_profiles').select('''
+          *,
+          user_profiles(
+            id,
+            full_name,
+            username,
+            email,
+            avatar_url,
+            phone_number,
+            bio
+          )
+        ''');
+
+    if (statusFilter != null && statusFilter.isNotEmpty) {
+      query = query.eq('verification_status', statusFilter.toLowerCase());
+    }
+
+    final response = await query.order('created_at', ascending: false);
+
+    return (response as List<dynamic>)
+        .map((json) =>
+            SupplierModerationModel.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Verify and approve (publish) or reject a supplier profile
+  Future<void> updateSupplierStatus(
+    String supplierId,
+    String status,
+  ) async {
+    final normalizedStatus = status.toLowerCase();
+
+    // 1. Update verification_status in supplier_profiles
+    await client.from('supplier_profiles').update({
+      'verification_status': normalizedStatus,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', supplierId);
+
+    // 2. Synchronize is_supplier and primary_role in user_profiles (approving publishes the supplier!)
+    final isSupplier = normalizedStatus == 'verified';
+    try {
+      final updateData = <String, dynamic>{
+        'is_supplier': isSupplier,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (isSupplier) {
+        updateData['primary_role'] = 'supplier';
+      }
+      await client.from('user_profiles').update(updateData).eq('id', supplierId);
+    } catch (_) {
+      // If user profile sync fails, supplier_profiles status still persists
     }
   }
 }

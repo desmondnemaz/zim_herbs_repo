@@ -14,19 +14,27 @@ import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 import 'package:zim_herbs_repo/core/components/app_badged_tab_bar.dart';
+import 'package:zim_herbs_repo/core/components/app_page_header.dart';
 import 'package:zim_herbs_repo/core/components/app_filter_bar.dart';
 import 'package:zim_herbs_repo/core/components/app_search_bar.dart';
 import 'package:zim_herbs_repo/core/components/herb_review_card.dart';
 import 'package:zim_herbs_repo/core/components/remedy_review_card.dart';
 import 'package:zim_herbs_repo/core/components/practitioner_review_card.dart';
+import 'package:zim_herbs_repo/core/components/supplier_review_card.dart';
 import '../../data/datasources/moderation_remote_datasource.dart';
 import '../../data/models/herbalist_moderation_model.dart';
+import '../../data/models/supplier_moderation_model.dart';
 
-/// Comprehensive Moderation Hub for verifying Herbs, Remedies, and Herbalist Practitioners.
+/// Comprehensive Moderation Hub for verifying Herbs, Remedies, Herbalists, and Suppliers.
 class ModerationHubScreen extends StatefulWidget {
   final UserModel moderator;
+  final VoidCallback? onBack;
 
-  const ModerationHubScreen({super.key, required this.moderator});
+  const ModerationHubScreen({
+    super.key,
+    required this.moderator,
+    this.onBack,
+  });
 
   @override
   State<ModerationHubScreen> createState() => _ModerationHubScreenState();
@@ -58,10 +66,17 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
   String _herbalistSearchQuery = '';
   String _herbalistFilter = 'all'; // 'all', 'pending', 'verified', 'rejected'
 
+  // Suppliers State
+  List<SupplierModerationModel> _suppliers = [];
+  bool _loadingSuppliers = true;
+  Failure? _suppliersError;
+  String _supplierSearchQuery = '';
+  String _supplierFilter = 'all'; // 'all', 'pending', 'verified', 'rejected'
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _datasource = ModerationRemoteDataSource(Supabase.instance.client);
 
     _loadAll();
@@ -77,6 +92,7 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
     _loadHerbs();
     _loadRemedies();
     _loadHerbalists();
+    _loadSuppliers();
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -622,16 +638,240 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
     HerbalistModerationModel herbalist,
     String status,
   ) async {
+    final isVerified = status.toLowerCase() == 'verified';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: (isVerified ? Colors.green : Colors.red)
+                    .withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isVerified ? Icons.verified_user_rounded : Icons.cancel_outlined,
+                color: isVerified ? Colors.green.shade700 : Colors.red.shade700,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isVerified
+                    ? 'Grant Practitioner Role'
+                    : 'Reject Practitioner Application',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          isVerified
+              ? 'Are you sure you want to verify "${herbalist.fullName}" as an accredited Traditional Practitioner?\n\n'
+                  '• "user_profiles.is_practitioner" will be set to TRUE.\n'
+                  '• "herbalist_profiles.verification_status" will be persisted as VERIFIED.\n'
+                  '• Telemedicine consultation booking will be enabled for this profile.\n\n'
+                  'Confirm updating and persisting to the database?'
+              : 'Are you sure you want to reject the practitioner application for "${herbalist.fullName}"?\n\n'
+                  '• Their status will be persisted as REJECTED in the database.',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF334155),
+            height: 1.45,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  isVerified ? Colors.green.shade700 : Colors.red.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isVerified ? 'Confirm & Grant Role' : 'Confirm Rejection'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     try {
       await _datasource.updateHerbalistStatus(herbalist.id, status);
       if (mounted) {
         _loadHerbalists();
-        final isVerified = status == 'verified';
         showAppErrorSnackBar(
           context,
           title: isVerified ? 'Practitioner Verified' : 'Application Rejected',
           message:
-              '${herbalist.fullName} has been ${isVerified ? 'verified as licensed herbalist' : 'rejected'}.',
+              '${herbalist.fullName} has been ${isVerified ? 'verified as licensed herbalist and persisted to database' : 'marked as rejected'}.',
+          type: FailureType.validation,
+        );
+      }
+    } catch (e, st) {
+      if (mounted) {
+        showAppErrorSnackBar(context, failure: ErrorHandler.handle(e, st));
+      }
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. Botanical Supplier Operations
+  // ───────────────────────────────────────────────────────────────────────────
+  Future<void> _loadSuppliers() async {
+    setState(() {
+      _loadingSuppliers = true;
+      _suppliersError = null;
+    });
+    try {
+      final results = await _datasource.getSuppliersForModeration();
+      if (mounted) {
+        setState(() {
+          _suppliers = results;
+          _loadingSuppliers = false;
+        });
+      }
+    } catch (e, st) {
+      if (mounted) {
+        setState(() {
+          _suppliersError = ErrorHandler.handle(e, st);
+          _loadingSuppliers = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _setSupplierStatus(
+    SupplierModerationModel supplier,
+    String status,
+  ) async {
+    final isVerified = status.toLowerCase() == 'verified';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: (isVerified ? Colors.green : Colors.red)
+                    .withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isVerified ? Icons.storefront_rounded : Icons.cancel_outlined,
+                color: isVerified ? Colors.green.shade700 : Colors.red.shade700,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isVerified
+                    ? 'Grant Supplier Role & Publish'
+                    : 'Reject Supplier Application',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          isVerified
+              ? 'Are you sure you want to approve "${supplier.supplierName}" as a verified Botanical Supplier?\n\n'
+                  '• "user_profiles.is_supplier" will be set to TRUE.\n'
+                  '• "supplier_profiles.verification_status" will be persisted as VERIFIED.\n'
+                  '• The supplier will be published in the public Marketplace catalog.\n\n'
+                  'Confirm updating and persisting to the database?'
+              : 'Are you sure you want to reject the supplier application for "${supplier.supplierName}"?\n\n'
+                  '• Their status will be persisted as REJECTED in the database.',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF334155),
+            height: 1.45,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  isVerified ? Colors.green.shade700 : Colors.red.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isVerified ? 'Confirm & Grant Role' : 'Confirm Rejection'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _datasource.updateSupplierStatus(supplier.id, status);
+      if (mounted) {
+        _loadSuppliers();
+        showAppErrorSnackBar(
+          context,
+          title: isVerified
+              ? 'Supplier Approved & Published'
+              : 'Supplier Application Rejected',
+          message:
+              '${supplier.supplierName} has been ${isVerified ? 'approved, published, and persisted to database' : 'rejected'}.',
           type: FailureType.validation,
         );
       }
@@ -1180,6 +1420,162 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
     );
   }
 
+  void _showSupplierDetailsSheet(SupplierModerationModel supplier) {
+    final statusColor = supplier.isVerified
+        ? Colors.green
+        : (supplier.isRejected
+            ? Colors.red
+            : Colors.amber.shade800);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.blue.shade100,
+                        backgroundImage: supplier.avatarUrl != null
+                            ? NetworkImage(supplier.avatarUrl!)
+                            : null,
+                        child: supplier.avatarUrl == null
+                            ? Icon(Icons.storefront_rounded,
+                                size: 30, color: Colors.blue.shade800)
+                            : null,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              supplier.supplierName,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Account Owner: ${supplier.fullName} (${supplier.email})',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            SupplierReviewCard.buildStatusBadge(
+                              supplier.isVerified
+                                  ? 'APPROVED & PUBLISHED'
+                                  : (supplier.isRejected
+                                      ? 'REJECTED'
+                                      : 'PENDING APPROVAL'),
+                              statusColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Enterprise & Supply Credentials:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        _metaDetailRow('Business Name', supplier.supplierName),
+                        if (supplier.location != null)
+                          _metaDetailRow('Operating Facility', supplier.location!),
+                        if (supplier.phoneNumber != null)
+                          _metaDetailRow('Contact Phone', supplier.phoneNumber!),
+                        if (supplier.bio != null && supplier.bio!.trim().isNotEmpty)
+                          _metaDetailRow('Supply Details', supplier.bio!.trim()),
+                        if (supplier.createdAt != null)
+                          _metaDetailRow(
+                            'Application Date',
+                            '${supplier.createdAt!.day}/${supplier.createdAt!.month}/${supplier.createdAt!.year}',
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (!supplier.isRejected)
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _setSupplierStatus(supplier, 'rejected');
+                          },
+                          icon: const Icon(Icons.close, size: 16),
+                          label: const Text('Reject Application'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red.shade700,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      if (!supplier.isVerified)
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _setSupplierStatus(supplier, 'verified');
+                          },
+                          icon: const Icon(Icons.verified, size: 16),
+                          label: const Text('Approve & Publish Supplier'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1191,46 +1587,11 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
         child: Column(
           children: [
             // Modern surface header
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: rs.defaultPadding,
-                vertical: rs.defaultPadding * 0.75,
-              ),
-              color: theme.scaffoldBackgroundColor,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.verified_user_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 26,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Moderation Hub',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: rs.titleFont * 1.25,
-                            color: theme.colorScheme.onSurface,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        Text(
-                          'Review submissions & verify medicinal catalog',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            AppPageHeader(
+              title: 'Moderation Hub',
+              subtitle: 'Review submissions & verify medicinal catalog',
+              icon: Icons.verified_user_rounded,
+              onBack: widget.onBack,
             ),
 
             // Segmented TabBar Container
@@ -1267,6 +1628,13 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                       .where((h) => !h.isVerified && !h.isRejected)
                       .length,
                 ),
+                BadgedTabItem(
+                  label: 'Suppliers',
+                  icon: Icons.storefront_rounded,
+                  count: _suppliers
+                      .where((s) => !s.isVerified && !s.isRejected)
+                      .length,
+                ),
               ],
             ),
 
@@ -1278,6 +1646,7 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                   _buildHerbsTab(theme, rs),
                   _buildRemediesTab(theme, rs),
                   _buildPractitionersTab(theme, rs),
+                  _buildSuppliersTab(theme, rs),
                 ],
               ),
             ),
@@ -1662,6 +2031,112 @@ class _ModerationHubScreenState extends State<ModerationHubScreen>
                         herbalist: herbalist,
                         onTap: () =>
                             _showPractitionerDetailsSheet(herbalist),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Tab 4: Suppliers / Vendor Profiles View
+  // ───────────────────────────────────────────────────────────────────────────
+  Widget _buildSuppliersTab(ThemeData theme, ResponsiveSize rs) {
+    if (_loadingSuppliers) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_suppliersError != null) {
+      return AppErrorView(
+        failure: _suppliersError,
+        onRetry: _loadSuppliers,
+      );
+    }
+
+    final filtered = _suppliers.where((s) {
+      final q = _supplierSearchQuery.toLowerCase();
+      final matchesSearch = s.supplierName.toLowerCase().contains(q) ||
+          s.fullName.toLowerCase().contains(q) ||
+          s.email.toLowerCase().contains(q) ||
+          (s.location?.toLowerCase().contains(q) ?? false) ||
+          (s.bio?.toLowerCase().contains(q) ?? false);
+
+      final matchesFilter = switch (_supplierFilter) {
+        'pending' => s.isPending,
+        'verified' => s.isVerified,
+        'rejected' => s.isRejected,
+        _ => true,
+      };
+
+      return matchesSearch && matchesFilter;
+    }).toList();
+
+    return RefreshIndicator(
+      onRefresh: _loadSuppliers,
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(rs.defaultPadding),
+            child: Column(
+              children: [
+                AppSearchBar(
+                  hintText: 'Search suppliers by business, owner, location, products...',
+                  onChanged: (val) =>
+                      setState(() => _supplierSearchQuery = val),
+                ),
+                const SizedBox(height: 8),
+                AppFilterBar<String>(
+                  selectedValue: _supplierFilter,
+                  onSelected: (v) => setState(() => _supplierFilter = v),
+                  options: [
+                    FilterOption(
+                      label: 'All',
+                      value: 'all',
+                      count: _suppliers.length,
+                    ),
+                    FilterOption(
+                      label: 'Pending',
+                      value: 'pending',
+                      count: _suppliers.where((s) => s.isPending).length,
+                      activeColor: Colors.amber.shade800,
+                    ),
+                    FilterOption(
+                      label: 'Approved & Published',
+                      value: 'verified',
+                      count: _suppliers.where((s) => s.isVerified).length,
+                      activeColor: Colors.green.shade700,
+                    ),
+                    FilterOption(
+                      label: 'Rejected',
+                      value: 'rejected',
+                      count: _suppliers.where((s) => s.isRejected).length,
+                      activeColor: Colors.red.shade700,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: filtered.isEmpty
+                ? const Center(
+                    child: Text('No botanical supplier profiles matching criteria.'),
+                  )
+                : ListView.separated(
+                    padding: EdgeInsets.symmetric(horizontal: rs.defaultPadding),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final supplier = filtered[index];
+                      return SupplierReviewCard(
+                        supplier: supplier,
+                        onTap: () => _showSupplierDetailsSheet(supplier),
+                        onAction: () => _showSupplierDetailsSheet(supplier),
+                        actionLabel: supplier.isVerified ? 'Manage' : 'Review',
+                        actionIcon: supplier.isVerified
+                            ? Icons.verified
+                            : Icons.rate_review_outlined,
                       );
                     },
                   ),

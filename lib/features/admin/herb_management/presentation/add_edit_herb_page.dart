@@ -11,6 +11,7 @@ import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 
 class AddEditHerbPage extends StatefulWidget {
   final HerbModel? herb;
@@ -196,13 +197,8 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.herb == null ? 'Add Herb' : 'Edit Herb',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.secondary,
+      appBar: AppPageAppBar(
+        title: widget.herb == null ? 'Add Herb' : 'Edit Herb',
         actions: [
           if (!_isSaving)
             IconButton(icon: const Icon(Icons.check), onPressed: _submit),

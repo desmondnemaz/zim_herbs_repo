@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -108,6 +109,11 @@ class _ConditionDetailsPageState extends State<ConditionDetailsPage>
                 slivers: [
                   SliverAppBar(
                     centerTitle: true,
+                    systemOverlayStyle: const SystemUiOverlayStyle(
+                      statusBarColor: Colors.transparent,
+                      statusBarIconBrightness: Brightness.light,
+                      statusBarBrightness: Brightness.dark,
+                    ),
                     expandedHeight: Responsive.isMobile(context) ? 200 : 250,
                     pinned: true,
                     backgroundColor: Theme.of(context).colorScheme.primary,

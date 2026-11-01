@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/presentation/product_details.dart';
@@ -28,6 +29,11 @@ class StorePage extends StatelessWidget {
             floating: true,
             pinned: true,
             expandedHeight: 140.0,
+            systemOverlayStyle: const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.light,
+              statusBarBrightness: Brightness.dark,
+            ),
             backgroundColor: colorScheme.primary,
             foregroundColor: colorScheme.secondary,
             centerTitle: true,

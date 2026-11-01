@@ -17,8 +17,6 @@ import 'package:zim_herbs_repo/features/marketplace/store/presentation/store_pag
 import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_repository.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/store_bloc.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/cart_cubit.dart';
-import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
-import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
 
 class MockRemedyRepository implements RemedyRepository {
   @override
@@ -53,12 +51,6 @@ class MockConditionRepository implements ConditionRepository {
   }
 }
 
-class FakeSettingsRepository implements SettingsRepository {
-  @override
-  Future<double> getFontScale() async => 1.0;
-  @override
-  Future<void> saveFontScale(double scale) async {}
-}
 
 class FakeStoreRepository implements StoreRepository {
   @override
@@ -71,12 +63,9 @@ void main() {
   testWidgets('HerbsList calls onBack callback when provided', (tester) async {
     bool onBackCalled = false;
     final herbRepo = MockHerbRepository();
-    final settingsRepo = FakeSettingsRepository();
-
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
-          BlocProvider<SettingsCubit>(create: (_) => SettingsCubit(settingsRepo)),
           BlocProvider<HerbCubit>(create: (_) => HerbCubit(herbRepo)),
         ],
         child: MaterialApp(
@@ -102,12 +91,9 @@ void main() {
   testWidgets('ConditionsListPage calls onBack callback when provided', (tester) async {
     bool onBackCalled = false;
     final conditionRepo = MockConditionRepository();
-    final settingsRepo = FakeSettingsRepository();
-
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
-          BlocProvider<SettingsCubit>(create: (_) => SettingsCubit(settingsRepo)),
           BlocProvider<ConditionCubit>(create: (_) => ConditionCubit(conditionRepo)),
         ],
         child: MaterialApp(
@@ -132,20 +118,13 @@ void main() {
 
   testWidgets('RemediesList calls onBack callback when provided', (tester) async {
     bool onBackCalled = false;
-    final settingsRepo = FakeSettingsRepository();
-
     await tester.pumpWidget(
-      MultiBlocProvider(
-        providers: [
-          BlocProvider<SettingsCubit>(create: (_) => SettingsCubit(settingsRepo)),
-        ],
-        child: MaterialApp(
-          home: RemediesList(
-            repository: MockRemedyRepository(),
-            onBack: () {
-              onBackCalled = true;
-            },
-          ),
+      MaterialApp(
+        home: RemediesList(
+          repository: MockRemedyRepository(),
+          onBack: () {
+            onBackCalled = true;
+          },
         ),
       ),
     );

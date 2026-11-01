@@ -10,6 +10,7 @@ import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 
 /// Dedicated View for Unverified Herbs where moderators can inspect, update, and verify herbs.
 class UnverifiedHerbsScreen extends StatefulWidget {
@@ -384,20 +385,9 @@ class _UnverifiedHerbsScreenState extends State<UnverifiedHerbsScreen> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        leading: (widget.onBack != null || Navigator.canPop(context))
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  if (widget.onBack != null) {
-                    widget.onBack!();
-                  } else {
-                    Navigator.pop(context);
-                  }
-                },
-              )
-            : null,
-        title: Row(
+      appBar: AppPageAppBar(
+        onBack: widget.onBack,
+        titleWidget: Row(
           children: [
             const Icon(Icons.pending_actions_rounded, size: 22),
             const SizedBox(width: 8),

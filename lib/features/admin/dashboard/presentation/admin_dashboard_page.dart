@@ -13,6 +13,7 @@ import 'package:zim_herbs_repo/features/admin/dashboard/presentation/components/
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/components/admin_dashboard_screen.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
 import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final UserModel user;
@@ -120,20 +121,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
 
     if (_activeIndex != 0) {
-      return AppBar(
+      return AppPageAppBar(
         toolbarHeight: rs.appBarHeight,
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        elevation: 2,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Back',
           onPressed: () => setState(() => _activeIndex = 0),
         ),
-        title: Text(
-          _getSectionTitle(_activeIndex),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: _getSectionTitle(_activeIndex),
         actions: const [
           _OfflineBadge(),
           SizedBox(width: 8),
@@ -141,13 +136,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       );
     }
 
-    return AppBar(
+    return AppPageAppBar(
       toolbarHeight: rs.appBarHeight,
-      backgroundColor: colorScheme.primary,
+      titleWidget: const _AdminBrandLogo(),
       elevation: 4,
       shadowColor: colorScheme.primary.withValues(alpha: 0.4),
-      title: const _AdminBrandLogo(),
-      centerTitle: false,
       actions: const [
         _OfflineBadge(),
         SizedBox(width: 4),

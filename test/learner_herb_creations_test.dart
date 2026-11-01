@@ -12,15 +12,6 @@ import 'package:zim_herbs_repo/features/repository/herbs/domain/repositories/her
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb_cubit.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/pages/herbs_list.dart';
 
-import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
-import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
-
-class FakeSettingsRepository implements SettingsRepository {
-  @override
-  Future<double> getFontScale() async => 1.0;
-  @override
-  Future<void> saveFontScale(double scale) async {}
-}
 
 class FakeHerbRepository implements HerbRepository {
   final List<Herb> _herbs;
@@ -157,7 +148,6 @@ void main() {
       await tester.pumpWidget(
         MultiBlocProvider(
           providers: [
-            BlocProvider<SettingsCubit>(create: (_) => SettingsCubit(FakeSettingsRepository())),
             BlocProvider<AuthCubit>.value(value: fakeAuthCubit),
             BlocProvider<HerbCubit>(create: (_) => HerbCubit(fakeRepo)),
           ],
@@ -221,7 +211,6 @@ void main() {
       await tester.pumpWidget(
         MultiBlocProvider(
           providers: [
-            BlocProvider<SettingsCubit>(create: (_) => SettingsCubit(FakeSettingsRepository())),
             BlocProvider<AuthCubit>.value(value: fakeAuthCubit),
             BlocProvider<HerbCubit>(create: (_) => HerbCubit(fakeRepo)),
           ],
@@ -264,7 +253,6 @@ void main() {
       await tester.pumpWidget(
         MultiBlocProvider(
           providers: [
-            BlocProvider<SettingsCubit>(create: (_) => SettingsCubit(FakeSettingsRepository())),
             BlocProvider<AuthCubit>.value(value: fakeAuthCubit),
             BlocProvider<HerbCubit>(create: (_) => HerbCubit(fakeRepo)),
           ],
@@ -311,7 +299,6 @@ void main() {
       await tester.pumpWidget(
         MultiBlocProvider(
           providers: [
-            BlocProvider<SettingsCubit>(create: (_) => SettingsCubit(FakeSettingsRepository())),
             BlocProvider<AuthCubit>.value(value: FakeAuthCubit(const Authenticated(adminUser))),
             BlocProvider<HerbCubit>(create: (_) => HerbCubit(fakeRepo)),
           ],
@@ -387,9 +374,6 @@ void main() {
                   ),
                 ),
               ),
-            ),
-            BlocProvider<SettingsCubit>(
-              create: (_) => SettingsCubit(FakeSettingsRepository()),
             ),
             BlocProvider<HerbCubit>(
               create: (_) => HerbCubit(fakeRepo)..loadHerbs(),

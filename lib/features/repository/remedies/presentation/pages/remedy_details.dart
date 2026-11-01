@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
@@ -184,6 +185,11 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
                   slivers: [
                     SliverAppBar(
                       centerTitle: true,
+                      systemOverlayStyle: const SystemUiOverlayStyle(
+                        statusBarColor: Colors.transparent,
+                        statusBarIconBrightness: Brightness.light,
+                        statusBarBrightness: Brightness.dark,
+                      ),
                       expandedHeight: Responsive.isMobile(context) ? 200 : 250,
                       pinned: true,
                       backgroundColor: Theme.of(context).colorScheme.primary,

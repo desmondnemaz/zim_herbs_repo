@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
 
@@ -18,10 +19,9 @@ class PortalSelectionPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.primary,
+      appBar: AppPageAppBar(
         elevation: 0,
-        title: Row(
+        titleWidget: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.grass, color: theme.colorScheme.secondary, size: 22),

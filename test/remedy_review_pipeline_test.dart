@@ -12,15 +12,6 @@ import 'package:zim_herbs_repo/features/repository/conditions/data/models/condit
 import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/domain/repositories/remedy_repository.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedies_list.dart';
-import 'package:zim_herbs_repo/features/settings/bloc/settings_cubit.dart';
-import 'package:zim_herbs_repo/features/settings/data/repository/settings_repository.dart';
-
-class FakeSettingsRepository implements SettingsRepository {
-  @override
-  Future<double> getFontScale() async => 1.0;
-  @override
-  Future<void> saveFontScale(double scale) async {}
-}
 
 class FakeRemedyRepository implements RemedyRepository {
   final List<Remedy> _remedies;
@@ -217,9 +208,6 @@ void main() {
       await tester.pumpWidget(
         MultiBlocProvider(
           providers: [
-            BlocProvider<SettingsCubit>(
-              create: (_) => SettingsCubit(FakeSettingsRepository()),
-            ),
             BlocProvider<AuthCubit>(
               create: (_) => FakeAuthCubit(const Authenticated(adminUser)),
             ),
@@ -270,9 +258,6 @@ void main() {
       await tester.pumpWidget(
         MultiBlocProvider(
           providers: [
-            BlocProvider<SettingsCubit>(
-              create: (_) => SettingsCubit(FakeSettingsRepository()),
-            ),
             BlocProvider<AuthCubit>(
               create: (_) => FakeAuthCubit(const Authenticated(learnerUser)),
             ),
@@ -317,9 +302,6 @@ void main() {
                   ),
                 ),
               ),
-            ),
-            BlocProvider<SettingsCubit>(
-              create: (_) => SettingsCubit(FakeSettingsRepository()),
             ),
           ],
           child: MaterialApp(

@@ -6,6 +6,7 @@ import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
+import 'package:zim_herbs_repo/features/auth/presentation/sign_up_stepper_page.dart';
 
 enum LoginPortalRole {
   customer,
@@ -622,6 +623,32 @@ class _LoginPageState extends State<LoginPage> {
                                 );
                               },
                             ),
+                            if (isCustomer) ...[
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const SignUpStepperPage(),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.app_registration_rounded, size: 18),
+                                  label: const Text('Guided Registration Stepper'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.green.shade800,
+                                    side: BorderSide(color: Colors.green.shade700),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

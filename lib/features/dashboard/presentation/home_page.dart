@@ -20,6 +20,7 @@ import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
 import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
 import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
+import 'package:zim_herbs_repo/features/profile/presentation/profile_page.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -399,6 +400,18 @@ class _ProfileAvatar extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                       const Divider(),
+                      ListTile(
+                        leading: Icon(Icons.person_outline_rounded, color: theme.colorScheme.primary),
+                        title: const Text('View Full Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text('Account details, practitioner & supplier accreditations'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ProfilePage()),
+                          );
+                        },
+                      ),
                       if (state is Authenticated && state.user.role.isAdmin) ...[
                         ListTile(
                           leading: const Icon(Icons.admin_panel_settings, color: Colors.amber),

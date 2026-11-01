@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/app.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
+import 'package:zim_herbs_repo/features/auth/presentation/account_deactivated_page.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/login_page.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/portal_selection_page.dart';
 import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
@@ -23,7 +24,7 @@ class _AuthGateState extends State<AuthGate> {
       listenWhen: (previous, current) =>
           previous is! Authenticated && current is Authenticated,
       listener: (context, state) {
-        if (state is Authenticated) {
+        if (state is Authenticated && state.user.isActive) {
           final messenger = rootScaffoldMessengerKey.currentState ??
               ScaffoldMessenger.maybeOf(context);
           if (messenger != null) {
@@ -79,6 +80,11 @@ class _AuthGateState extends State<AuthGate> {
         _isFirstCheck = false;
 
         if (state is Authenticated) {
+          // Guard: Direct deactivated accounts to dedicated deactivation notice page
+          if (!state.user.isActive) {
+            return AccountDeactivatedPage(user: state.user);
+          }
+
           if (state.user.canModerate) {
             return PortalSelectionPage(user: state.user);
           } else {

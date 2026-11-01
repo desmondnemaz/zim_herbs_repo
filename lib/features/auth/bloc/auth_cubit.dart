@@ -83,11 +83,24 @@ class AuthCubit extends Cubit<AuthState> {
         requireAdmin: requireAdmin,
       );
 
-  /// Sign up a new user account
+  /// Sign up a new user account with complete metadata
   Future<void> signUpWithCredentials({
     required String email,
     required String password,
     String? fullName,
+    String? username,
+    String? phoneNumber,
+    String? location,
+    String? primaryRole,
+    List<String>? healthInterests,
+    String? bio,
+    String? practitionerSpecialisation,
+    int? practitionerYearsOfExperience,
+    String? supplierName,
+    String? supplierLocation,
+    String? supplierCategories,
+    int? supplierYearsInOperation,
+    bool applySupplier = false,
   }) async {
     try {
       emit(const AuthLoading());
@@ -95,12 +108,97 @@ class AuthCubit extends Cubit<AuthState> {
         email: email,
         password: password,
         fullName: fullName,
+        username: username,
+        phoneNumber: phoneNumber,
+        location: location,
+        primaryRole: primaryRole,
+        healthInterests: healthInterests,
+        bio: bio,
+        practitionerSpecialisation: practitionerSpecialisation,
+        practitionerYearsOfExperience: practitionerYearsOfExperience,
+        supplierName: supplierName,
+        supplierLocation: supplierLocation,
+        supplierCategories: supplierCategories,
+        supplierYearsInOperation: supplierYearsInOperation,
+        applySupplier: applySupplier,
       );
       emit(Authenticated(user));
     } catch (e, st) {
       final failure = ErrorHandler.handle(e, st);
       emit(AuthError(message: failure.message, failure: failure));
     }
+  }
+
+  /// Update user profile
+  Future<void> updateProfile(UserModel updatedUser) async {
+    try {
+      emit(const AuthLoading());
+      final user = await _authRepository.updateProfile(updatedUser);
+      emit(Authenticated(user));
+    } catch (e, st) {
+      final failure = ErrorHandler.handle(e, st);
+      emit(AuthError(message: failure.message, failure: failure));
+    }
+  }
+
+  /// Apply for herbalist practitioner verification
+  Future<void> applyForPractitioner({
+    required String specialisation,
+    required int yearsOfExperience,
+    String? location,
+    String? phoneNumber,
+  }) async {
+    try {
+      emit(const AuthLoading());
+      await _authRepository.applyForPractitioner(
+        specialisation: specialisation,
+        yearsOfExperience: yearsOfExperience,
+        location: location,
+        phoneNumber: phoneNumber,
+      );
+      // Auth repository notifies authStateChanges stream with refreshed user
+    } catch (e, st) {
+      final failure = ErrorHandler.handle(e, st);
+      emit(AuthError(message: failure.message, failure: failure));
+    }
+  }
+
+  /// Apply for marketplace supplier status (queued for admin approval before publishing)
+  Future<void> applyForSupplier({
+    required String businessName,
+    String? location,
+    String? categories,
+    int? yearsInOperation,
+    String? contactPhone,
+    String? bio,
+    String? description,
+  }) async {
+    try {
+      emit(const AuthLoading());
+      await _authRepository.applyForSupplier(
+        businessName: businessName,
+        location: location,
+        categories: categories,
+        yearsInOperation: yearsInOperation,
+        contactPhone: contactPhone,
+        bio: bio,
+        description: description,
+      );
+      // Auth repository notifies authStateChanges stream with refreshed user
+    } catch (e, st) {
+      final failure = ErrorHandler.handle(e, st);
+      emit(AuthError(message: failure.message, failure: failure));
+    }
+  }
+
+  /// Check practitioner application verification status
+  Future<String?> getPractitionerApplicationStatus(String userId) {
+    return _authRepository.getPractitionerApplicationStatus(userId);
+  }
+
+  /// Check supplier application verification status ('pending', 'verified', 'rejected', or null)
+  Future<String?> getSupplierApplicationStatus(String userId) {
+    return _authRepository.getSupplierApplicationStatus(userId);
   }
 
   /// Sign out current user session

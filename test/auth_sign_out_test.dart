@@ -10,6 +10,9 @@ import 'package:zim_herbs_repo/features/auth/presentation/auth_gate.dart';
 import 'package:zim_herbs_repo/features/auth/presentation/login_page.dart';
 
 class FakeAuthRepository implements AuthRepository {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   final StreamController<UserModel?> _controller = StreamController<UserModel?>.broadcast();
   UserModel? currentUser;
   bool shouldThrowOnSignOut = false;
@@ -30,7 +33,24 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserModel> signUpWithCredentials({required String email, required String password, String? fullName}) async {
+  Future<UserModel> signUpWithCredentials({
+    required String email,
+    required String password,
+    String? fullName,
+    String? username,
+    String? phoneNumber,
+    String? location,
+    String? primaryRole,
+    List<String>? healthInterests,
+    String? bio,
+    String? practitionerSpecialisation,
+    int? practitionerYearsOfExperience,
+    String? supplierName,
+    String? supplierLocation,
+    String? supplierCategories,
+    int? supplierYearsInOperation,
+    bool applySupplier = false,
+  }) async {
     currentUser = const UserModel(id: '2', name: 'User', email: 'user@test.com', role: UserRole.customer);
     _controller.add(currentUser);
     return currentUser!;

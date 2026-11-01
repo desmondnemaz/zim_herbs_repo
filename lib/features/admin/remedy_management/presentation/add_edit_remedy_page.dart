@@ -15,6 +15,7 @@ import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/reme
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_form_cubit.dart';
+import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 /// Page for Creating and Editing Remedies.
@@ -213,13 +214,8 @@ class _RemedyFormViewState extends State<_RemedyFormView> {
     final rs = ResponsiveSize(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.remedy == null ? 'New Remedy' : 'Edit Remedy',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.secondary,
+      appBar: AppPageAppBar(
+        title: widget.remedy == null ? 'New Remedy' : 'Edit Remedy',
       ),
       body: BlocConsumer<RemedyFormCubit, RemedyFormState>(
         listener: (context, state) {

@@ -52,7 +52,10 @@ class AdminDashboardScreen extends StatelessWidget {
         body = AdminOverviewScreen(onNavigate: onNavigate, user: effectiveUser);
         break;
       case 1:
-        body = ModerationHubScreen(moderator: effectiveUser);
+        body = ModerationHubScreen(
+          moderator: effectiveUser,
+          onBack: () => onNavigate?.call(0),
+        );
         break;
       case 2:
         body = HerbsList(onBack: () => onNavigate?.call(0));
@@ -69,23 +72,38 @@ class AdminDashboardScreen extends StatelessWidget {
       case 6:
         // Admin privilege guard: only Admins can manage users!
         if (effectiveUser.canManageUsers) {
-          body = const UserManagementScreen();
+          body = UserManagementScreen(onBack: () => onNavigate?.call(0));
         } else {
-          body = ModerationHubScreen(moderator: effectiveUser);
+          body = ModerationHubScreen(
+            moderator: effectiveUser,
+            onBack: () => onNavigate?.call(0),
+          );
         }
         break;
       case 7:
         if (effectiveUser.isAdmin) {
-          body = const AdminComingSoonScreen(title: 'Reports');
+          body = AdminComingSoonScreen(
+            title: 'Reports',
+            onBack: () => onNavigate?.call(0),
+          );
         } else {
-          body = ModerationHubScreen(moderator: effectiveUser);
+          body = ModerationHubScreen(
+            moderator: effectiveUser,
+            onBack: () => onNavigate?.call(0),
+          );
         }
         break;
       case 8:
         if (effectiveUser.isAdmin) {
-          body = const AdminComingSoonScreen(title: 'Analytics');
+          body = AdminComingSoonScreen(
+            title: 'Analytics',
+            onBack: () => onNavigate?.call(0),
+          );
         } else {
-          body = ModerationHubScreen(moderator: effectiveUser);
+          body = ModerationHubScreen(
+            moderator: effectiveUser,
+            onBack: () => onNavigate?.call(0),
+          );
         }
         break;
       default:
@@ -93,14 +111,10 @@ class AdminDashboardScreen extends StatelessWidget {
           title: activeIndex < _sectionTitles.length
               ? _sectionTitles[activeIndex]
               : 'Admin Section',
+          onBack: () => onNavigate?.call(0),
         );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F8F2),
-      body: SafeArea(
-        child: body,
-      ),
-    );
+    return body;
   }
 }
