@@ -183,6 +183,37 @@ class ConditionRemoteDataSource {
     return BodyPartModel.fromJson(response);
   }
 
+  /// Create a new body part.
+  Future<BodyPartModel> createBodyPart(BodyPartModel bodyPart) async {
+    final data = bodyPart.toJson(forInsert: true);
+    final response = await client
+        .from('body_parts')
+        .insert(data)
+        .select()
+        .single();
+
+    return BodyPartModel.fromJson(response);
+  }
+
+  /// Update an existing body part.
+  Future<BodyPartModel> updateBodyPart(BodyPartModel bodyPart) async {
+    final data = bodyPart.toJson();
+    final response = await client
+        .from('body_parts')
+        .update(data)
+        .eq('id', bodyPart.id)
+        .select()
+        .single();
+
+    return BodyPartModel.fromJson(response);
+  }
+
+  /// Delete a body part and its links in junction table.
+  Future<void> deleteBodyPart(String id) async {
+    await client.from('condition_body_parts').delete().eq('body_part_id', id);
+    await client.from('body_parts').delete().eq('id', id);
+  }
+
   // ============================================================
   // HELPER METHODS
   // ============================================================

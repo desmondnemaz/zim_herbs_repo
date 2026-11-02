@@ -3,6 +3,7 @@ import '../../domain/entities/body_part.dart';
 import '../../domain/entities/condition.dart';
 import '../../domain/repositories/condition_repository.dart';
 import '../datasources/condition_remote_datasource.dart';
+import '../models/body_part_model.dart';
 import '../models/condition_model.dart';
 
 class ConditionRepositoryImpl implements ConditionRepository {
@@ -88,5 +89,24 @@ class ConditionRepositoryImpl implements ConditionRepository {
   Future<BodyPart?> getBodyPartById(String id) async {
     final model = await dataSource.getBodyPartById(id);
     return model?.toEntity();
+  }
+
+  @override
+  Future<BodyPart> createBodyPart(BodyPart bodyPart) async {
+    final model = BodyPartModel.fromEntity(bodyPart);
+    final createdModel = await dataSource.createBodyPart(model);
+    return createdModel.toEntity();
+  }
+
+  @override
+  Future<BodyPart> updateBodyPart(BodyPart bodyPart) async {
+    final model = BodyPartModel.fromEntity(bodyPart);
+    final updatedModel = await dataSource.updateBodyPart(model);
+    return updatedModel.toEntity();
+  }
+
+  @override
+  Future<void> deleteBodyPart(String id) {
+    return dataSource.deleteBodyPart(id);
   }
 }

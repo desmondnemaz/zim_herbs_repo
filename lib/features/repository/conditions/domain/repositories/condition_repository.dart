@@ -42,4 +42,13 @@ abstract class ConditionRepository {
 
   /// Get a single body part by ID.
   Future<BodyPart?> getBodyPartById(String id);
+
+  /// Create a new body part.
+  Future<BodyPart> createBodyPart(BodyPart bodyPart);
+
+  /// Update an existing body part.
+  Future<BodyPart> updateBodyPart(BodyPart bodyPart);
+
+  /// Delete a body part.
+  Future<void> deleteBodyPart(String id);
 }

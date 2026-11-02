@@ -40,6 +40,30 @@ class BodyPart extends Equatable {
     return nameEn;
   }
 
+  BodyPart copyWith({
+    String? id,
+    String? code,
+    String? nameEn,
+    String? nameSn,
+    String? nameNd,
+    String? description,
+    String? iconUrl,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return BodyPart(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      nameEn: nameEn ?? this.nameEn,
+      nameSn: nameSn ?? this.nameSn,
+      nameNd: nameNd ?? this.nameNd,
+      description: description ?? this.description,
+      iconUrl: iconUrl ?? this.iconUrl,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   @override
   List<Object?> get props => [
         id,

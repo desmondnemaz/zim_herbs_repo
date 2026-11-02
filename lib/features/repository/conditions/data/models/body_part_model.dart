@@ -44,18 +44,42 @@ class BodyPartModel {
   }
 
   /// Convert model to JSON for insert/update in Supabase.
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({bool forInsert = false}) {
     return {
-      'id': id,
-      if (code != null) 'code': code,
-      'name_en': nameEn,
-      if (nameSn != null) 'name_sn': nameSn,
-      if (nameNd != null) 'name_nd': nameNd,
-      if (description != null) 'description': description,
-      if (iconUrl != null) 'icon_url': iconUrl,
+      if (!forInsert || id.isNotEmpty) 'id': id,
+      if (code != null && code!.trim().isNotEmpty) 'code': code!.trim().toUpperCase(),
+      'name_en': nameEn.trim(),
+      if (nameSn != null && nameSn!.trim().isNotEmpty) 'name_sn': nameSn!.trim(),
+      if (nameNd != null && nameNd!.trim().isNotEmpty) 'name_nd': nameNd!.trim(),
+      if (description != null && description!.trim().isNotEmpty) 'description': description!.trim(),
+      if (iconUrl != null && iconUrl!.trim().isNotEmpty) 'icon_url': iconUrl!.trim(),
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };
+  }
+
+  BodyPartModel copyWith({
+    String? id,
+    String? code,
+    String? nameEn,
+    String? nameSn,
+    String? nameNd,
+    String? description,
+    String? iconUrl,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return BodyPartModel(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      nameEn: nameEn ?? this.nameEn,
+      nameSn: nameSn ?? this.nameSn,
+      nameNd: nameNd ?? this.nameNd,
+      description: description ?? this.description,
+      iconUrl: iconUrl ?? this.iconUrl,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 
   /// Convert Data Model to Domain Entity.

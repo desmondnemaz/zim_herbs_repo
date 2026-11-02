@@ -10,6 +10,7 @@ import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
 import 'package:zim_herbs_repo/features/admin/condition_management/presentation/components/add_edit_condition_dialog.dart';
+import 'package:zim_herbs_repo/features/admin/condition_management/presentation/components/manage_body_parts_dialog.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_cubit.dart';
 
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
@@ -384,6 +385,23 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                                 context,
                                 MaterialPageRoute(
                                     builder: (_) => const AddEditRemedyPage()),
+                              );
+                              _loadLiveStats();
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _QuickActionCard(
+                            title: 'Body Parts',
+                            icon: Icons.accessibility_new_rounded,
+                            color: const Color(0xFF0F766E),
+                            pastelBackground: const Color(0xFFE6F4F2),
+                            onTap: () async {
+                              await showDialog(
+                                context: context,
+                                builder: (_) => const ManageBodyPartsDialog(),
                               );
                               _loadLiveStats();
                             },

@@ -6,6 +6,8 @@ import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/datasources/condition_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/models/body_part_model.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
+import 'add_edit_body_part_dialog.dart';
+import 'manage_body_parts_dialog.dart';
 
 class AddEditConditionDialog extends StatefulWidget {
   final ConditionModel? condition;
@@ -71,6 +73,29 @@ class _AddEditConditionDialogState extends State<AddEditConditionDialog> {
           _isLoadingBodyParts = false;
         });
       }
+    }
+  }
+
+  Future<void> _addNewBodyPart() async {
+    final newBp = await showDialog<BodyPartModel>(
+      context: context,
+      builder: (_) => const AddEditBodyPartDialog(),
+    );
+    if (newBp != null && mounted) {
+      await _loadBodyParts();
+      setState(() {
+        _selectedBodyPartIds.add(newBp.id);
+      });
+    }
+  }
+
+  Future<void> _openManageBodyParts() async {
+    await showDialog(
+      context: context,
+      builder: (_) => const ManageBodyPartsDialog(),
+    );
+    if (mounted) {
+      await _loadBodyParts();
     }
   }
 
@@ -152,13 +177,43 @@ class _AddEditConditionDialogState extends State<AddEditConditionDialog> {
                 const SizedBox(height: 16),
 
                 // Body Parts Affected section
-                Text(
-                  'Affected Body Parts',
-                  style: TextStyle(
-                    fontSize: rs.labelFont,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Affected Body Parts',
+                      style: TextStyle(
+                        fontSize: rs.labelFont,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton.icon(
+                          onPressed: _addNewBodyPart,
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Add Part', style: TextStyle(fontSize: 12)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF106F74),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: _openManageBodyParts,
+                          icon: const Icon(Icons.settings_outlined, size: 16),
+                          tooltip: 'Manage All Body Parts',
+                          color: const Color(0xFF106F74),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 if (_isLoadingBodyParts)

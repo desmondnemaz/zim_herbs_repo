@@ -182,4 +182,83 @@ class ConditionCubit extends Cubit<ConditionState> {
     _allBodyParts = await repository.getAllBodyParts();
     return _allBodyParts;
   }
+
+  // ============================================================
+  // BODY PART MUTATIONS
+  // ============================================================
+  Future<BodyPart> createBodyPart(BodyPart bodyPart) async {
+    try {
+      final created = await repository.createBodyPart(bodyPart);
+      _allBodyParts.add(created);
+      _allBodyParts.sort((a, b) => a.nameEn.toLowerCase().compareTo(b.nameEn.toLowerCase()));
+      if (state is ConditionLoaded) {
+        final current = state as ConditionLoaded;
+        emit(
+          ConditionLoaded(
+            current.conditions,
+            allBodyParts: List<BodyPart>.from(_allBodyParts),
+            searchQuery: current.searchQuery,
+            selectedBodySystem: current.selectedBodySystem,
+            selectedBodyPartId: current.selectedBodyPartId,
+          ),
+        );
+      }
+      return created;
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ConditionError(failure.message, failure: failure));
+      rethrow;
+    }
+  }
+
+  Future<BodyPart> updateBodyPart(BodyPart bodyPart) async {
+    try {
+      final updated = await repository.updateBodyPart(bodyPart);
+      final index = _allBodyParts.indexWhere((bp) => bp.id == updated.id);
+      if (index != -1) {
+        _allBodyParts[index] = updated;
+      }
+      _allBodyParts.sort((a, b) => a.nameEn.toLowerCase().compareTo(b.nameEn.toLowerCase()));
+      if (state is ConditionLoaded) {
+        final current = state as ConditionLoaded;
+        emit(
+          ConditionLoaded(
+            current.conditions,
+            allBodyParts: List<BodyPart>.from(_allBodyParts),
+            searchQuery: current.searchQuery,
+            selectedBodySystem: current.selectedBodySystem,
+            selectedBodyPartId: current.selectedBodyPartId,
+          ),
+        );
+      }
+      return updated;
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ConditionError(failure.message, failure: failure));
+      rethrow;
+    }
+  }
+
+  Future<void> deleteBodyPart(String id) async {
+    try {
+      await repository.deleteBodyPart(id);
+      _allBodyParts.removeWhere((bp) => bp.id == id);
+      if (state is ConditionLoaded) {
+        final current = state as ConditionLoaded;
+        emit(
+          ConditionLoaded(
+            current.conditions,
+            allBodyParts: List<BodyPart>.from(_allBodyParts),
+            searchQuery: current.searchQuery,
+            selectedBodySystem: current.selectedBodySystem,
+            selectedBodyPartId: current.selectedBodyPartId,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(ConditionError(failure.message, failure: failure));
+      rethrow;
+    }
+  }
 }

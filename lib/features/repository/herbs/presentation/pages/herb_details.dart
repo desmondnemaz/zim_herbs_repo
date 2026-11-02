@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
@@ -16,7 +15,6 @@ import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
 import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
-import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
@@ -42,8 +40,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  final PageController _pageController = PageController();
-
+  final ScrollController _scrollController = ScrollController();
   int _currentImageIndex = 0;
 
   @override
@@ -61,7 +58,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
+      begin: const Offset(0, 0.08),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
@@ -76,8 +73,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
   @override
   void dispose() {
     _animationController.dispose();
-    _pageController.dispose();
-
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -117,13 +113,13 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
           // ============================================================
           // LOADING
           // ============================================================
-
-          if (state is HerbDetailInitial ||
-              state is HerbDetailLoading) {
+          if (state is HerbDetailInitial || state is HerbDetailLoading) {
             return Scaffold(
               appBar: AppPageAppBar(
                 title: 'Herb Details',
-                onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+                onBack: Navigator.canPop(context)
+                    ? () => Navigator.pop(context)
+                    : null,
               ),
               body: const Center(
                 child: CircularProgressIndicator(),
@@ -134,12 +130,13 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
           // ============================================================
           // ERROR
           // ============================================================
-
           if (state is HerbDetailError) {
             return Scaffold(
               appBar: AppPageAppBar(
                 title: 'Herb Details',
-                onBack: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+                onBack: Navigator.canPop(context)
+                    ? () => Navigator.pop(context)
+                    : null,
               ),
               body: AppErrorView(
                 failure: state.failure,
@@ -157,7 +154,6 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
           // ============================================================
           // LOADED
           // ============================================================
-
           if (state is HerbDetailLoaded) {
             final herb = state.herb;
             final treatments = state.treatments;
@@ -172,598 +168,207 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                         authState.user.id == herb.createdBy));
 
             return Scaffold(
-              backgroundColor:
-                  Theme.of(context).scaffoldBackgroundColor,
-              body: CustomScrollView(
-                slivers: [
-                  // ====================================================
-                  // COLLAPSIBLE APP BAR
-                  // ====================================================
-
-                  SliverAppBar(
-                    centerTitle: true,
-                    systemOverlayStyle: const SystemUiOverlayStyle(
-                      statusBarColor: Colors.transparent,
-                      statusBarIconBrightness: Brightness.light,
-                      statusBarBrightness: Brightness.dark,
-                    ),
-
-                    expandedHeight:
-                        Responsive.isMobile(context)
-                            ? 320
-                            : null,
-
-                    pinned: true,
-
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primary,
-
-                    leading: IconButton(
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.black26,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.arrow_back,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .secondary,
-                          size: rs.appBarIcon,
-                        ),
-                      ),
-                      onPressed: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-
-                    actions: [
-                      if (canEdit)
-                        IconButton(
-                          tooltip: 'Edit Herb',
-                          icon: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Colors.black26,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.edit_note_rounded,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .secondary,
-                              size: rs.appBarIcon,
-                            ),
-                          ),
-                          onPressed: () => _openEditHerb(context, herb),
-                        ),
-                      const SizedBox(width: 8),
-                    ],
-
-                    flexibleSpace: FlexibleSpaceBar(
-                      centerTitle: true,
-
-                      // ==================================================
-                      // TITLE
-                      // ==================================================
-
-                      title: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth:
-                              MediaQuery.of(context).size.width *
-                                  0.7,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary,
-                            borderRadius:
-                                BorderRadius.circular(20),
-                          ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              herb.nameEn,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: rs.appBarTitleFont,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .secondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // ==================================================
-                      // MOBILE HERO IMAGE
-                      // ==================================================
-
-                      background:
-                          Responsive.isMobile(context)
-                              ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  if (herb.images.isNotEmpty)
-                                    PageView.builder(
-                                      controller:
-                                          _pageController,
-
-                                      itemCount:
-                                          herb.images.length,
-
-                                      onPageChanged: (index) {
-                                        setState(() {
-                                          _currentImageIndex =
-                                              index;
-                                        });
-                                      },
-
-                                      itemBuilder:
-                                          (
-                                            context,
-                                            index,
-                                          ) {
-                                        return Hero(
-                                          tag:
-                                              index == 0
-                                                  ? 'herb-image-${herb.nameEn}'
-                                                  : 'herb-image-${herb.nameEn}-$index',
-                                          child:
-                                              Image.network(
-                                            herb
-                                                .images[index]
-                                                .imageUrl,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (
-                                                  context,
-                                                  error,
-                                                  stackTrace,
-                                                ) {
-                                                  return Container(
-                                                    color:
-                                                        Colors.grey,
-                                                    child:
-                                                        const Icon(
-                                                      Icons.spa,
-                                                      color:
-                                                          Colors.white,
-                                                      size: 50,
-                                                    ),
-                                                  );
-                                                },
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  else
-                                    Container(
-                                      color: Colors.grey
-                                          .withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      child: Icon(
-                                        Icons.spa,
-                                        color: Theme.of(
-                                          context,
-                                        )
-                                            .colorScheme
-                                            .primary,
-                                        size: 50,
-                                      ),
-                                    ),
-
-                                  // ========================================
-                                  // GRADIENT OVERLAY
-                                  // ========================================
-
-                                  IgnorePointer(
-                                    child: Container(
-                                      decoration:
-                                          BoxDecoration(
-                                        gradient:
-                                            LinearGradient(
-                                          begin:
-                                              Alignment.topCenter,
-                                          end: Alignment
-                                              .bottomCenter,
-                                          colors: [
-                                            Colors.transparent,
-                                            Colors.black
-                                                .withValues(
-                                              alpha: 0.7,
-                                            ),
-                                          ],
-                                          stops: const [
-                                            0.5,
-                                            1.0,
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  // ========================================
-                                  // IMAGE COUNTER
-                                  // ========================================
-
-                                  if (herb.images.length > 1)
-                                    Positioned(
-                                      bottom: 60,
-                                      right: 16,
-                                      child: IgnorePointer(
-                                        child: Container(
-                                          padding:
-                                              const EdgeInsets
-                                                  .symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          decoration:
-                                              BoxDecoration(
-                                            color:
-                                                Colors.black45,
-                                            borderRadius:
-                                                BorderRadius
-                                                    .circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            '${_currentImageIndex + 1} / ${herb.images.length}',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize:
-                                                  rs.captionFont,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              )
-                              : null,
-                    ),
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              appBar: AppPageAppBar(
+                title: herb.nameEn,
+                onBack: Navigator.canPop(context)
+                    ? () => Navigator.pop(context)
+                    : null,
+                actions: [
+                  IconButton(
+                    tooltip: 'Refresh Herb Data',
+                    icon: const Icon(Icons.refresh_rounded),
+                    onPressed: () {
+                      context.read<HerbDetailCubit>().loadHerb(widget.herbId);
+                    },
                   ),
-
-                  // ========================================================
-                  // PAGE CONTENT
-                  // ========================================================
-
-                  SliverToBoxAdapter(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth:
-                                  Responsive.isMobile(context)
-                                      ? double.infinity
-                                      : Responsive.isTablet(
-                                        context,
-                                      )
-                                      ? 750
-                                      : 800,
-                            ),
-                            child: Padding(
-                              padding:
-                                  EdgeInsets.all(defaultPadding),
+                  const SizedBox(width: 8),
+                ],
+              ),
+              // Mobile & Tablet: Sticky Bottom Action Bar
+              bottomNavigationBar: !Responsive.isDesktop(context)
+                  ? _buildMobileStickyActionBar(context, herb, canEdit)
+                  : null,
+              body: Stack(
+                children: [
+                  // Scrollable Main Content
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: Responsive.isMobile(context) ? 16 : 32,
+                        vertical: 24,
+                      ),
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: Responsive.isMobile(context)
+                                    ? double.infinity
+                                    : Responsive.isTablet(context)
+                                        ? 750
+                                        : 820,
+                              ),
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // ========================================
-                                  // DESKTOP / TABLET IMAGE
-                                  // ========================================
+                                  // Rejection / Moderation Notice Card (if applicable)
+                                  if (herb.rejectionReason != null &&
+                                      herb.rejectionReason!.trim().isNotEmpty) ...[
+                                    _buildModerationNoticeCard(
+                                      herb.rejectionReason!,
+                                      rs,
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
 
-                                  if (!Responsive.isMobile(
-                                    context,
-                                  )) ...[
-                                    Column(
-                                      children: [
-                                        Hero(
-                                          tag:
-                                              'herb-image-${herb.nameEn}',
-                                          child: Container(
-                                            height: 350,
-                                            width: double.infinity,
-                                            decoration:
-                                                BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius
-                                                      .circular(
-                                                16,
+                                  // Herb Image Showcase (Clean, no text overlay)
+                                  _buildImageShowcase(context, herb, rs),
+
+                                  const SizedBox(height: 20),
+
+                                  // Herb Names & Language Badges Section (with fallbacks)
+                                  _buildNamesSection(herb, rs),
+
+                                  const SizedBox(height: 24),
+
+                                  // Description Section (with fallback for empty field)
+                                  _buildSectionCard(
+                                    icon: Icons.info_outline_rounded,
+                                    title: 'About this Herb',
+                                    content: (herb.description != null &&
+                                            herb.description!.trim().isNotEmpty)
+                                        ? Text(
+                                            herb.description!,
+                                            style: TextStyle(
+                                              fontSize: rs.bodyFont,
+                                              height: 1.6,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.85),
+                                            ),
+                                          )
+                                        : Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Icon(
+                                                Icons.notes_rounded,
+                                                size: 20,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.35),
                                               ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  blurRadius: 10,
-                                                  color: Colors
-                                                      .black
-                                                      .withValues(
-                                                    alpha: 0.08,
-                                                  ),
-                                                  offset:
-                                                      const Offset(
-                                                    0,
-                                                    4,
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  'No botanical or medicinal description has been recorded for this herb yet. Contributors and moderators can provide detailed notes by editing this record.',
+                                                  style: TextStyle(
+                                                    fontSize: rs.bodyFont,
+                                                    fontStyle: FontStyle.italic,
+                                                    height: 1.5,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withValues(alpha: 0.55),
                                                   ),
                                                 ),
-                                              ],
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius
-                                                      .circular(
-                                                16,
                                               ),
-                                              child:
-                                                  herb.images
-                                                          .isNotEmpty
-                                                      ? Image
-                                                          .network(
-                                                          herb
-                                                              .images[
-                                                                  _currentImageIndex]
-                                                              .imageUrl,
-                                                          fit: BoxFit
-                                                              .cover,
-                                                        )
-                                                      : Container(
-                                                          color: Colors
-                                                              .grey
-                                                              .withValues(
-                                                            alpha:
-                                                                0.3,
-                                                          ),
-                                                          child:
-                                                              const Icon(
-                                                            Icons
-                                                                .spa,
-                                                            size: 60,
-                                                          ),
-                                                        ),
-                                            ),
+                                            ],
                                           ),
-                                        ),
-
-                                        // ==================================
-                                        // THUMBNAILS
-                                        // ==================================
-
-                                        if (herb.images.length >
-                                            1) ...[
-                                          const SizedBox(
-                                            height: 12,
-                                          ),
-
-                                          SizedBox(
-                                            height: 60,
-                                            child: ListView
-                                                .separated(
-                                              scrollDirection:
-                                                  Axis.horizontal,
-                                              itemCount:
-                                                  herb.images
-                                                      .length,
-                                              separatorBuilder:
-                                                  (_, _) =>
-                                                      const SizedBox(
-                                                width: 8,
-                                              ),
-                                              itemBuilder:
-                                                  (
-                                                    context,
-                                                    index,
-                                                  ) {
-                                                    final isSelected =
-                                                        _currentImageIndex ==
-                                                            index;
-
-                                                    return GestureDetector(
-                                                      onTap: () {
-                                                        setState(
-                                                          () {
-                                                            _currentImageIndex =
-                                                                index;
-                                                          },
-                                                        );
-                                                      },
-                                                      child:
-                                                          Container(
-                                                        width: 60,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                            8,
-                                                          ),
-                                                          border:
-                                                              Border.all(
-                                                            color:
-                                                                isSelected
-                                                                    ? Theme.of(
-                                                                      context,
-                                                                    )
-                                                                        .colorScheme
-                                                                        .primary
-                                                                    : Colors
-                                                                        .transparent,
-                                                            width: 2,
-                                                          ),
-                                                        ),
-                                                        child:
-                                                            ClipRRect(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                            6,
-                                                          ),
-                                                          child:
-                                                              Image.network(
-                                                            herb
-                                                                .images[
-                                                                    index]
-                                                                .imageUrl,
-                                                            fit: BoxFit
-                                                                .cover,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-
-                                    const SizedBox(
-                                      height: 24,
-                                    ),
-                                  ],
-
-                                  // ========================================
-                                  // NAMES
-                                  // ========================================
-
-                                  _buildNamesSection(
-                                    herb,
-                                    rs,
+                                    rs: rs,
                                   ),
 
-                                  const SizedBox(
-                                    height: 24,
-                                  ),
+                                  const SizedBox(height: 24),
 
-                                  // ========================================
-                                  // DESCRIPTION
-                                  // ========================================
-
-                                  if (herb.description != null &&
-                                      herb.description!
-                                          .isNotEmpty)
-                                    _buildSectionCard(
-                                      icon: Icons
-                                          .info_outline_rounded,
-                                      title: 'About this Herb',
-                                      content: Text(
-                                        herb.description!,
-                                        style: TextStyle(
-                                          fontSize: rs.bodyFont,
-                                          height: 1.6,
-                                          color: Theme.of(
-                                            context,
+                                  // Treatable Conditions Section (with fallback for empty field)
+                                  _buildSectionCard(
+                                    icon: Icons.medical_services_rounded,
+                                    title: 'Treatable Conditions',
+                                    content: treatments.isNotEmpty
+                                        ? Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: treatments
+                                                .where((treatment) =>
+                                                    treatment.conditionName !=
+                                                    null)
+                                                .map((treatment) => (
+                                                      id: treatment
+                                                          .conditionId,
+                                                      name: treatment
+                                                          .conditionName!
+                                                    ))
+                                                .toSet()
+                                                .map(
+                                                  (cond) => _ConditionBadge(
+                                                    name: cond.name,
+                                                    onTap: () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              RemediesList(
+                                                            initialConditionId:
+                                                                cond.id,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                )
+                                                .toList(),
                                           )
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(
-                                            alpha: 0.8,
+                                        : Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Icon(
+                                                Icons.healing_outlined,
+                                                size: 20,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .secondary
+                                                    .withValues(alpha: 0.5),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  'No treatable health conditions or remedies have been linked to this herb yet. Verified treatments will appear here once linked.',
+                                                  style: TextStyle(
+                                                    fontSize: rs.bodyFont,
+                                                    fontStyle: FontStyle.italic,
+                                                    height: 1.5,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withValues(alpha: 0.55),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                      ),
-                                      rs: rs,
-                                    ),
-
-                                  const SizedBox(
-                                    height: 32,
+                                    rs: rs,
+                                    accentColor: Theme.of(context)
+                                        .colorScheme
+                                        .secondary,
                                   ),
 
-                                  // ========================================
-                                  // TREATABLE CONDITIONS
-                                  // ========================================
+                                  const SizedBox(height: 24),
 
-                                  if (treatments.isNotEmpty) ...[
-                                    _buildSectionCard(
-                                      icon: Icons
-                                          .medical_services_rounded,
-                                      title:
-                                          'Treatable Conditions',
-                                      content: Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: treatments
-                                            .where((treatment) => treatment.conditionName != null)
-                                            .map((treatment) => (id: treatment.conditionId, name: treatment.conditionName!))
-                                            .toSet()
-                                            .map(
-                                              (cond) {
-                                                return _ConditionBadge(
-                                                  name: cond.name,
-                                                  onTap: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder:
-                                                            (context) => RemediesList(
-                                                          initialConditionId: cond.id,
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                            )
-                                            .toList(),
-                                      ),
-                                      rs: rs,
-                                      accentColor:
-                                          Theme.of(context)
-                                              .colorScheme
-                                              .secondary,
-                                    ),
-
-                                    const SizedBox(
-                                      height: 32,
-                                    ),
-                                  ],
-
-                                  if (canEdit) ...[
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: OutlinedButton.icon(
-                                        icon: const Icon(Icons.edit_note_rounded),
-                                        label: const Text(
-                                          'Edit Herb Details',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 14,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                        ),
-                                        onPressed: () =>
-                                            _openEditHerb(context, herb),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                  ],
-
+                                  // Audit and Verification Timeline
                                   RecordAuditTimeline(
                                     history: herb.auditHistory,
                                     currentStatus: herb.validationStatus,
                                     title: 'Herb Validation & History',
                                   ),
 
-                                  const SizedBox(
-                                    height: 80,
-                                  ),
+                                  const SizedBox(height: 80),
                                 ],
                               ),
                             ),
@@ -772,15 +377,24 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                       ),
                     ),
                   ),
+
+                  // ALWAYS FLOATING BUTTONS ON DESKTOP (Right Margin)
+                  if (Responsive.isDesktop(context))
+                    Positioned(
+                      top: 24,
+                      right: 28,
+                      child: _buildDesktopFloatingActionPanel(
+                        context,
+                        herb,
+                        canEdit,
+                      ),
+                    ),
                 ],
               ),
             );
           }
 
-          // ============================================================
-          // FALLBACK
-          // ============================================================
-
+          // Fallback
           return const Scaffold(
             body: SizedBox.shrink(),
           );
@@ -790,146 +404,506 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
   }
 
   // ========================================================================
-  // HERB NAMES
+  // REJECTION / MODERATION NOTICE CARD
+  // ========================================================================
+
+  Widget _buildModerationNoticeCard(String notes, ResponsiveSize rs) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.report_problem_rounded, color: Colors.red.shade700, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Moderation Notice / Rejection Reason',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade900,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  notes,
+                  style: TextStyle(
+                    color: Colors.red.shade800,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ========================================================================
+  // IMAGE SHOWCASE (Clean without text overlay + Meaningful fallback)
+  // ========================================================================
+
+  Widget _buildImageShowcase(
+    BuildContext context,
+    Herb herb,
+    ResponsiveSize rs,
+  ) {
+    final theme = Theme.of(context);
+    final isMobile = Responsive.isMobile(context);
+    final imageHeight = isMobile ? 260.0 : 360.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Hero(
+          tag: 'herb-image-${herb.nameEn}',
+          child: Container(
+            height: imageHeight,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.3),
+              boxShadow: [
+                BoxShadow(
+                  blurRadius: 16,
+                  color: Colors.black.withValues(alpha: 0.08),
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (herb.images.isNotEmpty)
+                    Image.network(
+                      herb.images[_currentImageIndex.clamp(
+                              0, herb.images.length - 1)]
+                          .imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        child: Center(
+                          child: Icon(
+                            Icons.spa_rounded,
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.5),
+                            size: 64,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.spa_rounded,
+                            size: 56,
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'No Herb Image Uploaded',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.8),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap "Edit Herb" to contribute photographs',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Subtle gradient shadow at bottom for depth
+                  if (herb.images.isNotEmpty)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.25),
+                              ],
+                              stops: const [0.75, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Image counter badge when multiple images exist
+                  if (herb.images.length > 1)
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white24,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          '${_currentImageIndex + 1} / ${herb.images.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Thumbnails Row
+        if (herb.images.length > 1) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 64,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: herb.images.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final isSelected = _currentImageIndex == index;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _currentImageIndex = index;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outline.withValues(alpha: 0.2),
+                        width: isSelected ? 2.5 : 1,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: theme.colorScheme.primary
+                                    .withValues(alpha: 0.25),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Opacity(
+                        opacity: isSelected ? 1.0 : 0.65,
+                        child: Image.network(
+                          herb.images[index].imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Container(
+                            color: Colors.grey.shade300,
+                            child: const Icon(Icons.broken_image, size: 24),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ========================================================================
+  // HERB NAMES & LANGUAGE BADGES (With meaningful fallbacks)
   // ========================================================================
 
   Widget _buildNamesSection(
     Herb herb,
     ResponsiveSize rs,
   ) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        // ================================================================
-        // VALIDATION STATUS
-        // ================================================================
-        ValidationStatusChip(
-          status: herb.validationStatus,
-          isOutlined: false,
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.12),
         ),
-
-        // ================================================================
-        // ENGLISH
-        // ================================================================
-
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 6,
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.04),
+            offset: const Offset(0, 3),
           ),
-          decoration: BoxDecoration(
-            color:
-                Theme.of(context).colorScheme.primary,
-            borderRadius:
-                BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.language,
-                size: 16,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 6),
-              Flexible(
+              Expanded(
                 child: Text(
-                  'English: ${herb.nameEn}',
+                  herb.nameEn,
                   style: TextStyle(
-                    fontSize: rs.labelFont,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
+                    fontSize: rs.titleFont * 1.3,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    color: theme.colorScheme.onSurface,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
+              ),
+              const SizedBox(width: 8),
+              ValidationStatusChip(
+                status: herb.validationStatus,
+                isOutlined: false,
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 14),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // English
+              _buildLanguageBadge(
+                icon: Icons.language_rounded,
+                label: 'English',
+                value: herb.nameEn,
+                color: theme.colorScheme.primary,
+                rs: rs,
+              ),
+
+              // Shona (with meaningful fallback if missing)
+              _buildLanguageBadge(
+                icon: Icons.translate_rounded,
+                label: 'Shona',
+                value: (herb.nameSn != null && herb.nameSn!.trim().isNotEmpty)
+                    ? herb.nameSn!
+                    : 'Not specified',
+                isFallback:
+                    herb.nameSn == null || herb.nameSn!.trim().isEmpty,
+                color: Colors.teal.shade700,
+                rs: rs,
+              ),
+
+              // Ndebele (with meaningful fallback if missing)
+              _buildLanguageBadge(
+                icon: Icons.translate_rounded,
+                label: 'Ndebele',
+                value: (herb.nameNd != null && herb.nameNd!.trim().isNotEmpty)
+                    ? herb.nameNd!
+                    : 'Not specified',
+                isFallback:
+                    herb.nameNd == null || herb.nameNd!.trim().isEmpty,
+                color: Colors.indigo.shade700,
+                rs: rs,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageBadge({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    required ResponsiveSize rs,
+    bool isFallback = false,
+  }) {
+    final effectiveColor =
+        isFallback ? Colors.grey.shade600 : color;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: isFallback ? 0.05 : 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: effectiveColor.withValues(alpha: isFallback ? 0.18 : 0.25),
         ),
-
-        // ================================================================
-        // SHONA
-        // ================================================================
-
-        if (herb.nameSn != null &&
-            herb.nameSn!.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color:
-                  Theme.of(context).colorScheme.primary,
-              borderRadius:
-                  BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.translate,
-                  size: 16,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    'Shona: ${herb.nameSn!}',
-                    style: TextStyle(
-                      fontSize: rs.labelFont,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: effectiveColor),
+          const SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: rs.labelFont,
+              fontWeight: FontWeight.w700,
+              color: effectiveColor,
             ),
           ),
-
-        // ================================================================
-        // NDEBELE
-        // ================================================================
-
-        if (herb.nameNd != null &&
-            herb.nameNd!.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color:
-                  Theme.of(context).colorScheme.primary,
-              borderRadius:
-                  BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.translate,
-                  size: 16,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    'Ndebele: ${herb.nameNd!}',
-                    style: TextStyle(
-                      fontSize: rs.labelFont,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: rs.labelFont,
+              fontWeight: isFallback ? FontWeight.normal : FontWeight.w500,
+              fontStyle: isFallback ? FontStyle.italic : FontStyle.normal,
+              color: isFallback
+                  ? Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.55)
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  // ========================================================================
+  // MOBILE / TABLET STICKY BOTTOM ACTION BAR
+  // ========================================================================
+
+  Widget _buildMobileStickyActionBar(
+    BuildContext context,
+    Herb herb,
+    bool canEdit,
+  ) {
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.15),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 10,
+        bottom: MediaQuery.of(context).padding.bottom + 10,
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          icon: const Icon(Icons.edit_note_rounded, size: 20),
+          label: Text(
+            canEdit ? 'Edit Herb Details' : 'View Only',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+          style: FilledButton.styleFrom(
+            backgroundColor: canEdit
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.12),
+            foregroundColor: canEdit
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.38),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: canEdit ? () => _openEditHerb(context, herb) : null,
+        ),
+      ),
+    );
+  }
+
+  // ========================================================================
+  // DESKTOP ALWAYS FLOATING ACTION BUTTON (Right Margin)
+  // ========================================================================
+
+  Widget _buildDesktopFloatingActionPanel(
+    BuildContext context,
+    Herb herb,
+    bool canEdit,
+  ) {
+    final theme = Theme.of(context);
+
+    return FilledButton.icon(
+      icon: const Icon(Icons.edit_note_rounded, size: 20),
+      label: const Text(
+        'Edit Herb',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+      style: FilledButton.styleFrom(
+        backgroundColor: canEdit
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurface.withValues(alpha: 0.12),
+        foregroundColor: canEdit
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurface.withValues(alpha: 0.38),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+        elevation: 4,
+        shadowColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+      onPressed: canEdit ? () => _openEditHerb(context, herb) : null,
     );
   }
 
@@ -944,41 +918,35 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
     required ResponsiveSize rs,
     Color? accentColor,
   }) {
-    final color =
-        accentColor ??
-        Theme.of(context).colorScheme.primary;
+    final color = accentColor ?? Theme.of(context).colorScheme.primary;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color:
-            Theme.of(context).colorScheme.onPrimary,
-        borderRadius:
-            BorderRadius.circular(20),
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+        ),
         boxShadow: [
           BoxShadow(
             blurRadius: 15,
-            color:
-                Colors.black.withValues(alpha: 0.06),
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.04),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color:
-                      color.withValues(alpha: 0.1),
-                  borderRadius:
-                      BorderRadius.circular(12),
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
@@ -986,28 +954,21 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                   color: color,
                 ),
               ),
-
               const SizedBox(width: 16),
-
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
                     fontSize: rs.titleFont,
-                    fontWeight:
-                        FontWeight.w800,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface,
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.onSurface,
                     letterSpacing: -0.5,
                   ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
           content,
         ],
       ),
@@ -1034,11 +995,9 @@ class _ConditionBadge extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 12,
             vertical: 8,
           ),
@@ -1046,8 +1005,7 @@ class _ConditionBadge extends StatelessWidget {
             color: Colors.teal.withValues(
               alpha: 0.1,
             ),
-            borderRadius:
-                BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: Colors.teal.withValues(
                 alpha: 0.3,
@@ -1055,22 +1013,18 @@ class _ConditionBadge extends StatelessWidget {
             ),
           ),
           child: Row(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
                 Icons.healing_rounded,
                 size: 16,
                 color: Colors.teal,
               ),
-
               const SizedBox(width: 8),
-
               Text(
                 name,
                 style: const TextStyle(
-                  fontWeight:
-                      FontWeight.w600,
+                  fontWeight: FontWeight.w600,
                   fontSize: 14,
                   color: Colors.teal,
                 ),

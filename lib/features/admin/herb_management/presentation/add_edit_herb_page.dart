@@ -372,13 +372,14 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
                               authState is Authenticated && authState.user.canModerate;
 
                           if (canModerate) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: _isApproved
-                                    ? Colors.green.shade50
-                                    : Colors.amber.shade50,
+                            return Material(
+                              color: _isApproved
+                                  ? Colors.green.shade50
+                                  : Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
+                                side: BorderSide(
                                   color: _isApproved
                                       ? Colors.green.shade300
                                       : Colors.amber.shade400,

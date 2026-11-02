@@ -6,6 +6,7 @@ import 'package:zim_herbs_repo/features/repository/conditions/domain/entities/co
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_cubit.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_state.dart';
 import 'package:zim_herbs_repo/features/admin/condition_management/presentation/components/add_edit_condition_dialog.dart';
+import 'package:zim_herbs_repo/features/admin/condition_management/presentation/components/manage_body_parts_dialog.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/data/models/condition_model.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/components/desktop_condition_list.dart';
 import 'package:zim_herbs_repo/features/repository/conditions/presentation/components/mobile_condition_list.dart';
@@ -138,7 +139,7 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
                 ),
                 child: Column(
                   children: [
-                    _buildHeader(context, rs),
+                    _buildHeader(context, rs, canManage: canManage),
 
                     Expanded(
                       child: BlocBuilder<ConditionCubit, ConditionState>(
@@ -327,7 +328,11 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, ResponsiveSize rs) {
+  Widget _buildHeader(
+    BuildContext context,
+    ResponsiveSize rs, {
+    required bool canManage,
+  }) {
     return AppPageHeader(
       title: widget.isPublicView ? "Conditions Catalog" : "Conditions",
       subtitle:
@@ -336,6 +341,32 @@ class _ConditionsListPageState extends State<ConditionsListPage> {
               : "Medical conditions & targeted remedies",
       icon: Icons.medical_information_rounded,
       onBack: widget.onBack,
+      trailing: canManage
+          ? FilledButton.tonalIcon(
+              onPressed: () async {
+                await showDialog(
+                  context: context,
+                  builder: (_) => const ManageBodyPartsDialog(),
+                );
+                if (context.mounted) {
+                  context.read<ConditionCubit>().loadConditions();
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF106F74).withValues(alpha: 0.12),
+                foregroundColor: const Color(0xFF106F74),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              icon: const Icon(Icons.accessibility_new_rounded, size: 18),
+              label: const Text(
+                'Body Parts',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            )
+          : null,
     );
   }
 
