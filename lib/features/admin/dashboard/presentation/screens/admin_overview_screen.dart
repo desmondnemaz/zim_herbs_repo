@@ -9,6 +9,8 @@ import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
+import 'package:zim_herbs_repo/features/admin/condition_management/presentation/components/add_edit_condition_dialog.dart';
+import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_cubit.dart';
 
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 
@@ -200,72 +202,96 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                   builder: (context, constraints) {
                     final double availableWidth = constraints.maxWidth;
                     if (availableWidth <= 0) return const SizedBox.shrink();
-                    final int count = (availableWidth / 220).floor().clamp(1, 5);
                     const double spacing = 12.0;
+                    const double cardHeight = 84.0;
+
+                    final herbsCard = _StatCard(
+                      title: 'Herbs',
+                      value: '$_herbsCount',
+                      icon: Icons.local_florist_rounded,
+                      color: const Color(0xFF22633C),
+                      onTap: () => widget.onNavigate?.call(2),
+                    );
+
+                    final conditionsCard = _StatCard(
+                      title: 'Conditions',
+                      value: '$_conditionsCount',
+                      icon: Icons.monitor_heart_outlined,
+                      color: const Color(0xFF106F74),
+                      onTap: () => widget.onNavigate?.call(3),
+                    );
+
+                    final remediesCard = _StatCard(
+                      title: 'Remedies',
+                      value: '$_remediesCount',
+                      icon: Icons.healing_outlined,
+                      color: const Color(0xFF295CA2),
+                      onTap: () => widget.onNavigate?.call(4),
+                    );
+
+                    final pendingReviewsCard = _StatCard(
+                      title: 'Pending Reviews',
+                      value: '$_pendingReviewsCount',
+                      icon: Icons.chat_bubble_outline_rounded,
+                      color: const Color(0xFFA85B18),
+                      onTap: () => widget.onNavigate?.call(1),
+                    );
+
+                    final usersCard = _StatCard(
+                      title: 'Users',
+                      value: '$_usersCount',
+                      icon: Icons.people_outline_rounded,
+                      color: const Color(0xFF684B8A),
+                      onTap: () => widget.onNavigate?.call(6),
+                    );
+
+                    // On mobile: 2-column layout for standard cards with Pending Reviews spanning full width
+                    if (rs.isMobile || availableWidth < 600) {
+                      final double colWidth = ((availableWidth - spacing) / 2).floorToDouble();
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              SizedBox(width: colWidth, height: cardHeight, child: herbsCard),
+                              const SizedBox(width: spacing),
+                              SizedBox(width: colWidth, height: cardHeight, child: conditionsCard),
+                            ],
+                          ),
+                          const SizedBox(height: spacing),
+                          Row(
+                            children: [
+                              SizedBox(width: colWidth, height: cardHeight, child: remediesCard),
+                              const SizedBox(width: spacing),
+                              SizedBox(width: colWidth, height: cardHeight, child: usersCard),
+                            ],
+                          ),
+                          const SizedBox(height: spacing),
+                          SizedBox(
+                            width: double.infinity,
+                            height: cardHeight,
+                            child: pendingReviewsCard,
+                          ),
+                        ],
+                      );
+                    }
+
+                    // On tablet & desktop viewports: dynamic wrapping
+                    final int count = (availableWidth / 220).floor().clamp(1, 5);
                     final double cardWidth =
                         ((availableWidth - (spacing * (count - 1))) / count)
                             .floorToDouble();
-                    const double cardHeight = 84.0;
 
                     return Wrap(
                       spacing: spacing,
                       runSpacing: spacing,
                       children: [
-                        SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: _StatCard(
-                            title: 'Herbs',
-                            value: '$_herbsCount',
-                            icon: Icons.local_florist_rounded,
-                            color: const Color(0xFF22633C),
-                            onTap: () => widget.onNavigate?.call(2),
-                          ),
-                        ),
-                        SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: _StatCard(
-                            title: 'Conditions',
-                            value: '$_conditionsCount',
-                            icon: Icons.monitor_heart_outlined,
-                            color: const Color(0xFF106F74),
-                            onTap: () => widget.onNavigate?.call(3),
-                          ),
-                        ),
-                        SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: _StatCard(
-                            title: 'Remedies',
-                            value: '$_remediesCount',
-                            icon: Icons.healing_outlined,
-                            color: const Color(0xFF295CA2),
-                            onTap: () => widget.onNavigate?.call(4),
-                          ),
-                        ),
-                        SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: _StatCard(
-                            title: 'Pending Reviews',
-                            value: '$_pendingReviewsCount',
-                            icon: Icons.chat_bubble_outline_rounded,
-                            color: const Color(0xFFA85B18),
-                            onTap: () => widget.onNavigate?.call(1),
-                          ),
-                        ),
-                        SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: _StatCard(
-                            title: 'Users',
-                            value: '$_usersCount',
-                            icon: Icons.people_outline_rounded,
-                            color: const Color(0xFF684B8A),
-                            onTap: () => widget.onNavigate?.call(6),
-                          ),
-                        ),
+                        SizedBox(width: cardWidth, height: cardHeight, child: herbsCard),
+                        SizedBox(width: cardWidth, height: cardHeight, child: conditionsCard),
+                        SizedBox(width: cardWidth, height: cardHeight, child: remediesCard),
+                        SizedBox(width: cardWidth, height: cardHeight, child: pendingReviewsCard),
+                        SizedBox(width: cardWidth, height: cardHeight, child: usersCard),
                       ],
                     );
                   },
@@ -321,11 +347,28 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                           width: cardWidth,
                           height: cardHeight,
                           child: _QuickActionCard(
-                            title: 'Conditions Hub',
+                            title: 'Add Condition',
                             icon: Icons.monitor_heart_outlined,
                             color: const Color(0xFF106F74),
                             pastelBackground: const Color(0xFFE6F5F5),
-                            onTap: () => widget.onNavigate?.call(3),
+                            onTap: () async {
+                              await showDialog(
+                                context: context,
+                                builder: (dialogContext) => AddEditConditionDialog(
+                                  onSave: (newConditionModel) async {
+                                    final newCondition = newConditionModel.toEntity();
+                                    final bodyPartIds = newConditionModel.bodyParts
+                                        .map((bp) => bp.id)
+                                        .toList();
+                                    await context.read<ConditionCubit>().createCondition(
+                                      newCondition,
+                                      bodyPartIds: bodyPartIds,
+                                    );
+                                    _loadLiveStats();
+                                  },
+                                ),
+                              );
+                            },
                           ),
                         ),
                         SizedBox(
@@ -346,29 +389,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                             },
                           ),
                         ),
-                        SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: _QuickActionCard(
-                            title: 'Pending Reviews',
-                            icon: Icons.chat_bubble_outline_rounded,
-                            color: const Color(0xFFA85B18),
-                            pastelBackground: const Color(0xFFFEF5EB),
-                            onTap: () => widget.onNavigate?.call(1),
-                          ),
-                        ),
-                        if (widget.user?.canManageUsers ?? false)
-                          SizedBox(
-                            width: cardWidth,
-                            height: cardHeight,
-                            child: _QuickActionCard(
-                              title: 'User Management',
-                              icon: Icons.manage_accounts_outlined,
-                              color: const Color(0xFF684B8A),
-                              pastelBackground: const Color(0xFFF4EEF9),
-                              onTap: () => widget.onNavigate?.call(6),
-                            ),
-                          ),
                       ],
                     );
                   },

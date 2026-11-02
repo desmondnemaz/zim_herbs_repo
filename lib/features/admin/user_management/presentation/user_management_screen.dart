@@ -7,6 +7,7 @@ import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/core/services/user_export_service.dart';
 import 'package:zim_herbs_repo/core/components/app_page_header.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
+import 'package:zim_herbs_repo/features/admin/user_management/domain/role_update_rules.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 
@@ -46,10 +47,59 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   int _currentPage = 0;
   bool _isTableView = true;
 
+  RealtimeChannel? _usersRealtimeChannel;
+
   @override
   void initState() {
     super.initState();
     _loadUsers();
+    _subscribeToUserRealtimeChanges();
+  }
+
+  void _subscribeToUserRealtimeChanges() {
+    _usersRealtimeChannel = _client
+        .channel('admin_user_profiles_realtime')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'user_profiles',
+          callback: (payload) {
+            final eventType = payload.eventType;
+            final newRecord = payload.newRecord;
+            final oldRecord = payload.oldRecord;
+
+            if (!mounted) return;
+
+            setState(() {
+              if (eventType == PostgresChangeEvent.insert && newRecord.isNotEmpty) {
+                final exists = _users.any((u) => u['id'] == newRecord['id']);
+                if (!exists) {
+                  _users.insert(0, Map<String, dynamic>.from(newRecord));
+                }
+              } else if (eventType == PostgresChangeEvent.update && newRecord.isNotEmpty) {
+                final index = _users.indexWhere((u) => u['id'] == newRecord['id']);
+                if (index != -1) {
+                  _users[index] = Map<String, dynamic>.from(newRecord);
+                } else {
+                  _users.insert(0, Map<String, dynamic>.from(newRecord));
+                }
+              } else if (eventType == PostgresChangeEvent.delete && oldRecord.isNotEmpty) {
+                _users.removeWhere((u) => u['id'] == oldRecord['id']);
+              }
+            });
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    final channel = _usersRealtimeChannel;
+    _usersRealtimeChannel = null;
+    if (channel != null) {
+      _client.removeChannel(channel);
+    }
+    super.dispose();
   }
 
   Future<void> _loadUsers() async {
@@ -77,6 +127,39 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  /// Writes [data] to the user's `user_profiles` row and returns the row the
+  /// database actually stored.
+  ///
+  /// Supabase returns no error when row-level security filters out an UPDATE
+  /// (0 rows affected), so `.select()` is used to confirm the write landed.
+  Future<Map<String, dynamic>> _persistProfileUpdate(
+    String userId,
+    Map<String, dynamic> data,
+  ) async {
+    final rows = await _client
+        .from('user_profiles')
+        .update(data)
+        .eq('id', userId)
+        .select();
+    if (rows.isEmpty) {
+      throw const Failure(
+        title: 'Update Not Saved',
+        message:
+            'The database did not accept this change. You may not have permission to modify this user.',
+        type: FailureType.accessDenied,
+      );
+    }
+    return Map<String, dynamic>.from(rows.first);
+  }
+
+  /// Replaces the cached row for [updatedRow]'s id with the server's version.
+  void _replaceCachedUser(Map<String, dynamic> updatedRow) {
+    final index = _users.indexWhere((u) => u['id'] == updatedRow['id']);
+    if (index != -1) {
+      _users[index] = updatedRow;
     }
   }
 
@@ -210,13 +293,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       message: newStatus
           ? 'Are you sure you want to promote "$userName" to Administrator?\n\n'
               '• "user_profiles.is_admin" will be set to TRUE.\n'
-              '• "user_profiles.is_moderator" will be set to TRUE.\n'
               '• "user_profiles.primary_role" will be updated to "admin".\n'
-              '• Unrestricted access to user management, moderation, and settings.\n\n'
+              '• Unrestricted access to user management, moderation, and settings.\n'
+              '• The separate Moderator role is not changed.\n\n'
               'Confirm updating and persisting to the database?'
           : 'Are you sure you want to revoke Administrator privileges from "$userName"?\n\n'
               '• "user_profiles.is_admin" will be set to FALSE.\n'
-              '• The user will lose access to administrative consoles.',
+              '• The user will lose access to administrative consoles.\n'
+              '• The separate Moderator role is not changed.',
       confirmLabel: newStatus ? 'Confirm & Grant Role' : 'Confirm & Revoke Role',
       confirmColor: newStatus ? const Color(0xFF2E7D32) : Colors.red.shade700,
       icon: Icons.admin_panel_settings_rounded,
@@ -225,30 +309,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     if (!confirmed) return;
 
     try {
-      final updateData = <String, dynamic>{
-        'is_admin': newStatus,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-      if (newStatus) {
-        updateData['is_moderator'] = true;
-        updateData['primary_role'] = 'admin';
-      }
-      await _client
-          .from('user_profiles')
-          .update(updateData)
-          .eq('id', userId);
+      final updatedRow = await _persistProfileUpdate(
+        userId,
+        RoleUpdateRules.adminToggle(
+          user: user,
+          grant: newStatus,
+          now: DateTime.now(),
+        ),
+      );
 
       if (mounted) {
-        setState(() {
-          final index = _users.indexWhere((u) => u['id'] == userId);
-          if (index != -1) {
-            _users[index]['is_admin'] = newStatus;
-            if (newStatus) {
-              _users[index]['is_moderator'] = true;
-              _users[index]['primary_role'] = 'admin';
-            }
-          }
-        });
+        setState(() => _replaceCachedUser(updatedRow));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -322,25 +393,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     if (!confirmed) return;
 
     try {
-      final updateData = <String, dynamic>{
-        'is_moderator': newStatus,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-      if (newStatus && (user['is_admin'] != true)) {
-        updateData['primary_role'] = 'moderator';
-      }
-      await _client
-          .from('user_profiles')
-          .update(updateData)
-          .eq('id', userId);
+      final updatedRow = await _persistProfileUpdate(
+        userId,
+        RoleUpdateRules.moderatorToggle(
+          user: user,
+          grant: newStatus,
+          now: DateTime.now(),
+        ),
+      );
 
       if (mounted) {
-        setState(() {
-          final index = _users.indexWhere((u) => u['id'] == userId);
-          if (index != -1) {
-            _users[index]['is_moderator'] = newStatus;
-          }
-        });
+        setState(() => _replaceCachedUser(updatedRow));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -672,6 +735,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     required bool isModerator,
     required bool isPractitioner,
     required bool isSupplier,
+    String? currentPrimaryRole,
     bool isActive = true,
   }) async {
     if (userId == _currentUserId) {
@@ -696,7 +760,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       message: 'Are you sure you want to update permissions for "$userName"?\n\n'
           '• Account Status: ${isActive ? "ACTIVE" : "DEACTIVATED"}\n'
           '• Administrator: ${isAdmin ? "GRANTED" : "REVOKED"}\n'
-          '• Moderator: ${(isAdmin || isModerator) ? "GRANTED" : "REVOKED"}\n'
+          '• Moderator: ${isModerator ? "GRANTED" : "REVOKED"}'
+          '${isAdmin && !isModerator ? " (can still moderate as Administrator)" : ""}\n'
           '• Practitioner: ${isPractitioner ? "GRANTED" : "REVOKED"}\n'
           '• Supplier / Vendor: ${isSupplier ? "GRANTED" : "REVOKED"}\n\n'
           'All updates will be written directly and persisted to the database.',
@@ -708,28 +773,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     if (!confirmed) return;
 
     try {
-      final updateData = <String, dynamic>{
-        'is_admin': isAdmin,
-        'is_moderator': isAdmin ? true : isModerator,
-        'is_practitioner': isPractitioner,
-        'is_supplier': isSupplier,
-        'is_active': isActive,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-      if (isAdmin) {
-        updateData['primary_role'] = 'admin';
-      } else if (isModerator) {
-        updateData['primary_role'] = 'moderator';
-      } else if (isPractitioner) {
-        updateData['primary_role'] = 'practitioner';
-      } else if (isSupplier) {
-        updateData['primary_role'] = 'supplier';
-      }
-
-      await _client
-          .from('user_profiles')
-          .update(updateData)
-          .eq('id', userId);
+      final updatedRow = await _persistProfileUpdate(
+        userId,
+        RoleUpdateRules.rightsUpdate(
+          currentPrimaryRole: currentPrimaryRole,
+          isAdmin: isAdmin,
+          isModerator: isModerator,
+          isPractitioner: isPractitioner,
+          isSupplier: isSupplier,
+          isActive: isActive,
+          now: DateTime.now(),
+        ),
+      );
 
       // Synchronize related profile statuses
       try {
@@ -747,16 +802,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       } catch (_) {}
 
       if (mounted) {
-        setState(() {
-          final index = _users.indexWhere((u) => u['id'] == userId);
-          if (index != -1) {
-            _users[index]['is_admin'] = isAdmin;
-            _users[index]['is_moderator'] = isAdmin ? true : isModerator;
-            _users[index]['is_practitioner'] = isPractitioner;
-            _users[index]['is_supplier'] = isSupplier;
-            _users[index]['is_active'] = isActive;
-          }
-        });
+        setState(() => _replaceCachedUser(updatedRow));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -891,10 +937,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       activeThumbColor: theme.colorScheme.primary,
                       value: isAdmin,
                       onChanged: (val) {
-                        setDialogState(() {
-                          isAdmin = val;
-                          if (val) isModerator = true;
-                        });
+                        setDialogState(() => isAdmin = val);
                       },
                     ),
                     const Divider(height: 1, thickness: 0.5, color: Color(0xFFE2E8F0)),
@@ -908,16 +951,16 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         ),
                       ),
                       subtitle: Text(
-                        'Review, verify, and approve/reject herbal submissions',
+                        isAdmin
+                            ? 'Separate moderation role. Administrators can already moderate.'
+                            : 'Review, verify, and approve/reject herbal submissions',
                         style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                       ),
                       activeThumbColor: Colors.indigo,
                       value: isModerator,
-                      onChanged: isAdmin
-                          ? null
-                          : (val) {
-                              setDialogState(() => isModerator = val);
-                            },
+                      onChanged: (val) {
+                        setDialogState(() => isModerator = val);
+                      },
                     ),
                     const Divider(height: 1, thickness: 0.5, color: Color(0xFFE2E8F0)),
                     SwitchListTile(
@@ -1007,6 +1050,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       isModerator: isModerator,
                       isPractitioner: isPractitioner,
                       isSupplier: isSupplier,
+                      currentPrimaryRole: user['primary_role'] as String?,
                       isActive: isActive,
                     );
                   },

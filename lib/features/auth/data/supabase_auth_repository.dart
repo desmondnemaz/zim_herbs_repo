@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zim_herbs_repo/features/auth/data/user_profile_realtime_watcher.dart';
 import 'package:zim_herbs_repo/features/auth/domain/auth_repository.dart';
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 
@@ -12,6 +13,11 @@ class SupabaseAuthRepository implements AuthRepository {
 
   StreamSubscription<AuthState>? _supabaseAuthSubscription;
 
+  /// Pushes server-side changes to the signed-in user's profile (roles,
+  /// activation status) into [authStateChanges] via Supabase Realtime.
+  late final UserProfileRealtimeWatcher _profileWatcher =
+      UserProfileRealtimeWatcher(client);
+
   SupabaseAuthRepository(this.client) {
     _init();
   }
@@ -22,11 +28,31 @@ class SupabaseAuthRepository implements AuthRepository {
       final user = data.session?.user;
       if (user != null) {
         final userModel = await _fetchUserProfile(user);
-        _authStateController.add(userModel);
+        _emit(userModel);
+        _profileWatcher.watch(user.id, onChange: _refreshFromServerPush);
       } else {
-        _authStateController.add(null);
+        _profileWatcher.stop();
+        _emit(null);
       }
     });
+  }
+
+  void _emit(UserModel? user) {
+    if (!_authStateController.isClosed) {
+      _authStateController.add(user);
+    }
+  }
+
+  /// Called when Realtime reports a change to the signed-in user's row.
+  /// Only emits when the refetch succeeds, so a transient failure never
+  /// replaces real privileges with the fallback customer profile.
+  Future<void> _refreshFromServerPush() async {
+    final user = client.auth.currentUser;
+    if (user == null) return;
+    final refreshed = await _tryFetchUserProfile(user);
+    if (refreshed != null && client.auth.currentUser?.id == user.id) {
+      _emit(refreshed);
+    }
   }
 
   @override
@@ -296,11 +322,13 @@ class SupabaseAuthRepository implements AuthRepository {
     } catch (_) {
       // Even if remote sign out fails (e.g. offline/network issue), ensure local sign out succeeds
     } finally {
-      _authStateController.add(null);
+      _profileWatcher.stop();
+      _emit(null);
     }
   }
 
-  Future<UserModel> _fetchUserProfile(User user) async {
+  /// Returns the user's profile, or `null` if it could not be loaded.
+  Future<UserModel?> _tryFetchUserProfile(User user) async {
     try {
       final profile = await client
           .from('user_profiles')
@@ -314,9 +342,16 @@ class SupabaseAuthRepository implements AuthRepository {
         return UserModel.fromJson(profileMap);
       }
     } catch (_) {
-      // Fallback if user_profiles query fails
+      // Caller decides how to handle an unavailable profile.
     }
+    return null;
+  }
 
+  Future<UserModel> _fetchUserProfile(User user) async {
+    final profile = await _tryFetchUserProfile(user);
+    if (profile != null) return profile;
+
+    // Fallback if user_profiles query fails
     return UserModel(
       id: user.id,
       name: user.email?.split('@').first ?? 'User',
@@ -329,6 +364,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
   void dispose() {
     _supabaseAuthSubscription?.cancel();
+    _profileWatcher.stop();
     _authStateController.close();
   }
 }

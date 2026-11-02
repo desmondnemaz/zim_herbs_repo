@@ -614,28 +614,40 @@ class _SignUpStepperPageState extends State<SignUpStepperPage> {
           const SizedBox(height: 16),
 
           // Role selection cards
-          _buildRoleCard(
-            theme: theme,
-            roleId: 'household',
-            title: 'Household / Learner',
-            subtitle: 'Explore botanical catalog, remedies, and wellness remedies',
-            icon: Icons.local_florist_rounded,
-          ),
-          const SizedBox(height: 10),
-          _buildRoleCard(
-            theme: theme,
-            roleId: 'practitioner',
-            title: 'Traditional Practitioner',
-            subtitle: 'Offer consultations, share formulations & verify treatments',
-            icon: Icons.medical_services_outlined,
-          ),
-          const SizedBox(height: 10),
-          _buildRoleCard(
-            theme: theme,
-            roleId: 'supplier',
-            title: 'Botanical Supplier / Vendor',
-            subtitle: 'Supply authentic packaged herbs, oils, and remedies to store',
-            icon: Icons.storefront_rounded,
+          RadioGroup<String>(
+            groupValue: _selectedRole,
+            onChanged: (val) {
+              if (val != null) {
+                setState(() => _selectedRole = val);
+              }
+            },
+            child: Column(
+              children: [
+                _buildRoleCard(
+                  theme: theme,
+                  roleId: 'household',
+                  title: 'Household / Learner',
+                  subtitle: 'Explore botanical catalog, remedies, and wellness remedies',
+                  icon: Icons.local_florist_rounded,
+                ),
+                const SizedBox(height: 10),
+                _buildRoleCard(
+                  theme: theme,
+                  roleId: 'practitioner',
+                  title: 'Traditional Practitioner',
+                  subtitle: 'Offer consultations, share formulations & verify treatments',
+                  icon: Icons.medical_services_outlined,
+                ),
+                const SizedBox(height: 10),
+                _buildRoleCard(
+                  theme: theme,
+                  roleId: 'supplier',
+                  title: 'Botanical Supplier / Vendor',
+                  subtitle: 'Supply authentic packaged herbs, oils, and remedies to store',
+                  icon: Icons.storefront_rounded,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -762,11 +774,7 @@ class _SignUpStepperPageState extends State<SignUpStepperPage> {
             ),
             Radio<String>(
               value: roleId,
-              groupValue: _selectedRole,
               activeColor: primary,
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedRole = val);
-              },
             ),
           ],
         ),
