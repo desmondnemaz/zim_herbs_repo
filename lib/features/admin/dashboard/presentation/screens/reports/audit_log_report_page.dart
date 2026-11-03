@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/core/components/app_page_header.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'report_export_helper.dart';
@@ -120,12 +121,15 @@ class _AuditLogReportPageState extends State<AuditLogReportPage> {
 
       for (final h in herbsData) {
         final title = (h['name_en'] ?? 'Unnamed Herb').toString();
-        final isApproved = h['is_approved'] == true;
+        final status = RecordValidationStatus.fromString(
+          h['validation_status'] as String?,
+        );
+        final isPublished = status.isPublished;
         final createdAt = DateTime.tryParse(h['created_at']?.toString() ?? '');
         final verifiedAt =
             DateTime.tryParse(h['verified_at']?.toString() ?? '');
 
-        if (verifiedAt != null && isApproved) {
+        if (verifiedAt != null && isPublished) {
           logs.add(
             _AuditEntry(
               domain: _AuditDomainFilter.herbs,
@@ -144,7 +148,7 @@ class _AuditLogReportPageState extends State<AuditLogReportPage> {
               domain: _AuditDomainFilter.herbs,
               domainLabel: 'Herb',
               action:
-                  isApproved ? 'Created (Published)' : 'Submitted for Review',
+                  isPublished ? 'Created (Published)' : 'Status: ${status.label}',
               recordTitle: title,
               actor: resolveActor(h['created_by']),
               timestamp: createdAt,
@@ -157,17 +161,20 @@ class _AuditLogReportPageState extends State<AuditLogReportPage> {
 
       for (final r in remediesData) {
         final title = (r['name'] ?? 'Unnamed Remedy').toString();
-        final isApproved = r['is_approved'] == true;
+        final status = RecordValidationStatus.fromString(
+          r['validation_status'] as String?,
+        );
+        final isPublished = status.isPublished;
         final createdAt = DateTime.tryParse(r['created_at']?.toString() ?? '');
         final approvedAt =
             DateTime.tryParse(r['approved_at']?.toString() ?? '');
 
-        if (approvedAt != null && isApproved) {
+        if (approvedAt != null && isPublished) {
           logs.add(
             _AuditEntry(
               domain: _AuditDomainFilter.remedies,
               domainLabel: 'Remedy',
-              action: 'Approved & Published',
+              action: 'Published',
               recordTitle: title,
               actor: resolveActor(r['approved_by'] ?? r['created_by']),
               timestamp: approvedAt,
@@ -181,7 +188,7 @@ class _AuditLogReportPageState extends State<AuditLogReportPage> {
               domain: _AuditDomainFilter.remedies,
               domainLabel: 'Remedy',
               action:
-                  isApproved ? 'Created (Published)' : 'Submitted for Review',
+                  isPublished ? 'Created (Published)' : 'Status: ${status.label}',
               recordTitle: title,
               actor: resolveActor(r['created_by']),
               timestamp: createdAt,

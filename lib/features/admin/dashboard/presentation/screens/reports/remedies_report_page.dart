@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/core/components/app_page_header.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'report_export_helper.dart';
@@ -16,7 +17,6 @@ class RemediesReportPage extends StatefulWidget {
 }
 
 class _RemediesReportPageState extends State<RemediesReportPage> {
-  static const Color _primaryGreen = Color(0xFF2E7D32);
   final SupabaseClient _client = Supabase.instance.client;
 
   bool _isLoading = true;
@@ -59,6 +59,9 @@ class _RemediesReportPageState extends State<RemediesReportPage> {
       'Status',
     ];
     final rows = _remedies.map((r) {
+      final status = RecordValidationStatus.fromString(
+        r['validation_status'] as String?,
+      );
       return [
         (r['name'] ?? '').toString(),
         (r['method_of_use'] ?? '').toString(),
@@ -67,7 +70,7 @@ class _RemediesReportPageState extends State<RemediesReportPage> {
         (r['dosage_infants'] ?? '').toString(),
         (r['frequency'] ?? '').toString(),
         (r['duration'] ?? '').toString(),
-        (r['is_approved'] == true ? 'Approved' : 'Pending'),
+        status.label,
       ];
     }).toList();
     return [headers, ...rows];
@@ -139,7 +142,9 @@ class _RemediesReportPageState extends State<RemediesReportPage> {
                               StickyDataColumn(label: 'Status', flex: 2),
                             ],
                             rows: _remedies.map((r) {
-                              final isApproved = r['is_approved'] == true;
+                              final status = RecordValidationStatus.fromString(
+                                r['validation_status'] as String?,
+                              );
                               return StickyDataRow(
                                 cells: [
                                   Text(
@@ -194,26 +199,21 @@ class _RemediesReportPageState extends State<RemediesReportPage> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: (isApproved
-                                              ? _primaryGreen
-                                              : const Color(0xFFB45309))
-                                          .withValues(alpha: 0.1),
+                                      color: status.color.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: isApproved
-                                            ? _primaryGreen
-                                            : const Color(0xFFB45309),
+                                        color: status.color,
                                         width: 0.8,
                                       ),
                                     ),
                                     child: Text(
-                                      isApproved ? 'APPROVED' : 'PENDING',
+                                      status.label.toUpperCase(),
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: isApproved
-                                            ? _primaryGreen
-                                            : const Color(0xFFB45309),
+                                        color: status.color,
                                       ),
                                     ),
                                   ),

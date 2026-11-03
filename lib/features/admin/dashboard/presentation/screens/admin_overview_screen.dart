@@ -65,11 +65,11 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
         _client
             .from('remedies')
             .count(CountOption.exact)
-            .eq('is_approved', false),
+            .neq('validation_status', 'published'),
         _client
             .from('herbs')
             .count(CountOption.exact)
-            .or('is_approved.is.false,is_approved.is.null'),
+            .neq('validation_status', 'published'),
         _client.from('user_profiles').count(CountOption.exact),
       ]);
 

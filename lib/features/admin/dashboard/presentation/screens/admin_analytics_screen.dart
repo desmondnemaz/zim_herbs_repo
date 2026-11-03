@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/core/components/app_page_header.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
@@ -81,7 +82,10 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
       int approvedH = 0;
 
       for (final h in herbs) {
-        if (h['is_approved'] == true) approvedH++;
+        final status = RecordValidationStatus.fromString(
+          h['validation_status'] as String?,
+        );
+        if (status.isPublished) approvedH++;
 
         final habit = (h['growth_habit'] ?? '').toString().trim();
         final habitKey = habit.isEmpty ? 'Unspecified' : habit;
@@ -99,7 +103,10 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
 
       int approvedR = 0;
       for (final r in remedies) {
-        if (r['is_approved'] == true) approvedR++;
+        final status = RecordValidationStatus.fromString(
+          r['validation_status'] as String?,
+        );
+        if (status.isPublished) approvedR++;
       }
 
       final categories = <String, int>{};

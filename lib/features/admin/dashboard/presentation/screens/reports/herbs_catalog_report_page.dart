@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zim_herbs_repo/core/components/app_page_header.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'report_export_helper.dart';
@@ -16,7 +17,6 @@ class HerbsCatalogReportPage extends StatefulWidget {
 }
 
 class _HerbsCatalogReportPageState extends State<HerbsCatalogReportPage> {
-  static const Color _primaryGreen = Color(0xFF2E7D32);
   final SupabaseClient _client = Supabase.instance.client;
 
   bool _isLoading = true;
@@ -63,6 +63,9 @@ class _HerbsCatalogReportPageState extends State<HerbsCatalogReportPage> {
       final parts = h['parts_used'];
       final partsStr =
           parts is List ? parts.join(', ') : (parts ?? '').toString();
+      final status = RecordValidationStatus.fromString(
+        h['validation_status'] as String?,
+      );
       return [
         (h['name_en'] ?? '').toString(),
         (h['scientific_name'] ?? '').toString(),
@@ -72,7 +75,7 @@ class _HerbsCatalogReportPageState extends State<HerbsCatalogReportPage> {
         (h['growth_habit'] ?? '').toString(),
         partsStr,
         (h['exotic_status'] ?? 'Indigenous').toString(),
-        (h['is_approved'] == true ? 'Approved' : 'Pending'),
+        status.label,
       ];
     }).toList();
     return [headers, ...rows];
@@ -149,7 +152,9 @@ class _HerbsCatalogReportPageState extends State<HerbsCatalogReportPage> {
                               StickyDataColumn(label: 'Status', flex: 2),
                             ],
                             rows: _herbs.map((h) {
-                              final isApproved = h['is_approved'] == true;
+                              final status = RecordValidationStatus.fromString(
+                                h['validation_status'] as String?,
+                              );
                               return StickyDataRow(
                                 cells: [
                                   Text(
@@ -224,26 +229,21 @@ class _HerbsCatalogReportPageState extends State<HerbsCatalogReportPage> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: (isApproved
-                                              ? _primaryGreen
-                                              : const Color(0xFFB45309))
-                                          .withValues(alpha: 0.1),
+                                      color: status.color.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: isApproved
-                                            ? _primaryGreen
-                                            : const Color(0xFFB45309),
+                                        color: status.color,
                                         width: 0.8,
                                       ),
                                     ),
                                     child: Text(
-                                      isApproved ? 'APPROVED' : 'PENDING',
+                                      status.label.toUpperCase(),
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: isApproved
-                                            ? _primaryGreen
-                                            : const Color(0xFFB45309),
+                                        color: status.color,
                                       ),
                                     ),
                                   ),
