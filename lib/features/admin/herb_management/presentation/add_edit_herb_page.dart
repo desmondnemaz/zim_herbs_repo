@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
@@ -267,7 +268,11 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
           description: _descriptionController.text.trim().isEmpty
               ? null
               : _descriptionController.text.trim(),
-          isApproved: effectiveIsApproved,
+          validationStatus: effectiveIsApproved
+              ? RecordValidationStatus.published
+              : (widget.herb?.validationStatus == RecordValidationStatus.published && !canModerate
+                  ? RecordValidationStatus.underReview
+                  : (widget.herb?.validationStatus ?? RecordValidationStatus.submitted)),
           createdAt: widget.herb?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
           createdBy:

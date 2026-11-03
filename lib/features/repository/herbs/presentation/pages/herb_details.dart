@@ -15,6 +15,7 @@ import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/components/record_audit_timeline.dart';
 import 'package:zim_herbs_repo/core/components/validation_status_chip.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
@@ -92,6 +93,155 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
     }
   }
 
+  Future<void> _handlePublishHerb(
+    BuildContext context,
+    Herb herb,
+    String? currentUserId,
+  ) async {
+    final client = Supabase.instance.client;
+    final ds = HerbRemoteDataSource(client);
+    await ds.updateHerbVerification(
+      herb.id,
+      true,
+      verifiedBy: currentUserId,
+      status: RecordValidationStatus.published,
+    );
+    if (context.mounted) {
+      context.read<HerbDetailCubit>().loadHerb(herb.id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Published "${herb.nameEn}" successfully'),
+          backgroundColor: const Color(0xFF15803D),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showUnpublishHerbDialog(
+    BuildContext context,
+    Herb herb,
+    String? currentUserId,
+  ) async {
+    RecordValidationStatus selectedTarget = RecordValidationStatus.validated;
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.unpublished_outlined, color: Colors.orange.shade800),
+              const SizedBox(width: 8),
+              const Text('Unpublish Herb'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Unpublishing "${herb.nameEn}" will immediately hide it from public users and catalogs.',
+                  style: const TextStyle(fontSize: 13.5),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Reason for Unpublishing:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText:
+                        'e.g. Updating dosage guidelines or safety contraindications...',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Target Status:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                RadioListTile<RecordValidationStatus>(
+                  title: const Text('Validated (Hold)'),
+                  subtitle: const Text(
+                      'Keeps botanical review intact; hides from public'),
+                  value: RecordValidationStatus.validated,
+                  groupValue: selectedTarget,
+                  onChanged: (val) =>
+                      setDialogState(() => selectedTarget = val!),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                RadioListTile<RecordValidationStatus>(
+                  title: const Text('Under Review (Re-evaluate)'),
+                  subtitle:
+                      const Text('Sends back to the moderation queue for revisions'),
+                  value: RecordValidationStatus.underReview,
+                  groupValue: selectedTarget,
+                  onChanged: (val) =>
+                      setDialogState(() => selectedTarget = val!),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                RadioListTile<RecordValidationStatus>(
+                  title: const Text('Archived (Decommission)'),
+                  subtitle: const Text(
+                      'Permanently retired from active repository'),
+                  value: RecordValidationStatus.archived,
+                  groupValue: selectedTarget,
+                  onChanged: (val) =>
+                      setDialogState(() => selectedTarget = val!),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: Colors.orange.shade800),
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: const Text('Confirm Unpublish'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final client = Supabase.instance.client;
+      final ds = HerbRemoteDataSource(client);
+      await ds.unpublishHerb(
+        herb.id,
+        targetStatus: selectedTarget,
+        moderatorId: currentUserId,
+        reason: reasonController.text,
+      );
+      if (context.mounted) {
+        context.read<HerbDetailCubit>().loadHerb(herb.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Unpublished "${herb.nameEn}" (${selectedTarget.label})'),
+            backgroundColor: Colors.orange.shade800,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
@@ -162,10 +312,11 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
             try {
               authState = context.watch<AuthCubit>().state;
             } catch (_) {}
-            final canEdit = authState is Authenticated &&
-                (authState.user.canModerate ||
+            final authUser = authState is Authenticated ? authState.user : null;
+            final canEdit = authUser != null &&
+                (authUser.canModerate ||
                     (herb.createdBy != null &&
-                        authState.user.id == herb.createdBy));
+                        authUser.id == herb.createdBy));
 
             return Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -175,6 +326,34 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                     ? () => Navigator.pop(context)
                     : null,
                 actions: [
+                  if (authUser != null && authUser.canModerate) ...[
+                    if (herb.isPublished)
+                      IconButton(
+                        tooltip: 'Unpublish Herb',
+                        icon: const Icon(
+                          Icons.unpublished_outlined,
+                          color: Colors.orange,
+                        ),
+                        onPressed: () => _showUnpublishHerbDialog(
+                          context,
+                          herb,
+                          authUser.id,
+                        ),
+                      )
+                    else
+                      IconButton(
+                        tooltip: 'Publish Herb',
+                        icon: const Icon(
+                          Icons.publish_rounded,
+                          color: Color(0xFF15803D),
+                        ),
+                        onPressed: () => _handlePublishHerb(
+                          context,
+                          herb,
+                          authUser.id,
+                        ),
+                      ),
+                  ],
                   IconButton(
                     tooltip: 'Refresh Herb Data',
                     icon: const Icon(Icons.refresh_rounded),

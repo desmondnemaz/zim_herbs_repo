@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import '../entities/herb.dart';
 
 /// Defines the operations that the application
@@ -75,6 +76,14 @@ abstract class HerbRepository {
     bool isApproved, {
     String? verifiedBy,
     String? moderationNotes,
+  });
+
+  /// Unpublish an active herb.
+  Future<void> unpublishHerb(
+    String herbId, {
+    RecordValidationStatus targetStatus = RecordValidationStatus.validated,
+    String? moderatorId,
+    String? reason,
   });
 
   /// Add a non-medicinal traditional use to a herb.

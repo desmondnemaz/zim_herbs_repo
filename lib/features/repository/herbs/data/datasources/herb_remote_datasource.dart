@@ -100,25 +100,71 @@ class HerbRemoteDataSource {
         .toList();
   }
 
-  /// Update herb verification status.
+  /// Update herb verification status using the validation lifecycle.
   Future<void> updateHerbVerification(
     String herbId,
     bool isApproved, {
     String? verifiedBy,
     String? moderationNotes,
+    RecordValidationStatus? status,
   }) async {
     final now = DateTime.now().toIso8601String();
+    final effectiveStatus = status ??
+        (isApproved
+            ? RecordValidationStatus.published
+            : RecordValidationStatus.underReview);
+
     final updateData = <String, dynamic>{
-      'is_approved': isApproved,
+      'is_approved': effectiveStatus == RecordValidationStatus.published,
+      'validation_status': effectiveStatus.dbValue,
       'updated_at': now,
     };
 
-    if (verifiedBy != null) {
-      updateData['verified_by'] = isApproved ? verifiedBy : null;
-      updateData['verified_at'] = isApproved ? now : null;
+    if (effectiveStatus == RecordValidationStatus.published) {
+      updateData['verified_by'] = verifiedBy;
+      updateData['verified_at'] = now;
+      updateData['published_by'] = verifiedBy;
+      updateData['published_at'] = now;
+    } else if (effectiveStatus == RecordValidationStatus.validated) {
+      updateData['verified_by'] = verifiedBy;
+      updateData['verified_at'] = now;
+    } else if (effectiveStatus == RecordValidationStatus.rejected) {
+      updateData['rejected_by'] = verifiedBy;
+      updateData['rejected_at'] = now;
+      if (moderationNotes != null) {
+        updateData['rejection_reason'] = moderationNotes;
+      }
     }
+
     if (moderationNotes != null) {
       updateData['moderation_notes'] = moderationNotes;
+    }
+
+    await client.from('herbs').update(updateData).eq('id', herbId);
+  }
+
+  /// Unpublish an active herb (takes off public shelf, moves to validated, under_review, or archived).
+  Future<void> unpublishHerb(
+    String herbId, {
+    RecordValidationStatus targetStatus = RecordValidationStatus.validated,
+    String? moderatorId,
+    String? reason,
+  }) async {
+    final now = DateTime.now().toIso8601String();
+    final updateData = <String, dynamic>{
+      'is_approved': false,
+      'validation_status': targetStatus.dbValue,
+      'updated_at': now,
+      'unpublished_at': now,
+    };
+
+    if (moderatorId != null) {
+      updateData['unpublished_by'] = moderatorId;
+      updateData['updated_by'] = moderatorId;
+    }
+    if (reason != null && reason.trim().isNotEmpty) {
+      updateData['unpublish_reason'] = reason.trim();
+      updateData['moderation_notes'] = reason.trim();
     }
 
     await client.from('herbs').update(updateData).eq('id', herbId);

@@ -244,17 +244,19 @@ String bodySystemLabel(BodySystem system) => ailmentCategoryLabel(system);
 Color getBodySystemColor(BodySystem system) => getAilmentCategoryColor(system);
 String getBodySystemSvg(BodySystem system) => getAilmentCategorySvg(system);
 
-/// Represents the 4-stage validation lifecycle + rejection state
+/// Represents the content validation lifecycle from draft to public release and takedown
 enum RecordValidationStatus {
+  draft('draft', 'Draft', 0, Color(0xFF94A3B8), Icons.edit_note_rounded),
   submitted('submitted', 'Submitted', 1, Color(0xFF64748B), Icons.upload_file_rounded),
   underReview('under_review', 'Under Review', 2, Color(0xFFD97706), Icons.rate_review_outlined),
   validated('validated', 'Validated', 3, Color(0xFF0284C7), Icons.verified_outlined),
   published('published', 'Published', 4, Color(0xFF16A34A), Icons.check_circle_outline_rounded),
-  rejected('rejected', 'Rejected', 0, Color(0xFFDC2626), Icons.cancel_outlined);
+  rejected('rejected', 'Rejected', -2, Color(0xFFDC2626), Icons.cancel_outlined),
+  archived('archived', 'Archived', -1, Color(0xFF6B7280), Icons.archive_outlined);
 
   final String dbValue;
   final String label;
-  final int stepIndex; // 1 to 4, 0 for rejected
+  final int stepIndex; // 0 for draft, 1 to 4 for progression, negative for rejected/archived
   final Color color;
   final IconData icon;
 
@@ -266,15 +268,25 @@ enum RecordValidationStatus {
     this.icon,
   );
 
-  bool get isTerminal => this == published || this == rejected;
+  bool get isTerminal => this == published || this == rejected || this == archived;
+  bool get isPublished => this == published;
+  bool get isValidated => this == validated;
+  bool get isUnderReview => this == underReview;
+  bool get isSubmitted => this == submitted;
+  bool get isDraft => this == draft;
+  bool get isRejected => this == rejected;
+  bool get isArchived => this == archived;
+
+  /// Backward-compatible alias for legacy calls.
   bool get isApproved => this == published;
 
   static RecordValidationStatus fromString(String? val, {bool isApproved = false}) {
-    if (val == null) {
+    if (val == null || val.trim().isEmpty) {
       return isApproved ? RecordValidationStatus.published : RecordValidationStatus.submitted;
     }
+    final normalized = val.trim().toLowerCase().replaceAll('-', '_').replaceAll(' ', '_');
     return RecordValidationStatus.values.firstWhere(
-      (e) => e.dbValue == val,
+      (e) => e.dbValue == normalized || e.name.toLowerCase() == normalized,
       orElse: () => isApproved ? RecordValidationStatus.published : RecordValidationStatus.submitted,
     );
   }

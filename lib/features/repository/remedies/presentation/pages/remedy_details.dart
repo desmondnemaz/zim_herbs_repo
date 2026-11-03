@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:zim_herbs_repo/core/utils/enums.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
+import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/datasources/remedy_remote_datasource.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/remedy_repository_impl.dart';
@@ -53,10 +56,139 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
   }
 
   void _handleApprove(BuildContext context, Remedy remedy) {
-    context.read<RemedyCubit>().approveRemedy(
-      remedy.id,
-      approved: !remedy.isApproved,
+    if (remedy.isApproved) {
+      _showUnpublishRemedyDialog(context, remedy);
+    } else {
+      final authState = context.read<AuthCubit>().state;
+      final currentUserId =
+          authState is Authenticated ? authState.user.id : null;
+      context.read<RemedyCubit>().approveRemedy(
+            remedy.id,
+            approved: true,
+            verifiedBy: currentUserId,
+          );
+    }
+  }
+
+  Future<void> _showUnpublishRemedyDialog(
+      BuildContext context, Remedy remedy) async {
+    RecordValidationStatus selectedTarget = RecordValidationStatus.validated;
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.unpublished_outlined, color: Colors.orange.shade800),
+              const SizedBox(width: 8),
+              const Text('Unpublish Remedy'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Unpublishing "${remedy.name}" will immediately hide it from public catalog and ailments view.',
+                  style: const TextStyle(fontSize: 13.5),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Reason for Unpublishing:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText:
+                        'e.g. Dosage clarification, reported adverse side-effect...',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Target Status:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                RadioListTile<RecordValidationStatus>(
+                  title: const Text('Validated (Hold)'),
+                  subtitle: const Text('Keeps formula validated; hides from public'),
+                  value: RecordValidationStatus.validated,
+                  groupValue: selectedTarget,
+                  onChanged: (val) =>
+                      setDialogState(() => selectedTarget = val!),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                RadioListTile<RecordValidationStatus>(
+                  title: const Text('Under Review (Re-evaluate)'),
+                  subtitle:
+                      const Text('Sends back to moderation queue for revisions'),
+                  value: RecordValidationStatus.underReview,
+                  groupValue: selectedTarget,
+                  onChanged: (val) =>
+                      setDialogState(() => selectedTarget = val!),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                RadioListTile<RecordValidationStatus>(
+                  title: const Text('Archived (Decommission)'),
+                  subtitle:
+                      const Text('Permanently retired from active repository'),
+                  value: RecordValidationStatus.archived,
+                  groupValue: selectedTarget,
+                  onChanged: (val) =>
+                      setDialogState(() => selectedTarget = val!),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: Colors.orange.shade800),
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: const Text('Confirm Unpublish'),
+            ),
+          ],
+        ),
+      ),
     );
+
+    if (confirmed == true && context.mounted) {
+      final authState = context.read<AuthCubit>().state;
+      final currentUserId =
+          authState is Authenticated ? authState.user.id : null;
+      await context.read<RemedyCubit>().unpublishRemedy(
+            remedy.id,
+            targetStatus: selectedTarget,
+            moderatorId: currentUserId,
+            reason: reasonController.text,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Unpublished "${remedy.name}" (${selectedTarget.label})'),
+            backgroundColor: Colors.orange.shade800,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleDelete(

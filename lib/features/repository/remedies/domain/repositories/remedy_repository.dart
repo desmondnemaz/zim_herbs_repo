@@ -1,3 +1,4 @@
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import '../entities/remedy.dart';
 
 /// Defines the operations that the application
@@ -53,5 +54,13 @@ abstract class RemedyRepository {
     bool isApproved, {
     String? verifiedBy,
     String? moderationNotes,
+  });
+
+  /// Unpublish an active remedy.
+  Future<void> unpublishRemedy(
+    String id, {
+    RecordValidationStatus targetStatus = RecordValidationStatus.validated,
+    String? moderatorId,
+    String? reason,
   });
 }

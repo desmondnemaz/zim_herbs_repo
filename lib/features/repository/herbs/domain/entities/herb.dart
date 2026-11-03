@@ -37,7 +37,6 @@ class Herb {
   final String? placesFound;
   final String? exoticStatus;
   final String? description;
-  final bool isApproved;
   final RecordValidationStatus validationStatus;
   final List<HerbImage> images;
   final List<HerbOtherUse> otherUses;
@@ -59,6 +58,9 @@ class Herb {
   final String? rejectedBy;
   final DateTime? rejectedAt;
   final String? rejectionReason;
+  final String? unpublishedBy;
+  final DateTime? unpublishedAt;
+  final String? unpublishReason;
 
   const Herb({
     required this.id,
@@ -72,7 +74,6 @@ class Herb {
     this.placesFound,
     this.exoticStatus = 'Indigenous',
     this.description,
-    this.isApproved = false,
     this.validationStatus = RecordValidationStatus.submitted,
     this.images = const [],
     this.otherUses = const [],
@@ -92,7 +93,15 @@ class Herb {
     this.rejectedBy,
     this.rejectedAt,
     this.rejectionReason,
+    this.unpublishedBy,
+    this.unpublishedAt,
+    this.unpublishReason,
   });
+
+  /// Canonical publication & approval status.
+  /// Only published records are deemed approved for public use.
+  bool get isApproved => validationStatus == RecordValidationStatus.published;
+  bool get isPublished => validationStatus == RecordValidationStatus.published;
 
   /// URL of the primary/first image (if available).
   String? get primaryImageUrl =>

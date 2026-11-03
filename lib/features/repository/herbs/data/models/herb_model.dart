@@ -82,11 +82,13 @@ class HerbModel {
   /// Optional description of the herb.
   final String? description;
 
-  /// Whether the herb has been verified by moderators.
-  final bool isApproved;
-
-  /// Multi-stage validation status (submitted -> under_review -> validated -> published / rejected).
+  /// Multi-stage validation status (draft -> submitted -> under_review -> validated -> published -> rejected / archived).
   final RecordValidationStatus validationStatus;
+
+  /// Whether the herb has been verified and published.
+  /// Strictly derived from [validationStatus == RecordValidationStatus.published].
+  bool get isApproved => validationStatus == RecordValidationStatus.published;
+  bool get isPublished => validationStatus == RecordValidationStatus.published;
 
   /// When the herb was created in Supabase.
   final DateTime? createdAt;
@@ -148,8 +150,8 @@ class HerbModel {
     this.placesFound,
     this.exoticStatus = 'Indigenous',
     this.description,
-    this.isApproved = false,
-    this.validationStatus = RecordValidationStatus.submitted,
+    bool? isApproved,
+    RecordValidationStatus? validationStatus,
     this.createdAt,
     this.updatedAt,
     this.createdBy,
@@ -170,7 +172,11 @@ class HerbModel {
     this.otherUses = const [],
     List<RemedyModel>? remedies,
     List<RemedyModel>? treatments,
-  }) : remedies = remedies ?? treatments ?? const [];
+  })  : validationStatus = validationStatus ??
+            (isApproved == true
+                ? RecordValidationStatus.published
+                : RecordValidationStatus.submitted),
+        remedies = remedies ?? treatments ?? const [];
 
 
   /// ==========================================================
@@ -212,7 +218,6 @@ class HerbModel {
       placesFound: placesFound,
       exoticStatus: exoticStatus,
       description: description,
-      isApproved: isApproved,
       validationStatus: validationStatus,
       images: images.map((image) => image.toEntity()).toList(),
       otherUses: otherUses.map((u) => u.toEntity()).toList(),
@@ -267,7 +272,6 @@ class HerbModel {
       placesFound: herb.placesFound,
       exoticStatus: herb.exoticStatus,
       description: herb.description,
-      isApproved: herb.isApproved,
       validationStatus: herb.validationStatus,
       images: herb.images.map((img) => HerbImageModel.fromEntity(img)).toList(),
       otherUses: herb.otherUses.map((u) => HerbOtherUseModel.fromEntity(u)).toList(),
@@ -374,10 +378,7 @@ class HerbModel {
                 )
               : null,
 
-      /// Whether the herb is approved by moderators.
-      isApproved: json['is_approved'] == true,
-
-      /// Multi-stage validation status
+      /// Multi-stage validation status (canonical authority)
       validationStatus: RecordValidationStatus.fromString(
         json['validation_status'] as String?,
         isApproved: json['is_approved'] == true,

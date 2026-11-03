@@ -337,4 +337,27 @@ class RemedyRemoteDataSource {
       moderationNotes: moderationNotes,
     );
   }
+
+  /// Unpublish an active remedy (takes off public shelf, moves to validated, under_review, or archived).
+  Future<void> unpublishRemedy(
+    String id, {
+    RecordValidationStatus targetStatus = RecordValidationStatus.validated,
+    String? moderatorId,
+    String? reason,
+  }) async {
+    final now = DateTime.now().toIso8601String();
+    final updateData = <String, dynamic>{
+      'is_approved': false,
+      'validation_status': targetStatus.dbValue,
+      'updated_at': now,
+      'unpublished_at': now,
+      if (moderatorId != null) 'unpublished_by': moderatorId,
+      if (moderatorId != null) 'updated_by': moderatorId,
+      if (reason != null && reason.trim().isNotEmpty) ...{
+        'unpublish_reason': reason.trim(),
+        'moderation_comments': reason.trim(),
+      },
+    };
+    await client.from('remedies').update(updateData).eq('id', id);
+  }
 }

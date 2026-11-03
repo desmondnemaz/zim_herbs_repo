@@ -59,13 +59,17 @@ class Remedy {
   final String? disclaimer;
 
   // Moderation & Validation Status
-  final bool isApproved;
   final RecordValidationStatus validationStatus;
   final String? approvedBy;
   final DateTime? approvedAt;
   final String? moderationComments;
   final DateTime? rejectedAt;
   final String? rejectedBy;
+
+  /// Canonical publication & approval status.
+  /// Only published records are deemed approved for public use.
+  bool get isApproved => validationStatus == RecordValidationStatus.published;
+  bool get isPublished => validationStatus == RecordValidationStatus.published;
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -112,7 +116,6 @@ class Remedy {
     this.precautions,
     this.sideEffects,
     this.disclaimer,
-    this.isApproved = false,
     this.validationStatus = RecordValidationStatus.submitted,
     this.approvedBy,
     this.approvedAt,

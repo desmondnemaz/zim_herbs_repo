@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import '../../domain/entities/herb.dart';
 import '../datasources/herb_remote_datasource.dart';
 import '../models/herb_model.dart';
@@ -142,6 +143,21 @@ Future<Herb> updateHerb(
       isApproved,
       verifiedBy: verifiedBy,
       moderationNotes: moderationNotes,
+    );
+  }
+
+  @override
+  Future<void> unpublishHerb(
+    String herbId, {
+    RecordValidationStatus targetStatus = RecordValidationStatus.validated,
+    String? moderatorId,
+    String? reason,
+  }) {
+    return dataSource.unpublishHerb(
+      herbId,
+      targetStatus: targetStatus,
+      moderatorId: moderatorId,
+      reason: reason,
     );
   }
 

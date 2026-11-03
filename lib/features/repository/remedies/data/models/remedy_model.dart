@@ -42,13 +42,17 @@ class RemedyModel {
   final String? sideEffects;
   final String? disclaimer;
 
-  final bool isApproved;
   final RecordValidationStatus validationStatus;
   final String? approvedBy;
   final DateTime? approvedAt;
   final String? moderationComments;
   final DateTime? rejectedAt;
   final String? rejectedBy;
+
+  /// Canonical publication & approval status.
+  /// Derived strictly from [validationStatus == RecordValidationStatus.published].
+  bool get isApproved => validationStatus == RecordValidationStatus.published;
+  bool get isPublished => validationStatus == RecordValidationStatus.published;
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -81,8 +85,8 @@ class RemedyModel {
     this.precautions,
     this.sideEffects,
     this.disclaimer,
-    this.isApproved = false,
-    this.validationStatus = RecordValidationStatus.submitted,
+    bool? isApproved,
+    RecordValidationStatus? validationStatus,
     this.approvedBy,
     this.approvedAt,
     this.moderationComments,
@@ -101,7 +105,10 @@ class RemedyModel {
     this.rejectionReason,
     this.condition,
     this.remedyHerbs = const [],
-  });
+  }) : validationStatus = validationStatus ??
+            (isApproved == true
+                ? RecordValidationStatus.published
+                : RecordValidationStatus.submitted);
 
   // ==========================================================
   // JSON → MODEL
@@ -125,10 +132,9 @@ class RemedyModel {
       precautions: json['precautions'] as String?,
       sideEffects: json['side_effects'] as String?,
       disclaimer: json['disclaimer'] as String?,
-      isApproved: json['is_approved'] as bool? ?? false,
       validationStatus: RecordValidationStatus.fromString(
         json['validation_status'] as String?,
-        isApproved: json['is_approved'] as bool? ?? false,
+        isApproved: json['is_approved'] == true,
       ),
       approvedBy: json['approved_by'] as String?,
       approvedAt:
@@ -238,7 +244,6 @@ class RemedyModel {
       precautions: precautions,
       sideEffects: sideEffects,
       disclaimer: disclaimer,
-      isApproved: isApproved,
       validationStatus: validationStatus,
       approvedBy: approvedBy,
       approvedAt: approvedAt,
@@ -283,7 +288,6 @@ class RemedyModel {
       precautions: remedy.precautions,
       sideEffects: remedy.sideEffects,
       disclaimer: remedy.disclaimer,
-      isApproved: remedy.isApproved,
       validationStatus: remedy.validationStatus,
       approvedBy: remedy.approvedBy,
       approvedAt: remedy.approvedAt,

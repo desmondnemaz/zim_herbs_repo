@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import '../../domain/entities/remedy.dart';
 import '../../domain/repositories/remedy_repository.dart';
 import 'remedy_state.dart';
@@ -266,6 +267,28 @@ class RemedyCubit extends Cubit<RemedyState> {
       verifiedBy: verifiedBy,
       moderationNotes: moderationNotes,
     );
+  }
+
+  /// Unpublishes an active remedy, moving it to validated, under_review, or archived.
+  Future<void> unpublishRemedy(
+    String id, {
+    RecordValidationStatus targetStatus = RecordValidationStatus.validated,
+    String? moderatorId,
+    String? reason,
+  }) async {
+    try {
+      await repository.unpublishRemedy(
+        id,
+        targetStatus: targetStatus,
+        moderatorId: moderatorId,
+        reason: reason,
+      );
+      emit(RemedyOperationSuccess('Remedy unpublished (${targetStatus.label})'));
+      await loadRemedies();
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(RemedyError(failure.message, failure: failure));
+    }
   }
 
   // ============================================================

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 
 import '../../domain/entities/herb.dart';
 import '../../domain/repositories/herb_repository.dart';
@@ -281,9 +282,18 @@ class HerbCubit extends Cubit<HerbState> {
           nameEn: current.nameEn,
           nameSn: current.nameSn,
           nameNd: current.nameNd,
+          scientificName: current.scientificName,
+          family: current.family,
+          growthHabit: current.growthHabit,
+          partsUsed: current.partsUsed,
+          placesFound: current.placesFound,
+          exoticStatus: current.exoticStatus,
           description: current.description,
-          isApproved: isApproved,
+          validationStatus: isApproved
+              ? RecordValidationStatus.published
+              : RecordValidationStatus.underReview,
           images: current.images,
+          otherUses: current.otherUses,
           createdAt: current.createdAt,
           updatedAt: DateTime.now(),
           createdBy: current.createdBy,
@@ -297,6 +307,60 @@ class HerbCubit extends Cubit<HerbState> {
         HerbOperationSuccess(
           isApproved ? 'Herb verified and published' : 'Herb marked as unverified',
         ),
+      );
+      emit(HerbLoaded(_allHerbs, searchQuery: ''));
+    } catch (e, stackTrace) {
+      final failure = ErrorHandler.handle(e, stackTrace);
+      emit(HerbError(failure.message, failure: failure));
+    }
+  }
+
+  /// Unpublishes an active herb, moving it to validated, under_review, or archived.
+  Future<void> unpublishHerb(
+    String herbId, {
+    RecordValidationStatus targetStatus = RecordValidationStatus.validated,
+    String? moderatorId,
+    String? reason,
+  }) async {
+    try {
+      await repository.unpublishHerb(
+        herbId,
+        targetStatus: targetStatus,
+        moderatorId: moderatorId,
+        reason: reason,
+      );
+      final index = _allHerbs.indexWhere((h) => h.id == herbId);
+      if (index != -1) {
+        final current = _allHerbs[index];
+        _allHerbs[index] = Herb(
+          id: current.id,
+          nameEn: current.nameEn,
+          nameSn: current.nameSn,
+          nameNd: current.nameNd,
+          scientificName: current.scientificName,
+          family: current.family,
+          growthHabit: current.growthHabit,
+          partsUsed: current.partsUsed,
+          placesFound: current.placesFound,
+          exoticStatus: current.exoticStatus,
+          description: current.description,
+          validationStatus: targetStatus,
+          images: current.images,
+          otherUses: current.otherUses,
+          createdAt: current.createdAt,
+          updatedAt: DateTime.now(),
+          createdBy: current.createdBy,
+          updatedBy: moderatorId ?? current.updatedBy,
+          verifiedBy: current.verifiedBy,
+          verifiedAt: current.verifiedAt,
+          moderationNotes: reason ?? current.moderationNotes,
+          unpublishedBy: moderatorId,
+          unpublishedAt: DateTime.now(),
+          unpublishReason: reason,
+        );
+      }
+      emit(
+        HerbOperationSuccess('Herb unpublished (${targetStatus.label})'),
       );
       emit(HerbLoaded(_allHerbs, searchQuery: ''));
     } catch (e, stackTrace) {

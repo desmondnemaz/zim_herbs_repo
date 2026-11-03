@@ -1,3 +1,4 @@
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import '../../domain/entities/remedy.dart';
 import '../../domain/repositories/remedy_repository.dart';
 import '../datasources/remedy_remote_datasource.dart';
@@ -101,6 +102,21 @@ class RemedyRepositoryImpl implements RemedyRepository {
       isApproved,
       verifiedBy: verifiedBy,
       moderationNotes: moderationNotes,
+    );
+  }
+
+  @override
+  Future<void> unpublishRemedy(
+    String id, {
+    RecordValidationStatus targetStatus = RecordValidationStatus.validated,
+    String? moderatorId,
+    String? reason,
+  }) {
+    return dataSource.unpublishRemedy(
+      id,
+      targetStatus: targetStatus,
+      moderatorId: moderatorId,
+      reason: reason,
     );
   }
 }
