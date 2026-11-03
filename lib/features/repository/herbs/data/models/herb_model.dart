@@ -381,7 +381,6 @@ class HerbModel {
       /// Multi-stage validation status (canonical authority)
       validationStatus: RecordValidationStatus.fromString(
         json['validation_status'] as String?,
-        isApproved: json['is_approved'] == true,
       ),
 
       /// Same process for updated_at.
@@ -493,7 +492,6 @@ class HerbModel {
       if (placesFound != null) 'places_found': placesFound,
       if (exoticStatus != null) 'exotic_status': exoticStatus,
       'description': description,
-      'is_approved': isApproved,
       'validation_status': validationStatus.dbValue,
       if (createdBy != null) 'created_by': createdBy,
       if (updatedBy != null) 'updated_by': updatedBy,

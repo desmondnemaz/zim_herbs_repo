@@ -134,7 +134,6 @@ class RemedyModel {
       disclaimer: json['disclaimer'] as String?,
       validationStatus: RecordValidationStatus.fromString(
         json['validation_status'] as String?,
-        isApproved: json['is_approved'] == true,
       ),
       approvedBy: json['approved_by'] as String?,
       approvedAt:
@@ -210,7 +209,6 @@ class RemedyModel {
       'precautions': precautions,
       'side_effects': sideEffects,
       'disclaimer': disclaimer,
-      'is_approved': isApproved,
       'validation_status': validationStatus.dbValue,
       'approved_by': approvedBy,
       'moderation_comments': moderationComments,

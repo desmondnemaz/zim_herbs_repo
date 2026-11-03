@@ -294,7 +294,6 @@ class RemedyRemoteDataSource {
   }) async {
     final now = DateTime.now().toIso8601String();
     final updateData = <String, dynamic>{
-      'is_approved': approved,
       'validation_status': approved
           ? RecordValidationStatus.published.dbValue
           : RecordValidationStatus.submitted.dbValue,
@@ -347,7 +346,6 @@ class RemedyRemoteDataSource {
   }) async {
     final now = DateTime.now().toIso8601String();
     final updateData = <String, dynamic>{
-      'is_approved': false,
       'validation_status': targetStatus.dbValue,
       'updated_at': now,
       'unpublished_at': now,

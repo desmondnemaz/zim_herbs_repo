@@ -14,6 +14,9 @@ import 'package:zim_herbs_repo/features/admin/dashboard/presentation/components/
 import 'package:zim_herbs_repo/features/dashboard/presentation/home_page.dart';
 import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
 import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
+import 'package:zim_herbs_repo/features/profile/presentation/profile_page.dart';
+import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
+import 'package:zim_herbs_repo/features/notifications/presentation/notifications_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final UserModel user;
@@ -334,7 +337,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               const SizedBox(width: 14),
                               const _OfflineBadge(),
                               const SizedBox(width: 14),
-                              const _AdminProfileAvatar(showLabel: true),
+                              const _AdminProfileAvatar(),
                             ],
                           ),
                         ),
@@ -441,13 +444,13 @@ class _OfflineBadge extends StatelessWidget {
 
 // ─── Profile Avatar ─────────────────────────────────────────────────────────────
 class _AdminProfileAvatar extends StatelessWidget {
-  final bool showLabel;
-  const _AdminProfileAvatar({this.showLabel = false});
+  const _AdminProfileAvatar();
 
   static String _extractInitials(String name, [String? email]) {
     final trimmed = name.trim();
     if (trimmed.isNotEmpty) {
-      final parts = trimmed.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+      final parts =
+          trimmed.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
       if (parts.length >= 2) {
         return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
       } else if (parts.isNotEmpty && parts.first.isNotEmpty) {
@@ -463,179 +466,315 @@ class _AdminProfileAvatar extends StatelessWidget {
     return 'A';
   }
 
+  static void _showSignOutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Color(0xFFD32F2F)),
+            SizedBox(width: 10),
+            Text(
+              'Sign Out',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to sign out of your account?',
+          style: TextStyle(color: Color(0xFF4B5563), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(0xFF6B7280),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              context.read<AuthCubit>().signOut();
+            },
+            child: const Text(
+              'Sign Out',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final rs = ResponsiveSize(context);
     final theme = Theme.of(context);
-    final double radius = rs.pick(mobile: 17, tablet: 19, desktop: 21);
+    final double radius = rs.pick(mobile: 17, tablet: 18, desktop: 18);
 
     return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, state) {
         final userName = state is Authenticated ? state.user.name : 'Admin';
         final userEmail = state is Authenticated ? state.user.email : null;
-        final userRole =
-            state is Authenticated ? state.user.role.displayName : 'Administrator';
+        final userRole = state is Authenticated
+            ? state.user.role.displayName
+            : 'Administrator';
         final initials = _extractInitials(userName, userEmail);
 
-        return GestureDetector(
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              builder: (_) => SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: theme.colorScheme.primary,
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(userName,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text(
-                        userRole,
-                        style: TextStyle(
-                            fontSize: 13, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 20),
-                      const Divider(),
-                      ListTile(
-                        leading: const Icon(Icons.open_in_new_rounded,
-                            color: Color(0xFF2E7D32)),
-                        title: const Text('View Public App',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle:
-                            const Text('Switch to public herbal repository & store'),
-                        onTap: () async {
-                          Navigator.pop(context);
-                          final confirmed = await showPortalSwitchConfirmation(
-                            context: context,
-                            toAdmin: false,
-                          );
-                          if (confirmed && context.mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => const HomePage()),
-                            );
-                          }
-                        },
-                      ),
-                      ListTile(
-                        leading:
-                            const Icon(Icons.logout, color: Color(0xFFFF5252)),
-                        title: const Text('Sign Out',
-                            style: TextStyle(
-                                color: Color(0xFFFF5252),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15)),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.read<AuthCubit>().signOut();
-                        },
-                      ),
-                    ],
-                  ),
+        return Theme(
+          data: theme.copyWith(
+            popupMenuTheme: PopupMenuThemeData(
+              color: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: Colors.grey.shade200,
+                  width: 1,
                 ),
               ),
-            );
-          },
-          child: showLabel
-              ? Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.20),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.white.withValues(alpha: 0.25),
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        userName,
+              elevation: 8,
+            ),
+          ),
+          child: PopupMenuButton<int>(
+            tooltip: '$userName - Profile & Account',
+            offset: const Offset(0, 48),
+            onSelected: (value) {
+              switch (value) {
+                case 1:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  );
+                  break;
+                case 2:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsPage()),
+                  );
+                  break;
+                case 3:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const NotificationsPage()),
+                  );
+                  break;
+                case 4:
+                  _showSignOutConfirmation(context);
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              // ── Header: User Identity ──
+              PopupMenuItem<int>(
+                enabled: false,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: theme.colorScheme.primary,
+                      child: Text(
+                        initials,
                         style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
                           color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          userRole,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(alpha: 0.95),
+                    ),
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 180),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            userName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF1E293B),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
-                        ),
+                          if (userEmail != null && userEmail.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              userEmail,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              userRole,
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 16,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ],
-                  ),
-                )
-              : Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      width: 1.5,
                     ),
-                  ),
-                  child: CircleAvatar(
-                    radius: radius,
-                    backgroundColor: Colors.white.withValues(alpha: 0.20),
-                    child: Text(
-                      initials,
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+
+              // ── View Full Profile ──
+              const PopupMenuItem<int>(
+                value: 1,
+                child: Row(
+                  children: [
+                    Icon(Icons.person_rounded,
+                        size: 20, color: Color(0xFF334155)),
+                    SizedBox(width: 12),
+                    Text(
+                      'View Profile',
                       style: TextStyle(
-                        fontSize: rs.pick(mobile: 12, tablet: 13, desktop: 14),
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
                       ),
                     ),
+                  ],
+                ),
+              ),
+
+              // ── Settings ──
+              const PopupMenuItem<int>(
+                value: 2,
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_rounded,
+                        size: 20, color: Color(0xFF334155)),
+                    SizedBox(width: 12),
+                    Text(
+                      'Account Settings',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Notifications ──
+              const PopupMenuItem<int>(
+                value: 3,
+                child: Row(
+                  children: [
+                    Icon(Icons.notifications_rounded,
+                        size: 20, color: Color(0xFF334155)),
+                    SizedBox(width: 12),
+                    Text(
+                      'Notifications',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const PopupMenuDivider(height: 1),
+
+              // ── Sign Out ──
+              const PopupMenuItem<int>(
+                value: 4,
+                child: Row(
+                  children: [
+                    Icon(Icons.logout_rounded,
+                        size: 20, color: Color(0xFFD32F2F)),
+                    SizedBox(width: 12),
+                    Text(
+                      'Sign Out',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFD32F2F),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: radius,
+                backgroundColor: Colors.white,
+                child: Text(
+                  initials,
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontSize: rs.pick(mobile: 12, tablet: 12, desktop: 12),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.2,
                   ),
                 ),
+              ),
+            ),
+          ),
         );
       },
     );

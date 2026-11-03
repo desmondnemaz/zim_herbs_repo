@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/errors/failure.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/domain/repositories/herb_repository.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/data/models/product_model.dart';
@@ -55,10 +56,17 @@ class RecommendationsBloc extends Bloc<RecommendationsEvent, RecommendationsStat
           storeRepository.getLatestProducts(limit: 5),
         ]);
 
+        final trending = (results[0] as List<Herb>)
+            .where((h) => h.validationStatus == RecordValidationStatus.published)
+            .toList();
+        final latest = (results[1] as List<Herb>)
+            .where((h) => h.validationStatus == RecordValidationStatus.published)
+            .toList();
+
         emit(
           RecommendationsLoaded(
-            trendingHerbs: results[0] as List<Herb>,
-            newRepoHerbs: results[1] as List<Herb>,
+            trendingHerbs: trending,
+            newRepoHerbs: latest,
             newStoreProducts: results[2] as List<ProductModel>,
           ),
         );

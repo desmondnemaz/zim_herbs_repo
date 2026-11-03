@@ -88,7 +88,7 @@ class HerbRemoteDataSource {
     final response = await client
         .from('herbs')
         .select(query)
-        .or('is_approved.is.false,is_approved.is.null')
+        .neq('validation_status', RecordValidationStatus.published.dbValue)
         .order('created_at', ascending: false);
 
     return (response as List<dynamic>)
@@ -115,7 +115,6 @@ class HerbRemoteDataSource {
             : RecordValidationStatus.underReview);
 
     final updateData = <String, dynamic>{
-      'is_approved': effectiveStatus == RecordValidationStatus.published,
       'validation_status': effectiveStatus.dbValue,
       'updated_at': now,
     };
@@ -152,7 +151,6 @@ class HerbRemoteDataSource {
   }) async {
     final now = DateTime.now().toIso8601String();
     final updateData = <String, dynamic>{
-      'is_approved': false,
       'validation_status': targetStatus.dbValue,
       'updated_at': now,
       'unpublished_at': now,
@@ -182,7 +180,7 @@ class HerbRemoteDataSource {
     final response = await client
         .from('herbs')
         .select(query)
-        .eq('is_approved', true)
+        .eq('validation_status', RecordValidationStatus.published.dbValue)
         .order(
           'created_at',
           ascending: false,
@@ -213,7 +211,7 @@ class HerbRemoteDataSource {
     final response = await client
         .from('herbs')
         .select(query)
-        .eq('is_approved', true)
+        .eq('validation_status', RecordValidationStatus.published.dbValue)
         .order(
           'updated_at',
           ascending: false,

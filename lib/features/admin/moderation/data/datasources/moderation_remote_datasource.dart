@@ -31,7 +31,7 @@ class ModerationRemoteDataSource {
         ''');
 
     if (pendingOnly == true) {
-      query = query.or('is_approved.is.false,is_approved.is.null');
+      query = query.neq('validation_status', RecordValidationStatus.published.dbValue);
     }
 
     final response = await query.order('created_at', ascending: false);
@@ -50,7 +50,6 @@ class ModerationRemoteDataSource {
   }) async {
     final now = DateTime.now().toIso8601String();
     final updateData = <String, dynamic>{
-      'is_approved': isApproved,
       'validation_status': isApproved
           ? RecordValidationStatus.published.dbValue
           : RecordValidationStatus.rejected.dbValue,
@@ -86,7 +85,6 @@ class ModerationRemoteDataSource {
     final now = DateTime.now().toIso8601String();
     final updateData = <String, dynamic>{
       'validation_status': status.dbValue,
-      'is_approved': status.isApproved,
       'updated_at': now,
     };
 
@@ -138,7 +136,7 @@ class ModerationRemoteDataSource {
         ''');
 
     if (pendingOnly == true) {
-      query = query.or('is_approved.is.false,is_approved.is.null');
+      query = query.neq('validation_status', RecordValidationStatus.published.dbValue);
     }
 
     final response = await query.order('created_at', ascending: false);
@@ -158,7 +156,6 @@ class ModerationRemoteDataSource {
     final now = DateTime.now().toIso8601String();
 
     final updateData = <String, dynamic>{
-      'is_approved': isApproved,
       'validation_status': isApproved
           ? RecordValidationStatus.published.dbValue
           : RecordValidationStatus.rejected.dbValue,
@@ -194,7 +191,6 @@ class ModerationRemoteDataSource {
     final now = DateTime.now().toIso8601String();
     final updateData = <String, dynamic>{
       'validation_status': status.dbValue,
-      'is_approved': status.isApproved,
       'updated_at': now,
     };
 
