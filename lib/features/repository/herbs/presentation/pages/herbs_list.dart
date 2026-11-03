@@ -298,10 +298,12 @@ class _HerbsListState extends State<HerbsList> {
         // Public/Learner sees published herbs + their own creations (even when pending).
         // Staff/Moderators see all herbs across the system.
         final visibleHerbs = rawHerbs.where((herb) {
+          if (widget.isPublicView) {
+            return herb.isApproved || herb.validationStatus.isApproved;
+          }
           if (canManage) return true;
           if (herb.isApproved || herb.validationStatus.isApproved) return true;
-          if (!widget.isPublicView &&
-              currentUserId != null &&
+          if (currentUserId != null &&
               herb.createdBy != null &&
               herb.createdBy == currentUserId) {
             return true;
@@ -311,6 +313,9 @@ class _HerbsListState extends State<HerbsList> {
 
         // Step 2: Tab / Chip filter selection
         final currentHerbs = visibleHerbs.where((herb) {
+          if (widget.isPublicView) {
+            return true;
+          }
           final isAuthor = currentUserId != null &&
               herb.createdBy != null &&
               herb.createdBy == currentUserId;

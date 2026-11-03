@@ -100,27 +100,74 @@ class HerbHighlightCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(15),
               ),
-              child: AspectRatio(
-                aspectRatio: 1.2,
-                child: Hero(
-                  tag: 'herb_${herb.id}',
-                  child:
-                      herb.primaryImageUrl != null
-                          ? Image.network(
-                            herb.primaryImageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder:
-                                (context, error, stackTrace) => const Center(
+              child: Stack(
+                children: [
+                  AspectRatio(
+                    aspectRatio: 1.2,
+                    child: Hero(
+                      tag: 'herb_${herb.id}',
+                      child:
+                          herb.primaryImageUrl != null
+                              ? Image.network(
+                                herb.primaryImageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => const Center(
+                                      child: Icon(Icons.grass, color: Colors.green),
+                                    ),
+                              )
+                              : Container(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                child: const Center(
                                   child: Icon(Icons.grass, color: Colors.green),
                                 ),
-                          )
-                          : Container(
-                            color: Colors.green.withValues(alpha: 0.1),
-                            child: const Center(
-                              child: Icon(Icons.grass, color: Colors.green),
+                              ),
+                    ),
+                  ),
+                  if (herb.isApproved ||
+                      herb.validationStatus.isApproved)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF15803D),
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.verified_rounded,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 3),
+                          Text(
+                            'Verified',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
                             ),
                           ),
-                ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(

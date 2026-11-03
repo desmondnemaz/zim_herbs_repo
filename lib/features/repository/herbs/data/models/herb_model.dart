@@ -148,8 +148,8 @@ class HerbModel {
     this.placesFound,
     this.exoticStatus = 'Indigenous',
     this.description,
-    this.isApproved = true,
-    this.validationStatus = RecordValidationStatus.published,
+    this.isApproved = false,
+    this.validationStatus = RecordValidationStatus.submitted,
     this.createdAt,
     this.updatedAt,
     this.createdBy,
@@ -375,12 +375,12 @@ class HerbModel {
               : null,
 
       /// Whether the herb is approved by moderators.
-      isApproved: json['is_approved'] as bool? ?? true,
+      isApproved: json['is_approved'] == true,
 
       /// Multi-stage validation status
       validationStatus: RecordValidationStatus.fromString(
         json['validation_status'] as String?,
-        isApproved: json['is_approved'] as bool? ?? true,
+        isApproved: json['is_approved'] == true,
       ),
 
       /// Same process for updated_at.

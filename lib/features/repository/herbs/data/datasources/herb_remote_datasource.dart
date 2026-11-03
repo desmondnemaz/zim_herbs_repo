@@ -136,6 +136,7 @@ class HerbRemoteDataSource {
     final response = await client
         .from('herbs')
         .select(query)
+        .eq('is_approved', true)
         .order(
           'created_at',
           ascending: false,
@@ -166,6 +167,7 @@ class HerbRemoteDataSource {
     final response = await client
         .from('herbs')
         .select(query)
+        .eq('is_approved', true)
         .order(
           'updated_at',
           ascending: false,

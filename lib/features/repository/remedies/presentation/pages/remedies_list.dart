@@ -346,12 +346,14 @@ class _RemediesListViewState extends State<_RemediesListView> {
 
                   // Step 1: Baseline visibility (Learner vs Staff boundary)
                   final visibleRemedies = rawRemedies.where((remedy) {
+                    if (widget.isPublicView) {
+                      return remedy.isApproved || remedy.validationStatus.isApproved;
+                    }
                     if (canManage) return true;
                     if (remedy.isApproved || remedy.validationStatus.isApproved) {
                       return true;
                     }
-                    if (!widget.isPublicView &&
-                        currentUserId != null &&
+                    if (currentUserId != null &&
                         remedy.createdBy != null &&
                         remedy.createdBy == currentUserId) {
                       return true;
@@ -361,6 +363,9 @@ class _RemediesListViewState extends State<_RemediesListView> {
 
                   // Step 2: Tab / Chip filter selection
                   final currentRemedies = visibleRemedies.where((remedy) {
+                    if (widget.isPublicView) {
+                      return true;
+                    }
                     final isAuthor = currentUserId != null &&
                         remedy.createdBy != null &&
                         remedy.createdBy == currentUserId;

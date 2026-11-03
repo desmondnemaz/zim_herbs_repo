@@ -302,7 +302,10 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                             children: treatments
                                                 .where((treatment) =>
                                                     treatment.conditionName !=
-                                                    null)
+                                                        null &&
+                                                    (treatment.isApproved ||
+                                                        treatment.validationStatus
+                                                            .isApproved))
                                                 .map((treatment) => (
                                                       id: treatment
                                                           .conditionId,

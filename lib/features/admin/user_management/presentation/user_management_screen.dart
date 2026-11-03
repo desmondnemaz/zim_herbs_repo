@@ -1199,10 +1199,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           value: 'excel',
                           child: Row(
                             children: [
-                              Icon(Icons.table_view_rounded,
-                                  color: Colors.green, size: 20),
+                              Icon(Icons.download_rounded,
+                                  color: Color(0xFF2E7D32), size: 20),
                               SizedBox(width: 10),
-                              Text('Export Excel (CSV)'),
+                              Text('Excel (CSV)'),
                             ],
                           ),
                         ),

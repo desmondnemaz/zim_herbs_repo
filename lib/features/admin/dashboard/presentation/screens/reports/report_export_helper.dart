@@ -219,27 +219,30 @@ class ReportExportButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         FilledButton.icon(
           onPressed: onExportExcel,
-          icon: const Icon(Icons.download_rounded, size: 17),
+          icon: const Icon(Icons.download_rounded, size: 16),
           label: const Text('Excel'),
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFF2E7D32),
             foregroundColor: Colors.white,
             visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
         ),
+        const SizedBox(width: 8),
         OutlinedButton.icon(
           onPressed: onExportCsv,
-          icon: const Icon(Icons.download_rounded, size: 17),
+          icon: const Icon(Icons.download_rounded, size: 16),
           label: const Text('CSV'),
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFF2E7D32),
+            side: const BorderSide(color: Color(0xFF2E7D32)),
             visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
         ),
       ],

@@ -43,92 +43,95 @@ class AppPageHeader extends StatelessWidget {
             vertical: rs.defaultPadding * 0.75,
           ),
       color: theme.scaffoldBackgroundColor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 680 || isMobile;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // On desktop (where mobile AppBar is not present), show back button if canGoBack
-              if (canGoBack && isDesktop) ...[
-                InkWell(
-                  onTap: () {
-                    if (onBack != null) {
-                      onBack!();
-                    } else if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // On desktop (where mobile AppBar is not present), show back button if canGoBack
+                  if (canGoBack && isDesktop) ...[
+                    InkWell(
+                      onTap: () {
+                        if (onBack != null) {
+                          onBack!();
+                        } else if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      },
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: theme.colorScheme.onSurface,
-                      size: 20,
-                    ),
-                  ),
-                ),
-                SizedBox(width: rs.defaultPadding),
-              ],
-              Icon(
-                icon,
-                color: iconColor ?? theme.colorScheme.primary,
-                size: 26,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: isMobile ? 2 : 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onSurface,
-                        fontSize: rs.titleFont * 1.25,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      maxLines: isMobile ? 2 : 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.6,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.arrow_back,
+                          color: theme.colorScheme.onSurface,
+                          size: 20,
                         ),
                       ),
                     ),
+                    SizedBox(width: rs.defaultPadding),
                   ],
-                ),
+                  Icon(
+                    icon,
+                    color: iconColor ?? theme.colorScheme.primary,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                            fontSize: rs.titleFont * 1.25,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (trailing != null && !isNarrow) ...[
+                    const SizedBox(width: 12),
+                    trailing!,
+                  ],
+                ],
               ),
-              if (trailing != null && !isMobile) ...[
-                const SizedBox(width: 8),
-                Flexible(child: trailing!),
+              if (trailing != null && isNarrow) ...[
+                const SizedBox(height: 10),
+                trailing!,
               ],
             ],
-          ),
-          if (trailing != null && isMobile) ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: trailing!,
-            ),
-          ],
-        ],
+          );
+        },
       ),
     );
   }
