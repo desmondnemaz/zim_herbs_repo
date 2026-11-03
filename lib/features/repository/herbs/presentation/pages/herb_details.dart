@@ -25,10 +25,12 @@ import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.
 
 class HerbDetailsPage extends StatefulWidget {
   final String herbId;
+  final bool isPublicView;
 
   const HerbDetailsPage({
     super.key,
     required this.herbId,
+    this.isPublicView = false,
   });
 
   @override
@@ -316,7 +318,10 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
               authState = context.watch<AuthCubit>().state;
             } catch (_) {}
             final authUser = authState is Authenticated ? authState.user : null;
-            final canEdit = authUser != null &&
+            final canModerate =
+                !widget.isPublicView && authUser != null && authUser.canModerate;
+            final canEdit = !widget.isPublicView &&
+                authUser != null &&
                 (authUser.canModerate ||
                     (herb.createdBy != null &&
                         authUser.id == herb.createdBy));
@@ -329,7 +334,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                     ? () => Navigator.pop(context)
                     : null,
                 actions: [
-                  if (authUser != null && authUser.canModerate) ...[
+                  if (canModerate) ...[
                     if (herb.isPublished)
                       IconButton(
                         tooltip: 'Unpublish Herb',
@@ -367,8 +372,8 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                   const SizedBox(width: 8),
                 ],
               ),
-              // Mobile & Tablet: Sticky Bottom Action Bar
-              bottomNavigationBar: !Responsive.isDesktop(context)
+              // Mobile & Tablet: Sticky Bottom Action Bar (Admin / Contributor only)
+              bottomNavigationBar: (canEdit && !Responsive.isDesktop(context))
                   ? _buildMobileStickyActionBar(context, herb, canEdit)
                   : null,
               body: Stack(
@@ -397,8 +402,9 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Rejection / Moderation Notice Card (if applicable)
-                                  if (herb.rejectionReason != null &&
+                                  // Rejection / Moderation Notice Card (if applicable & not in public view)
+                                  if (!widget.isPublicView &&
+                                      herb.rejectionReason != null &&
                                       herb.rejectionReason!.trim().isNotEmpty) ...[
                                     _buildModerationNoticeCard(
                                       herb.rejectionReason!,
@@ -454,7 +460,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                               const SizedBox(width: 10),
                                               Expanded(
                                                 child: Text(
-                                                  'No botanical or medicinal description has been recorded for this herb yet. Contributors and moderators can provide detailed notes by editing this record.',
+                                                  'No botanical or medicinal description has been recorded for this herb yet.',
                                                   style: TextStyle(
                                                     fontSize: rs.bodyFont,
                                                     fontStyle: FontStyle.italic,
@@ -506,6 +512,8 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                                               RemediesList(
                                                             initialConditionId:
                                                                 cond.id,
+                                                            isPublicView: widget
+                                                                .isPublicView,
                                                           ),
                                                         ),
                                                       );
@@ -554,14 +562,16 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                   // Other Traditional & Practical Uses (Food, Construction, Firewood, Cultural, Ritual)
                                   _buildOtherUsesSection(herb, rs),
 
-                                  const SizedBox(height: 24),
+                                  if (!widget.isPublicView) ...[
+                                    const SizedBox(height: 24),
 
-                                  // Audit and Verification Timeline
-                                  RecordAuditTimeline(
-                                    history: herb.auditHistory,
-                                    currentStatus: herb.validationStatus,
-                                    title: 'Herb Validation & History',
-                                  ),
+                                    // Audit and Verification Timeline (Admin / Contributor only)
+                                    RecordAuditTimeline(
+                                      history: herb.auditHistory,
+                                      currentStatus: herb.validationStatus,
+                                      title: 'Herb Validation & History',
+                                    ),
+                                  ],
 
                                   const SizedBox(height: 80),
                                 ],
@@ -573,8 +583,8 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                     ),
                   ),
 
-                  // ALWAYS FLOATING BUTTONS ON DESKTOP (Right Margin)
-                  if (Responsive.isDesktop(context))
+                  // ALWAYS FLOATING BUTTONS ON DESKTOP (Admin / Contributor only)
+                  if (canEdit && Responsive.isDesktop(context))
                     Positioned(
                       top: 24,
                       right: 28,
@@ -724,15 +734,17 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                               fontSize: 14,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tap "Edit Herb" to contribute photographs',
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.5),
-                              fontSize: 12,
+                          if (!widget.isPublicView) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tap "Edit Herb" to contribute photographs',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.5),
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

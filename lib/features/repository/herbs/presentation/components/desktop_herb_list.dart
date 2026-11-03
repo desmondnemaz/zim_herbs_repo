@@ -63,7 +63,7 @@ class DesktopHerbList extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => HerbDetailsPage(herbId: herb.id),
+                    builder: (context) => HerbDetailsPage(herbId: herb.id, isPublicView: isPublicView),
                   ),
                 );
               }
@@ -91,7 +91,7 @@ class DesktopHerbList extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => HerbDetailsPage(herbId: herb.id),
+                  builder: (context) => HerbDetailsPage(herbId: herb.id, isPublicView: isPublicView),
                 ),
               );
             }
@@ -110,7 +110,7 @@ class DesktopHerbList extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => HerbDetailsPage(herbId: herb.id),
+                  builder: (context) => HerbDetailsPage(herbId: herb.id, isPublicView: isPublicView),
                 ),
               );
             }

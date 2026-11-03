@@ -76,7 +76,12 @@ class HerbHighlightCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => HerbDetailsPage(herbId: herb.id)),
+          MaterialPageRoute(
+            builder: (_) => HerbDetailsPage(
+              herbId: herb.id,
+              isPublicView: true,
+            ),
+          ),
         );
       },
       child: Container(

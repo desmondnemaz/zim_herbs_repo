@@ -241,7 +241,10 @@ class _HerbsListState extends State<HerbsList> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => HerbDetailsPage(herbId: herb.id),
+        builder: (context) => HerbDetailsPage(
+          herbId: herb.id,
+          isPublicView: widget.isPublicView,
+        ),
       ),
     );
 

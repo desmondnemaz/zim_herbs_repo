@@ -22,8 +22,13 @@ import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 class RemedyDetailsPage extends StatefulWidget {
   final String remedyId;
+  final bool isPublicView;
 
-  const RemedyDetailsPage({super.key, required this.remedyId});
+  const RemedyDetailsPage({
+    super.key,
+    required this.remedyId,
+    this.isPublicView = false,
+  });
 
   @override
   State<RemedyDetailsPage> createState() => _RemedyDetailsPageState();
@@ -312,6 +317,21 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
             if (state is RemedyDetailLoaded) {
               final remedy = state.remedy;
 
+              AuthState? authState;
+              try {
+                authState = context.watch<AuthCubit>().state;
+              } catch (_) {}
+              final authUser =
+                  authState is Authenticated ? authState.user : null;
+              final canModerate = !widget.isPublicView &&
+                  authUser != null &&
+                  authUser.canModerate;
+              final canEdit = !widget.isPublicView &&
+                  authUser != null &&
+                  (authUser.canModerate ||
+                      (remedy.createdBy != null &&
+                          authUser.id == remedy.createdBy));
+
               return Scaffold(
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 body: CustomScrollView(
@@ -346,76 +366,81 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
                         },
                       ),
                       actions: [
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Colors.black26,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              remedy.isApproved
-                                  ? Icons.check_circle
-                                  : Icons.check_circle_outline,
-                              color:
-                                  remedy.isApproved
-                                      ? Colors.green
-                                      : Theme.of(context).colorScheme.secondary,
-                              size: rs.appBarIcon * 0.8,
-                            ),
-                          ),
-                          onPressed: () => _handleApprove(context, remedy),
-                          tooltip:
-                              remedy.isApproved ? 'Unapprove' : 'Approve',
-                        ),
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Colors.black26,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.edit,
-                              color: Theme.of(context).colorScheme.secondary,
-                              size: rs.appBarIcon * 0.8,
-                            ),
-                          ),
-                          onPressed: () async {
-                            final updated = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => AddEditRemedyPage(
-                                      remedy: remedy,
-                                    ),
+                        if (canModerate)
+                          IconButton(
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Colors.black26,
+                                shape: BoxShape.circle,
                               ),
-                            );
-                            if (updated == true && context.mounted) {
-                              context
-                                  .read<RemedyDetailCubit>()
-                                  .loadRemedy(widget.remedyId);
-                              context.read<RemedyCubit>().refreshRemedies();
-                            }
-                          },
-                          tooltip: 'Edit',
-                        ),
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Colors.black26,
-                              shape: BoxShape.circle,
+                              child: Icon(
+                                remedy.isApproved
+                                    ? Icons.unpublished_outlined
+                                    : Icons.publish_rounded,
+                                color:
+                                    remedy.isApproved
+                                        ? Colors.orange
+                                        : Colors.green,
+                                size: rs.appBarIcon * 0.8,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.delete,
-                              color: Colors.redAccent,
-                              size: rs.appBarIcon * 0.8,
-                            ),
+                            onPressed: () => _handleApprove(context, remedy),
+                            tooltip:
+                                remedy.isApproved
+                                    ? 'Unpublish Remedy'
+                                    : 'Publish Remedy',
                           ),
-                          onPressed: () => _handleDelete(context, remedy),
-                          tooltip: 'Delete',
-                        ),
+                        if (canEdit)
+                          IconButton(
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Colors.black26,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.edit,
+                                color: Theme.of(context).colorScheme.secondary,
+                                size: rs.appBarIcon * 0.8,
+                              ),
+                            ),
+                            onPressed: () async {
+                              final updated = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => AddEditRemedyPage(
+                                        remedy: remedy,
+                                      ),
+                                ),
+                              );
+                              if (updated == true && context.mounted) {
+                                context
+                                    .read<RemedyDetailCubit>()
+                                    .loadRemedy(widget.remedyId);
+                                context.read<RemedyCubit>().refreshRemedies();
+                              }
+                            },
+                            tooltip: 'Edit',
+                          ),
+                        if (canModerate)
+                          IconButton(
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Colors.black26,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.delete,
+                                color: Colors.redAccent,
+                                size: rs.appBarIcon * 0.8,
+                              ),
+                            ),
+                            onPressed: () => _handleDelete(context, remedy),
+                            tooltip: 'Delete',
+                          ),
                         const SizedBox(width: 8),
                       ],
                       flexibleSpace: FlexibleSpaceBar(
@@ -677,12 +702,14 @@ class _RemedyDetailsPageState extends State<RemedyDetailsPage>
                                         rs: rs,
                                       ),
 
-                                    const SizedBox(height: 24),
-                                    RecordAuditTimeline(
-                                      history: remedy.auditHistory,
-                                      currentStatus: remedy.validationStatus,
-                                      title: 'Remedy Validation & History',
-                                    ),
+                                    if (!widget.isPublicView) ...[
+                                      const SizedBox(height: 24),
+                                      RecordAuditTimeline(
+                                        history: remedy.auditHistory,
+                                        currentStatus: remedy.validationStatus,
+                                        title: 'Remedy Validation & History',
+                                      ),
+                                    ],
                                     const SizedBox(height: 32),
                                   ],
                                 ),

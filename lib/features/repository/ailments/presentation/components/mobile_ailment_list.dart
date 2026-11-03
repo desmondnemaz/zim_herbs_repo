@@ -50,7 +50,10 @@ class MobileAilmentList extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        AilmentDetailsPage(ailmentId: ailment.id),
+                        AilmentDetailsPage(
+                          ailmentId: ailment.id,
+                          isPublicView: isPublicView,
+                        ),
                   ),
                 );
               },
@@ -64,7 +67,10 @@ class MobileAilmentList extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      AilmentDetailsPage(ailmentId: ailment.id),
+                      AilmentDetailsPage(
+                          ailmentId: ailment.id,
+                          isPublicView: isPublicView,
+                        ),
                 ),
               );
             },

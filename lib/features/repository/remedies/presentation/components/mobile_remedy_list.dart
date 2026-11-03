@@ -62,7 +62,10 @@ class MobileRemedyList extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (context) => BlocProvider.value(
                     value: cubit,
-                    child: RemedyDetailsPage(remedyId: remedy.id),
+                    child: RemedyDetailsPage(
+                      remedyId: remedy.id,
+                      isPublicView: isPublicView,
+                    ),
                   ),
                 ),
               );
@@ -97,7 +100,10 @@ class MobileRemedyList extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => BlocProvider.value(
                   value: cubit,
-                  child: RemedyDetailsPage(remedyId: remedy.id),
+                  child: RemedyDetailsPage(
+                      remedyId: remedy.id,
+                      isPublicView: isPublicView,
+                    ),
                 ),
               ),
             );

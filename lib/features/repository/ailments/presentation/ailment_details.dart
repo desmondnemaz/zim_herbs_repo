@@ -20,12 +20,20 @@ import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 
 class AilmentDetailsPage extends StatefulWidget {
   final String ailmentId;
+  final bool isPublicView;
 
-  const AilmentDetailsPage({super.key, required this.ailmentId});
+  const AilmentDetailsPage({
+    super.key,
+    required this.ailmentId,
+    this.isPublicView = false,
+  });
 
   /// Backward compatibility constructor for existing code referencing conditionId
-  const AilmentDetailsPage.forCondition({super.key, required String conditionId})
-      : ailmentId = conditionId;
+  const AilmentDetailsPage.forCondition({
+    super.key,
+    required String conditionId,
+    this.isPublicView = false,
+  }) : ailmentId = conditionId;
 
   @override
   State<AilmentDetailsPage> createState() => _AilmentDetailsPageState();
@@ -171,8 +179,9 @@ class _AilmentDetailsPageState extends State<AilmentDetailsPage>
             try {
               authState = context.watch<AuthCubit>().state;
             } catch (_) {}
-            final canEdit =
-                authState is Authenticated && authState.user.canModerate;
+            final canEdit = !widget.isPublicView &&
+                authState is Authenticated &&
+                authState.user.canModerate;
 
             return Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -194,8 +203,8 @@ class _AilmentDetailsPageState extends State<AilmentDetailsPage>
                   const SizedBox(width: 8),
                 ],
               ),
-              // Mobile / Tablet: Sticky Bottom Action Bar
-              bottomNavigationBar: !Responsive.isDesktop(context)
+              // Mobile / Tablet: Sticky Bottom Action Bar (Admin / Moderator only)
+              bottomNavigationBar: (canEdit && !Responsive.isDesktop(context))
                   ? _buildMobileStickyActionBar(context, ailment, canEdit)
                   : null,
               body: Stack(
@@ -451,8 +460,8 @@ class _AilmentDetailsPageState extends State<AilmentDetailsPage>
                     ),
                   ),
 
-                  // ALWAYS FLOATING BUTTONS ON DESKTOP (Right Margin)
-                  if (Responsive.isDesktop(context))
+                  // ALWAYS FLOATING BUTTONS ON DESKTOP (Admin / Moderator only)
+                  if (canEdit && Responsive.isDesktop(context))
                     Positioned(
                       top: 24,
                       right: 28,

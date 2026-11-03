@@ -51,7 +51,10 @@ class DesktopAilmentList extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        AilmentDetailsPage(ailmentId: ailment.id),
+                        AilmentDetailsPage(
+                          ailmentId: ailment.id,
+                          isPublicView: isPublicView,
+                        ),
                   ),
                 );
               },
@@ -65,7 +68,10 @@ class DesktopAilmentList extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      AilmentDetailsPage(ailmentId: ailment.id),
+                      AilmentDetailsPage(
+                          ailmentId: ailment.id,
+                          isPublicView: isPublicView,
+                        ),
                 ),
               );
             },
