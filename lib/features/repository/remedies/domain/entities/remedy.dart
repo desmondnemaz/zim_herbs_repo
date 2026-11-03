@@ -116,7 +116,8 @@ class Remedy {
     this.precautions,
     this.sideEffects,
     this.disclaimer,
-    this.validationStatus = RecordValidationStatus.submitted,
+    bool? isApproved,
+    RecordValidationStatus? validationStatus,
     this.approvedBy,
     this.approvedAt,
     this.moderationComments,
@@ -139,6 +140,10 @@ class Remedy {
     AilmentCategory? conditionBodySystem,
     this.remedyHerbs = const [],
   })  : conditionId = conditionId ?? ailmentId ?? '',
+        validationStatus = validationStatus ??
+            (isApproved == true
+                ? RecordValidationStatus.published
+                : RecordValidationStatus.submitted),
         conditionName = conditionName ?? ailmentName,
         conditionAilmentCategory =
             conditionAilmentCategory ?? conditionBodySystem;

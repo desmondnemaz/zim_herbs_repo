@@ -129,6 +129,13 @@ void main() {
 
   group('HerbsList Learner Visibility and Creator Filter Tests', () {
     testWidgets('Learner sees creator-only Pending Review and Published filter chips and cards', (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final fakeRepo = FakeHerbRepository([
         publishedHerb,
         learnerPendingHerb,
@@ -289,7 +296,10 @@ void main() {
     Future<void> pumpAdminList(WidgetTester tester) async {
       tester.view.physicalSize = const Size(800, 1200);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       final fakeRepo = FakeHerbRepository([
         publishedHerb,

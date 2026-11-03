@@ -168,38 +168,41 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                   'Target Status:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
-                RadioListTile<RecordValidationStatus>(
-                  title: const Text('Validated (Hold)'),
-                  subtitle: const Text(
-                      'Keeps botanical review intact; hides from public'),
-                  value: RecordValidationStatus.validated,
+                RadioGroup<RecordValidationStatus>(
                   groupValue: selectedTarget,
-                  onChanged: (val) =>
-                      setDialogState(() => selectedTarget = val!),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                RadioListTile<RecordValidationStatus>(
-                  title: const Text('Under Review (Re-evaluate)'),
-                  subtitle:
-                      const Text('Sends back to the moderation queue for revisions'),
-                  value: RecordValidationStatus.underReview,
-                  groupValue: selectedTarget,
-                  onChanged: (val) =>
-                      setDialogState(() => selectedTarget = val!),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                RadioListTile<RecordValidationStatus>(
-                  title: const Text('Archived (Decommission)'),
-                  subtitle: const Text(
-                      'Permanently retired from active repository'),
-                  value: RecordValidationStatus.archived,
-                  groupValue: selectedTarget,
-                  onChanged: (val) =>
-                      setDialogState(() => selectedTarget = val!),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() => selectedTarget = val);
+                    }
+                  },
+                  child: Column(
+                    children: [
+                      RadioListTile<RecordValidationStatus>(
+                        title: const Text('Validated (Hold)'),
+                        subtitle: const Text(
+                            'Keeps botanical review intact; hides from public'),
+                        value: RecordValidationStatus.validated,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      RadioListTile<RecordValidationStatus>(
+                        title: const Text('Under Review (Re-evaluate)'),
+                        subtitle: const Text(
+                            'Sends back to the moderation queue for revisions'),
+                        value: RecordValidationStatus.underReview,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      RadioListTile<RecordValidationStatus>(
+                        title: const Text('Archived (Decommission)'),
+                        subtitle: const Text(
+                            'Permanently retired from active repository'),
+                        value: RecordValidationStatus.archived,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 
 import '../models/herb_model.dart';
 

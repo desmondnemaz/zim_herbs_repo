@@ -14,6 +14,7 @@ import 'package:zim_herbs_repo/features/repository/remedies/data/repositories/re
 import 'package:zim_herbs_repo/features/repository/remedies/domain/entities/remedy.dart';
 import 'package:zim_herbs_repo/core/components/searchable_dropdown.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/cubit/remedy_form_cubit.dart';
 import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
@@ -191,7 +192,10 @@ class _RemedyFormViewState extends State<_RemedyFormView> {
               ? null
               : _disclaimerController.text,
       remedyHerbs: remedyHerbs,
-      isApproved: widget.remedy?.isApproved ?? false,
+      validationStatus: widget.remedy?.validationStatus ??
+          (widget.remedy?.isApproved == true
+              ? RecordValidationStatus.published
+              : RecordValidationStatus.submitted),
       approvedAt: widget.remedy?.approvedAt,
       approvedBy: widget.remedy?.approvedBy,
       createdAt: widget.remedy?.createdAt ?? DateTime.now(),

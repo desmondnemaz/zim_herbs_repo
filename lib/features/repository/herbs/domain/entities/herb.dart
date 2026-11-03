@@ -74,7 +74,8 @@ class Herb {
     this.placesFound,
     this.exoticStatus = 'Indigenous',
     this.description,
-    this.validationStatus = RecordValidationStatus.submitted,
+    bool? isApproved,
+    RecordValidationStatus? validationStatus,
     this.images = const [],
     this.otherUses = const [],
     this.createdAt,
@@ -96,7 +97,10 @@ class Herb {
     this.unpublishedBy,
     this.unpublishedAt,
     this.unpublishReason,
-  });
+  }) : validationStatus = validationStatus ??
+            (isApproved == true
+                ? RecordValidationStatus.published
+                : RecordValidationStatus.submitted);
 
   /// Canonical publication & approval status.
   /// Only published records are deemed approved for public use.

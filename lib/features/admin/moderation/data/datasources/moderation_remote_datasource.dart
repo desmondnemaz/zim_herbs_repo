@@ -112,6 +112,8 @@ class ModerationRemoteDataSource {
         updateData['moderation_notes'] = reason;
         break;
       case RecordValidationStatus.submitted:
+      case RecordValidationStatus.draft:
+      case RecordValidationStatus.archived:
         break;
     }
 
@@ -218,6 +220,8 @@ class ModerationRemoteDataSource {
         updateData['moderation_comments'] = reason;
         break;
       case RecordValidationStatus.submitted:
+      case RecordValidationStatus.draft:
+      case RecordValidationStatus.archived:
         break;
     }
 

@@ -104,3 +104,4 @@ CREATE POLICY "Public users view published remedies only"
   FOR SELECT
   TO public
   USING (validation_status = 'published');
+
