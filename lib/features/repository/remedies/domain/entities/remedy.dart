@@ -84,15 +84,23 @@ class Remedy {
   /// Denormalised condition name for display convenience.
   final String? conditionName;
 
-  /// Denormalised condition body system for display/icon convenience.
-  final BodySystem? conditionBodySystem;
+  /// Ailment aliases for condition fields
+  String get ailmentId => conditionId;
+  String? get ailmentName => conditionName;
+
+  /// Denormalised condition ailment category for display/icon convenience.
+  final AilmentCategory? conditionAilmentCategory;
+
+  /// Backward-compatible alias
+  AilmentCategory? get conditionBodySystem => conditionAilmentCategory;
 
   /// Herbs used in this remedy (domain sub-entities).
   final List<RemedyHerb> remedyHerbs;
 
   const Remedy({
     required this.id,
-    required this.conditionId,
+    String? conditionId,
+    String? ailmentId,
     required this.name,
     required this.methodOfUse,
     required this.preparation,
@@ -122,10 +130,15 @@ class Remedy {
     this.publishedBy,
     this.publishedAt,
     this.rejectionReason,
-    this.conditionName,
-    this.conditionBodySystem,
+    String? conditionName,
+    String? ailmentName,
+    AilmentCategory? conditionAilmentCategory,
+    AilmentCategory? conditionBodySystem,
     this.remedyHerbs = const [],
-  });
+  })  : conditionId = conditionId ?? ailmentId ?? '',
+        conditionName = conditionName ?? ailmentName,
+        conditionAilmentCategory =
+            conditionAilmentCategory ?? conditionBodySystem;
 
   /// User-facing display name generated from the herbs in this remedy.
   String get displayName {

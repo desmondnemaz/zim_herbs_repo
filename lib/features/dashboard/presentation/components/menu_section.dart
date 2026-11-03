@@ -5,7 +5,7 @@ import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 // Screen Imports for Route Resolution
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/pages/herbs_list.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedies_list.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/presentation/condition_list.dart';
+import 'package:zim_herbs_repo/features/repository/ailments/presentation/ailment_list.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/presentation/store_page.dart';
 import 'package:zim_herbs_repo/features/telemedicine/presentation/telemedicine_page.dart';
 import 'package:zim_herbs_repo/features/repository/contributions/presentation/contributions_page.dart';
@@ -19,8 +19,9 @@ Widget getPageForRoute(String routeName) {
     case '/remedies':
     case '/treatments':
       return const RemediesList(isPublicView: true);
+    case '/ailments':
     case '/conditions':
-      return const ConditionsListPage(isPublicView: true);
+      return const AilmentsListPage(isPublicView: true);
     case '/store':
       return const StorePage();
     case '/telemed':
@@ -33,7 +34,9 @@ Widget getPageForRoute(String routeName) {
 }
 
 class MenuSection extends StatefulWidget {
-  const MenuSection({super.key});
+  final ValueChanged<int>? onNavigate;
+
+  const MenuSection({super.key, this.onNavigate});
 
   @override
   State<MenuSection> createState() => _MenuSectionState();
@@ -125,7 +128,11 @@ class _MenuSectionState extends State<MenuSection> {
           itemCount: filteredItems.length,
           itemBuilder: (context, index) {
             final item = filteredItems[index];
-            return _MenuCard(item: item, rs: rs);
+            return _MenuCard(
+              item: item,
+              rs: rs,
+              onNavigate: widget.onNavigate,
+            );
           },
         ),
       ],
@@ -226,7 +233,13 @@ _MenuItemTheme _getMenuItemTheme(String title) {
 class _MenuCard extends StatelessWidget {
   final MenuItemModel item;
   final ResponsiveSize rs;
-  const _MenuCard({required this.item, required this.rs});
+  final ValueChanged<int>? onNavigate;
+
+  const _MenuCard({
+    required this.item,
+    required this.rs,
+    this.onNavigate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -343,41 +356,102 @@ class _MenuCard extends StatelessWidget {
           width: 1.2,
         ),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(rs.borderRadius * 1.5),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => getPageForRoute(item.routeName)),
-            );
-          },
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
+      child: Stack(
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(rs.borderRadius * 1.5),
+              onTap: () {
+                int? targetIndex;
+                switch (item.routeName) {
+                  case '/herbs':
+                    targetIndex = 1;
+                    break;
+                  case '/ailments':
+                  case '/conditions':
+                    targetIndex = 2;
+                    break;
+                  case '/remedies':
+                  case '/treatments':
+                    targetIndex = 3;
+                    break;
+                  case '/store':
+                    targetIndex = 4;
+                    break;
+                  case '/contributions':
+                    targetIndex = 5;
+                    break;
+                  case '/telemed':
+                    targetIndex = 6;
+                    break;
+                }
+
+                if (targetIndex != null && onNavigate != null) {
+                  onNavigate!(targetIndex);
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => getPageForRoute(item.routeName)),
+                  );
+                }
+              },
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(item.icon, color: Colors.white, size: rs.icon),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      item.title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: rs.titleFont * 0.95,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(item.icon, color: Colors.white, size: rs.icon),
               ),
-              const SizedBox(height: 8),
-              Text(
-                item.title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: rs.titleFont * 0.95,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          if (item.badgeText != null)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.28),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  item.badgeText!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

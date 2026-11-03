@@ -76,4 +76,10 @@ abstract class HerbRepository {
     String? verifiedBy,
     String? moderationNotes,
   });
+
+  /// Add a non-medicinal traditional use to a herb.
+  Future<void> addHerbOtherUse(HerbOtherUse use);
+
+  /// Delete a non-medicinal traditional use by its ID.
+  Future<void> deleteHerbOtherUse(String useId);
 }

@@ -88,7 +88,7 @@ class HeroHeader extends StatelessWidget {
               ),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: "Search herbs, conditions, or treatments...",
+                  hintText: "Search herbs, ailments, or remedies...",
                   hintStyle: TextStyle(
                     color: Colors.grey[400],
                     fontSize: rs.subtitleFont,

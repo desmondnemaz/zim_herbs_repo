@@ -8,10 +8,11 @@ import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
+import 'package:zim_herbs_repo/features/admin/herb_management/presentation/herb_import_page.dart';
 import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add_edit_remedy_page.dart';
-import 'package:zim_herbs_repo/features/admin/condition_management/presentation/components/add_edit_condition_dialog.dart';
-import 'package:zim_herbs_repo/features/admin/condition_management/presentation/components/manage_body_parts_dialog.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/presentation/cubit/condition_cubit.dart';
+import 'package:zim_herbs_repo/features/admin/ailment_management/presentation/components/add_edit_ailment_dialog.dart';
+import 'package:zim_herbs_repo/features/admin/ailment_management/presentation/body_parts_page.dart';
+import 'package:zim_herbs_repo/features/repository/ailments/presentation/cubit/ailment_cubit.dart';
 
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 
@@ -50,9 +51,16 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
     });
 
     try {
+      int ailmentsCount = 0;
+      try {
+        ailmentsCount = await _client.from('ailments').count(CountOption.exact);
+      } catch (_) {
+        ailmentsCount =
+            await _client.from('conditions').count(CountOption.exact);
+      }
+
       final results = await Future.wait([
         _client.from('herbs').count(CountOption.exact),
-        _client.from('conditions').count(CountOption.exact),
         _client.from('remedies').count(CountOption.exact),
         _client
             .from('remedies')
@@ -68,10 +76,10 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
       if (mounted) {
         setState(() {
           _herbsCount = results[0];
-          _conditionsCount = results[1];
-          _remediesCount = results[2];
-          _pendingReviewsCount = results[3] + results[4];
-          _usersCount = results[5];
+          _conditionsCount = ailmentsCount;
+          _remediesCount = results[1];
+          _pendingReviewsCount = results[2] + results[3];
+          _usersCount = results[4];
           _isLoading = false;
         });
       }
@@ -215,7 +223,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                     );
 
                     final conditionsCard = _StatCard(
-                      title: 'Conditions',
+                      title: 'Ailments',
                       value: '$_conditionsCount',
                       icon: Icons.monitor_heart_outlined,
                       color: const Color(0xFF106F74),
@@ -348,21 +356,39 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                           width: cardWidth,
                           height: cardHeight,
                           child: _QuickActionCard(
-                            title: 'Add Condition',
+                            title: 'Import Excel',
+                            icon: Icons.table_chart_rounded,
+                            color: const Color(0xFF15803D),
+                            pastelBackground: const Color(0xFFF0FDF4),
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const HerbImportPage()),
+                              );
+                              _loadLiveStats();
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: _QuickActionCard(
+                            title: 'Add Ailment',
                             icon: Icons.monitor_heart_outlined,
                             color: const Color(0xFF106F74),
                             pastelBackground: const Color(0xFFE6F5F5),
                             onTap: () async {
                               await showDialog(
                                 context: context,
-                                builder: (dialogContext) => AddEditConditionDialog(
-                                  onSave: (newConditionModel) async {
-                                    final newCondition = newConditionModel.toEntity();
-                                    final bodyPartIds = newConditionModel.bodyParts
+                                builder: (dialogContext) => AddEditAilmentDialog(
+                                  onSave: (newAilmentModel) async {
+                                    final newAilment = newAilmentModel.toEntity();
+                                    final bodyPartIds = newAilmentModel.bodyParts
                                         .map((bp) => bp.id)
                                         .toList();
-                                    await context.read<ConditionCubit>().createCondition(
-                                      newCondition,
+                                    await context.read<AilmentCubit>().createAilment(
+                                      newAilment,
                                       bodyPartIds: bodyPartIds,
                                     );
                                     _loadLiveStats();
@@ -399,11 +425,17 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                             color: const Color(0xFF0F766E),
                             pastelBackground: const Color(0xFFE6F4F2),
                             onTap: () async {
-                              await showDialog(
-                                context: context,
-                                builder: (_) => const ManageBodyPartsDialog(),
-                              );
-                              _loadLiveStats();
+                              if (widget.onNavigate != null) {
+                                widget.onNavigate!(9);
+                              } else {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const BodyPartsPage(),
+                                  ),
+                                );
+                                _loadLiveStats();
+                              }
                             },
                           ),
                         ),

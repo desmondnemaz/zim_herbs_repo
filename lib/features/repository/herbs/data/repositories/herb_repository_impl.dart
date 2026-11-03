@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../../domain/entities/herb.dart';
 import '../datasources/herb_remote_datasource.dart';
 import '../models/herb_model.dart';
+import '../models/herb_other_use_model.dart';
 import '../../domain/repositories/herb_repository.dart';
 
 class HerbRepositoryImpl implements HerbRepository {
@@ -143,4 +144,15 @@ Future<Herb> updateHerb(
       moderationNotes: moderationNotes,
     );
   }
-}
+
+  @override
+  Future<void> addHerbOtherUse(HerbOtherUse use) {
+    final model = HerbOtherUseModel.fromEntity(use);
+    return dataSource.addHerbOtherUse(model.toJson());
+  }
+
+  @override
+  Future<void> deleteHerbOtherUse(String useId) {
+    return dataSource.deleteHerbOtherUse(useId);
+  }
+}

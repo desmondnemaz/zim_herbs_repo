@@ -442,7 +442,7 @@ class _RemediesListViewState extends State<_RemediesListView> {
                                   .searchRemedies(value),
                               decoration: InputDecoration(
                                 hintText:
-                                    'Search remedies by name or condition...',
+                                    'Search remedies by name or ailment...',
                                 prefixIcon: const Icon(Icons.search),
                                 filled: true,
                                 fillColor: Theme.of(context)
@@ -762,7 +762,7 @@ class _ConditionFilterDropdownState extends State<_ConditionFilterDropdown> {
     return SearchableDropdown<ConditionModel>(
       items: widget.conditions,
       value: _selectedCondition,
-      label: 'Filter by Condition',
+      label: 'Filter by Ailment',
       itemLabelBuilder: (c) => c.name,
       rs: widget.rs,
       onChanged: (selected) {

@@ -7,6 +7,7 @@ class MenuItemModel {
   final IconData icon;
   final MenuCategory category;
   final bool isAvailable;
+  final String? badgeText;
   final String routeName;
 
   const MenuItemModel({
@@ -14,6 +15,7 @@ class MenuItemModel {
     required this.icon,
     required this.category,
     this.isAvailable = true,
+    this.badgeText,
     required this.routeName,
   });
 }
@@ -22,39 +24,42 @@ class MenuItemModel {
 const List<MenuItemModel> zimHerbalMenuItems = [
   MenuItemModel(
       title: "Herbs",
-      icon: Icons.local_florist,
+      icon: Icons.local_florist_rounded,
       category: MenuCategory.core,
       routeName: '/herbs'),
   MenuItemModel(
       title: "Remedies",
-      icon: Icons.healing,
+      icon: Icons.healing_rounded,
       category: MenuCategory.core,
       routeName: '/remedies'),
   MenuItemModel(
-      title: "Conditions",
-      icon: Icons.sick_outlined,
+      title: "Ailments",
+      icon: Icons.monitor_heart_rounded,
       category: MenuCategory.core,
-      routeName: '/conditions'),
+      routeName: '/ailments'),
   MenuItemModel(
       title: "Herbal Store",
-      icon: Icons.storefront_outlined,
+      icon: Icons.storefront_rounded,
       category: MenuCategory.services,
+      badgeText: "SOON",
       routeName: '/store'),
   MenuItemModel(
       title: "Telemedicine",
-      icon: Icons.medical_services_outlined,
+      icon: Icons.medical_services_rounded,
       category: MenuCategory.services,
+      badgeText: "SOON",
       routeName: '/telemed'),
   MenuItemModel(
       title: "Contributions",
-      icon: Icons.volunteer_activism_outlined,
+      icon: Icons.volunteer_activism_rounded,
       category: MenuCategory.services,
       isAvailable: true,
       routeName: '/contributions'),
   MenuItemModel(
       title: "AI Chatbot",
-      icon: Icons.smart_toy_outlined,
+      icon: Icons.smart_toy_rounded,
       category: MenuCategory.services,
       isAvailable: false,
+      badgeText: "SOON",
       routeName: ''),
 ];

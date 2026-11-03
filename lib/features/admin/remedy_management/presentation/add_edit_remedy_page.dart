@@ -290,7 +290,7 @@ class _RemedyFormViewState extends State<_RemedyFormView> {
                   SearchableDropdown<Condition>(
                     value: _selectedCondition,
                     items: state.conditions,
-                    label: 'Condition',
+                    label: 'Ailment',
                     rs: rs,
                     itemLabelBuilder: (c) => c.name,
                     onChanged:

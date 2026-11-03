@@ -112,7 +112,8 @@ class RemedyModel {
 
     return RemedyModel(
       id: json['id'] as String,
-      conditionId: json['condition_id'] as String,
+      conditionId:
+          (json['condition_id'] ?? json['ailment_id'] ?? '') as String,
       name: json['name'] as String? ?? 'Unnamed Remedy',
       methodOfUse: json['method_of_use'] as String? ?? '',
       preparation: json['preparation'] as String? ?? '',
@@ -165,11 +166,15 @@ class RemedyModel {
       rejectionReason:
           (json['rejection_reason'] ?? json['moderation_comments']) as String?,
       condition:
-          json['conditions'] != null
+          json['ailments'] != null
               ? ConditionModel.fromJson(
-                json['conditions'] as Map<String, dynamic>,
-              )
-              : null,
+                  json['ailments'] as Map<String, dynamic>,
+                )
+              : (json['conditions'] != null
+                  ? ConditionModel.fromJson(
+                      json['conditions'] as Map<String, dynamic>,
+                    )
+                  : null),
       remedyHerbs:
           rawHerbs
               ?.map(
@@ -252,7 +257,7 @@ class RemedyModel {
       publishedAt: publishedAt,
       rejectionReason: rejectionReason,
       conditionName: condition?.name,
-      conditionBodySystem: condition?.bodySystem,
+      conditionAilmentCategory: condition?.ailmentCategory,
       remedyHerbs:
           remedyHerbs
               .map((rh) => rh.toEntity())

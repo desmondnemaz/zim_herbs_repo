@@ -2,29 +2,106 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 
-import 'package:zim_herbs_repo/core/theme/spacing.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
+import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
+import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
+import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 import 'package:zim_herbs_repo/features/settings/presentation/settings_page.dart';
 import 'package:zim_herbs_repo/features/notifications/presentation/notifications_page.dart';
-import 'package:zim_herbs_repo/features/admin/dashboard/presentation/admin_dashboard_page.dart';
-import 'package:zim_herbs_repo/features/profile/presentation/profile_page.dart';
-import 'package:zim_herbs_repo/core/components/portal_switch_dialog.dart';
 
+
+class _PublicNavItem {
+  final int index;
+  final String label;
+  final IconData icon;
+  final IconData activeIcon;
+  final Color accentColor;
+  final String? badgeText;
+
+  const _PublicNavItem({
+    required this.index,
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+    required this.accentColor,
+    this.badgeText,
+  });
+}
 
 class DrawerSideBar extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback? onToggle;
+  final int activeIndex;
+  final ValueChanged<int>? onNavTap;
 
-  const DrawerSideBar({super.key, this.isExpanded = true, this.onToggle});
+  const DrawerSideBar({
+    super.key,
+    this.isExpanded = true,
+    this.onToggle,
+    this.activeIndex = 0,
+    this.onNavTap,
+  });
 
   @override
   State<DrawerSideBar> createState() => _DrawerSideBarState();
 }
 
 class _DrawerSideBarState extends State<DrawerSideBar> {
-  String _activeRoute = "Dashboard";
+  static const List<_PublicNavItem> _navItems = [
+    _PublicNavItem(
+      index: 0,
+      label: 'Dashboard',
+      icon: Icons.grid_view_rounded,
+      activeIcon: Icons.grid_view_rounded,
+      accentColor: Color(0xFF80CBC4),
+    ),
+    _PublicNavItem(
+      index: 1,
+      label: 'Herbs',
+      icon: Icons.local_florist_rounded,
+      activeIcon: Icons.local_florist_rounded,
+      accentColor: Color(0xFF81C784),
+    ),
+    _PublicNavItem(
+      index: 2,
+      label: 'Ailments',
+      icon: Icons.monitor_heart_rounded,
+      activeIcon: Icons.monitor_heart_rounded,
+      accentColor: Color(0xFF4DD0E1),
+    ),
+    _PublicNavItem(
+      index: 3,
+      label: 'Remedies',
+      icon: Icons.healing_rounded,
+      activeIcon: Icons.healing_rounded,
+      accentColor: Color(0xFF64B5F6),
+    ),
+    _PublicNavItem(
+      index: 4,
+      label: 'Marketplace',
+      icon: Icons.storefront_rounded,
+      activeIcon: Icons.storefront_rounded,
+      accentColor: Color(0xFFFFD54F),
+      badgeText: 'Soon',
+    ),
+    _PublicNavItem(
+      index: 5,
+      label: 'Contributions',
+      icon: Icons.volunteer_activism_rounded,
+      activeIcon: Icons.volunteer_activism_rounded,
+      accentColor: Color(0xFFFF8A80),
+    ),
+    _PublicNavItem(
+      index: 6,
+      label: 'Telemedicine',
+      icon: Icons.medical_services_rounded,
+      activeIcon: Icons.medical_services_rounded,
+      accentColor: Color(0xFFCE93D8),
+      badgeText: 'Soon',
+    ),
+  ];
 
   Widget _buildHeader(BuildContext context, bool isDesktop) {
     if (isDesktop) {
@@ -141,85 +218,49 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
   }
 
   Widget _buildFooter(BuildContext context) {
-    final isDesktop = Responsive.isDesktop(context);
-    final showCollapsed = isDesktop && !widget.isExpanded;
+    final theme = Theme.of(context);
+    bool canModerate = false;
+    UserModel? currentUser;
+    try {
+      final authState = context.watch<AuthCubit>().state;
+      if (authState is Authenticated && authState.user.canModerate) {
+        canModerate = true;
+        currentUser = authState.user;
+      }
+    } catch (_) {}
 
     return Padding(
-      padding: const EdgeInsets.all(defaultPadding),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Divider(
-            color: Theme.of(
-              context,
-            ).colorScheme.onPrimary.withValues(alpha: 0.2),
+            color: theme.colorScheme.onPrimary.withValues(alpha: 0.15),
+            height: 1,
           ),
           const SizedBox(height: 8),
-          if (showCollapsed)
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const CircleAvatar(
-                radius: 12,
-                backgroundColor: Colors.transparent,
-                backgroundImage: AssetImage(
-                  'assets/images/zimbabwe-flag-rounded.png',
-                ),
-              ),
-            )
-          else
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.transparent,
-                        backgroundImage: AssetImage(
-                          'assets/images/zimbabwe-flag-rounded.png',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        "ZIM HERBS",
-                        overflow: TextOverflow.clip,
-                        softWrap: false,
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimary.withValues(alpha: 0.6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "v1.0.0",
-                  style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onPrimary.withValues(alpha: 0.4),
-                    fontSize: 10,
-                  ),
-                ),
-              ],
+
+          // ── Admin Console Action (for moderators & admins) ──
+          if (canModerate && currentUser != null) ...[
+            _buildMenuItem(
+              title: "Admin Console",
+              icon: Icons.admin_panel_settings_rounded,
+              iconColor: const Color(0xFF81C784),
+              isActive: false,
+              isActionTile: true,
+              onTap: () => _showAdminConsoleConfirmation(context, currentUser!),
             ),
+            const SizedBox(height: 6),
+          ],
+
+          // ── Sign Out Action ──
+          _buildMenuItem(
+            title: "Sign Out",
+            icon: Icons.logout_rounded,
+            isActive: false,
+            isSignOut: true,
+            onTap: () => _showSignOutConfirmation(context),
+          ),
         ],
       ),
     );
@@ -242,35 +283,40 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _buildMenuItem(
-                    title: "Dashboard",
-                    svgSrc: "assets/icons/menu_dashboard.svg",
-                    iconColor: const Color(0xFF80CBC4),
-                    isActive: _activeRoute == "Dashboard",
-                    onTap: () => setState(() => _activeRoute = "Dashboard"),
-                  ),
-                  _buildMenuItem(
-                    title: "Profile",
-                    svgSrc: "assets/icons/menu_profile.svg",
-                    iconColor: const Color(0xFF81C784),
-                    isActive: _activeRoute == "Profile",
-                    onTap: () {
-                      if (!Responsive.isDesktop(context)) {
-                        Navigator.pop(context);
-                      }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProfilePage(),
-                        ),
-                      );
-                    },
+                  ..._navItems.map((item) {
+                    final isActive = widget.activeIndex == item.index;
+                    return _buildMenuItem(
+                      title: item.label,
+                      icon: isActive ? item.activeIcon : item.icon,
+                      iconColor: item.accentColor,
+                      badgeText: item.badgeText,
+                      isActive: isActive,
+                      onTap: () {
+                        if (!Responsive.isDesktop(context)) {
+                          Navigator.pop(context);
+                        }
+                        widget.onNavTap?.call(item.index);
+                      },
+                    );
+                  }),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    child: Divider(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onPrimary
+                          .withValues(alpha: 0.15),
+                      height: 1,
+                    ),
                   ),
                   _buildMenuItem(
                     title: "Notifications",
-                    icon: Icons.notifications_none,
+                    icon: Icons.notifications_rounded,
                     iconColor: const Color(0xFFFFB74D),
-                    isActive: _activeRoute == "Notifications",
+                    isActive: false,
                     onTap: () {
                       if (!Responsive.isDesktop(context)) {
                         Navigator.pop(context);
@@ -285,9 +331,9 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                   ),
                   _buildMenuItem(
                     title: "Settings",
-                    svgSrc: "assets/icons/menu_setting.svg",
+                    icon: Icons.settings_rounded,
                     iconColor: const Color(0xFF64B5F6),
-                    isActive: _activeRoute == "Settings",
+                    isActive: false,
                     onTap: () {
                       if (!Responsive.isDesktop(context)) {
                         Navigator.pop(context);
@@ -299,46 +345,6 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                         ),
                       );
                     },
-                  ),
-                  Builder(
-                    builder: (context) {
-                      try {
-                        final authState = context.watch<AuthCubit>().state;
-                        if (authState is Authenticated && authState.user.role.isAdmin) {
-                          return _buildMenuItem(
-                            title: "Admin Console",
-                            icon: Icons.admin_panel_settings,
-                            iconColor: const Color(0xFFCE93D8),
-                            isActive: false,
-                            onTap: () async {
-                              final confirmed = await showPortalSwitchConfirmation(
-                                context: context,
-                                toAdmin: true,
-                              );
-                              if (confirmed && context.mounted) {
-                                if (!Responsive.isDesktop(context)) {
-                                  Navigator.pop(context);
-                                }
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => AdminDashboardPage(user: authState.user),
-                                  ),
-                                );
-                              }
-                            },
-                          );
-                        }
-                      } catch (_) {}
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  _buildMenuItem(
-                    title: "Sign Out",
-                    icon: Icons.logout_rounded,
-                    isActive: false,
-                    isSignOut: true,
-                    onTap: () => _showSignOutConfirmation(context),
                   ),
                 ],
               ),
@@ -388,26 +394,28 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
     IconData? icon,
     required bool isActive,
     bool isSignOut = false,
+    bool isActionTile = false,
     Color? iconColor,
+    String? badgeText,
     required VoidCallback onTap,
   }) {
     final isDesktop = Responsive.isDesktop(context);
     final isExpanded = !isDesktop || widget.isExpanded;
     final accentColor = iconColor ?? Theme.of(context).colorScheme.secondary;
 
-    final itemColor = isSignOut
-        ? Colors.white
+    final itemColor = (isSignOut || isActionTile)
+        ? (iconColor ?? Colors.white)
         : isActive
             ? accentColor
             : accentColor.withValues(alpha: 0.88);
 
-    final tileBackground = isSignOut
+    final tileBackground = (isSignOut || isActionTile)
         ? Colors.white.withValues(alpha: 0.12)
         : isActive
             ? accentColor.withValues(alpha: 0.22)
             : Colors.transparent;
 
-    final textColor = isSignOut
+    final textColor = (isSignOut || isActionTile)
         ? Colors.white
         : isActive
             ? accentColor
@@ -432,7 +440,7 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
               );
 
       return Tooltip(
-        message: title,
+        message: badgeText != null ? "$title ($badgeText)" : title,
         preferBelow: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
@@ -494,12 +502,57 @@ class _DrawerSideBarState extends State<DrawerSideBar> {
                     ),
                   ),
                 ),
+                if (badgeText != null) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.5),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  void _showAdminConsoleConfirmation(
+    BuildContext context,
+    UserModel user,
+  ) async {
+    final confirmed = await showPortalSwitchConfirmation(
+      context: context,
+      toAdmin: true,
+    );
+    if (confirmed && context.mounted) {
+      if (!Responsive.isDesktop(context)) {
+        Navigator.pop(context);
+      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AdminDashboardPage(user: user),
+        ),
+      );
+    }
   }
 
   void _showSignOutConfirmation(BuildContext context) {

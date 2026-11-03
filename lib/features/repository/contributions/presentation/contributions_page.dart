@@ -24,7 +24,7 @@ class _ContributionsPageState extends State<ContributionsPage> {
     final descController = TextEditingController();
     final symptomsController = TextEditingController();
     final precautionsController = TextEditingController();
-    BodySystem selectedSystem = BodySystem.respiratory;
+    AilmentCategory selectedCategory = AilmentCategory.respiratory;
     bool isSubmitting = false;
 
     await showDialog(
@@ -62,21 +62,21 @@ class _ContributionsPageState extends State<ContributionsPage> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    DropdownButtonFormField<BodySystem>(
-                      initialValue: selectedSystem,
+                    DropdownButtonFormField<AilmentCategory>(
+                      initialValue: selectedCategory,
                       decoration: const InputDecoration(
-                        labelText: 'Target Body System *',
+                        labelText: 'Ailment Category *',
                         border: OutlineInputBorder(),
                       ),
-                      items: BodySystem.values.map((system) {
+                      items: AilmentCategory.values.map((category) {
                         return DropdownMenuItem(
-                          value: system,
-                          child: Text(bodySystemLabel(system)),
+                          value: category,
+                          child: Text(ailmentCategoryLabel(category)),
                         );
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) {
-                          setDialogState(() => selectedSystem = val);
+                          setDialogState(() => selectedCategory = val);
                         }
                       },
                     ),
@@ -153,7 +153,7 @@ class _ContributionsPageState extends State<ContributionsPage> {
                           final newCondition = ConditionModel(
                             id: '',
                             name: name,
-                            bodySystem: selectedSystem,
+                            ailmentCategory: selectedCategory,
                             description: descController.text.trim().isNotEmpty
                                 ? descController.text.trim()
                                 : null,

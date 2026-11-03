@@ -5,6 +5,9 @@ library;
 
 import 'package:zim_herbs_repo/core/models/record_audit_entry.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb_other_use.dart';
+
+export 'herb_other_use.dart';
 
 class HerbImage {
   final String id;
@@ -27,10 +30,17 @@ class Herb {
   final String nameEn;
   final String? nameSn;
   final String? nameNd;
+  final String? scientificName;
+  final String? family;
+  final String? growthHabit;
+  final List<String> partsUsed;
+  final String? placesFound;
+  final String? exoticStatus;
   final String? description;
   final bool isApproved;
   final RecordValidationStatus validationStatus;
   final List<HerbImage> images;
+  final List<HerbOtherUse> otherUses;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? createdBy;
@@ -55,10 +65,17 @@ class Herb {
     required this.nameEn,
     this.nameSn,
     this.nameNd,
+    this.scientificName,
+    this.family,
+    this.growthHabit,
+    this.partsUsed = const [],
+    this.placesFound,
+    this.exoticStatus = 'Indigenous',
     this.description,
     this.isApproved = true,
     this.validationStatus = RecordValidationStatus.published,
     this.images = const [],
+    this.otherUses = const [],
     this.createdAt,
     this.updatedAt,
     this.createdBy,

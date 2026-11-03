@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/screens/admin_overview_screen.dart';
+import 'package:zim_herbs_repo/features/admin/dashboard/presentation/screens/admin_reports_screen.dart';
+import 'package:zim_herbs_repo/features/admin/dashboard/presentation/screens/admin_analytics_screen.dart';
 import 'package:zim_herbs_repo/features/admin/dashboard/presentation/screens/admin_coming_soon_screen.dart';
 import 'package:zim_herbs_repo/features/admin/moderation/presentation/screens/moderation_hub_screen.dart';
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/pages/herbs_list.dart';
-import 'package:zim_herbs_repo/features/repository/conditions/presentation/condition_list.dart';
+import 'package:zim_herbs_repo/features/repository/ailments/presentation/ailment_list.dart';
+import 'package:zim_herbs_repo/features/admin/ailment_management/presentation/body_parts_page.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/presentation/pages/remedies_list.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/presentation/store_page.dart';
 import 'package:zim_herbs_repo/features/admin/user_management/presentation/user_management_screen.dart';
@@ -28,12 +31,13 @@ class AdminDashboardScreen extends StatelessWidget {
     'Overview',
     'Moderation Hub',
     'Herb Management',
-    'Condition Management',
+    'Ailment Management',
     'Remedy Management',
     'Marketplace',
     'User Management',
     'Reports',
     'Analytics',
+    'Body Parts',
   ];
 
   @override
@@ -61,7 +65,10 @@ class AdminDashboardScreen extends StatelessWidget {
         body = HerbsList(onBack: () => onNavigate?.call(0));
         break;
       case 3:
-        body = ConditionsListPage(onBack: () => onNavigate?.call(0));
+        body = AilmentsListPage(onBack: () => onNavigate?.call(0));
+        break;
+      case 9:
+        body = BodyPartsPage(onBack: () => onNavigate?.call(0));
         break;
       case 4:
         body = RemediesList(onBack: () => onNavigate?.call(0));
@@ -82,8 +89,7 @@ class AdminDashboardScreen extends StatelessWidget {
         break;
       case 7:
         if (effectiveUser.isAdmin) {
-          body = AdminComingSoonScreen(
-            title: 'Reports',
+          body = AdminReportsScreen(
             onBack: () => onNavigate?.call(0),
           );
         } else {
@@ -95,8 +101,7 @@ class AdminDashboardScreen extends StatelessWidget {
         break;
       case 8:
         if (effectiveUser.isAdmin) {
-          body = AdminComingSoonScreen(
-            title: 'Analytics',
+          body = AdminAnalyticsScreen(
             onBack: () => onNavigate?.call(0),
           );
         } else {

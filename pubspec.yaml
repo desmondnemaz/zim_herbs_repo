@@ -53,6 +53,9 @@ dependencies:
   pdf: ^3.13.1
   printing: ^5.15.1
   csv: ^8.0.0
+  file_picker: ^13.3.2
+  archive: ^4.6.0
+  xml: ^7.0.1
 
 dev_dependencies:
   flutter_test:

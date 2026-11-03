@@ -235,6 +235,11 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
 
                                   const SizedBox(height: 24),
 
+                                  // Botanical Profile Card
+                                  _buildBotanicalProfileCard(herb, rs),
+
+                                  const SizedBox(height: 24),
+
                                   // Description Section (with fallback for empty field)
                                   _buildSectionCard(
                                     icon: Icons.info_outline_rounded,
@@ -286,10 +291,10 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
 
                                   const SizedBox(height: 24),
 
-                                  // Treatable Conditions Section (with fallback for empty field)
+                                  // Treatable Ailments Section (with fallback for empty field)
                                   _buildSectionCard(
                                     icon: Icons.medical_services_rounded,
-                                    title: 'Treatable Conditions',
+                                    title: 'Treatable Ailments',
                                     content: treatments.isNotEmpty
                                         ? Wrap(
                                             spacing: 8,
@@ -339,7 +344,7 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                               const SizedBox(width: 10),
                                               Expanded(
                                                 child: Text(
-                                                  'No treatable health conditions or remedies have been linked to this herb yet. Verified treatments will appear here once linked.',
+                                                  'No treatable health ailments or remedies have been linked to this herb yet. Verified treatments will appear here once linked.',
                                                   style: TextStyle(
                                                     fontSize: rs.bodyFont,
                                                     fontStyle: FontStyle.italic,
@@ -358,6 +363,11 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                         .colorScheme
                                         .secondary,
                                   ),
+
+                                  const SizedBox(height: 24),
+
+                                  // Other Traditional & Practical Uses (Food, Construction, Firewood, Cultural, Ritual)
+                                  _buildOtherUsesSection(herb, rs),
 
                                   const SizedBox(height: 24),
 
@@ -692,14 +702,32 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text(
-                  herb.nameEn,
-                  style: TextStyle(
-                    fontSize: rs.titleFont * 1.3,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                    color: theme.colorScheme.onSurface,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      herb.nameEn,
+                      style: TextStyle(
+                        fontSize: rs.titleFont * 1.3,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    if (herb.scientificName != null &&
+                        herb.scientificName!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        herb.scientificName!,
+                        style: TextStyle(
+                          fontSize: rs.titleFont * 0.9,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
@@ -972,6 +1000,328 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
           content,
         ],
       ),
+    );
+  }
+
+// ==========================================================================
+// BOTANICAL PROFILE CARD & OTHER USES SECTION
+// ==========================================================================
+
+  Widget _buildBotanicalProfileCard(Herb herb, ResponsiveSize rs) {
+    final theme = Theme.of(context);
+    final hasBotanicalData = (herb.scientificName != null && herb.scientificName!.isNotEmpty) ||
+        (herb.family != null && herb.family!.isNotEmpty) ||
+        (herb.growthHabit != null && herb.growthHabit!.isNotEmpty) ||
+        (herb.placesFound != null && herb.placesFound!.isNotEmpty) ||
+        herb.partsUsed.isNotEmpty;
+
+    if (!hasBotanicalData) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.12),
+        ),
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.04),
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.biotech_rounded,
+                  color: theme.colorScheme.primary, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'Botanical Profile & Habitat',
+                style: TextStyle(
+                  fontSize: rs.subtitleFont,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 14),
+
+          // Metadata Grid/Wrap
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              if (herb.family != null && herb.family!.isNotEmpty)
+                _buildBotanicalTag(
+                  icon: Icons.category_rounded,
+                  label: 'Family',
+                  value: herb.family!,
+                  theme: theme,
+                ),
+              if (herb.growthHabit != null && herb.growthHabit!.isNotEmpty)
+                _buildBotanicalTag(
+                  icon: Icons.nature_rounded,
+                  label: 'Growth Habit',
+                  value: herb.growthHabit!,
+                  theme: theme,
+                ),
+              if (herb.exoticStatus != null && herb.exoticStatus!.isNotEmpty)
+                _buildBotanicalTag(
+                  icon: Icons.eco_rounded,
+                  label: 'Exotic Status',
+                  value: herb.exoticStatus!,
+                  theme: theme,
+                ),
+            ],
+          ),
+
+          // Where Found / Places Found
+          if (herb.placesFound != null && herb.placesFound!.trim().isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.location_on_rounded,
+                      color: Color(0xFFE65100), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Places Where Found',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFE65100),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          herb.placesFound!,
+                          style: TextStyle(
+                            fontSize: rs.bodyFont * 0.95,
+                            color: const Color(0xFF334155),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Parts Used
+          if (herb.partsUsed.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.grass_rounded,
+                    size: 18, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Parts Used',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: herb.partsUsed.map((part) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              part,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBotanicalTag({
+    required IconData icon,
+    required String label,
+    required String value,
+    required ThemeData theme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: const Color(0xFF475569)),
+          const SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOtherUsesSection(Herb herb, ResponsiveSize rs) {
+    final theme = Theme.of(context);
+    final uses = herb.otherUses;
+
+    return _buildSectionCard(
+      icon: Icons.volunteer_activism_rounded,
+      title: 'Traditional & Practical Uses (Non-Medicinal)',
+      content: uses.isNotEmpty
+          ? Column(
+              children: uses.map((use) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(use.categoryIcon,
+                            size: 18, color: theme.colorScheme.primary),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  use.categoryLabel,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                if (use.title != null &&
+                                    use.title != use.categoryLabel) ...[
+                                  Text(
+                                    ' • ${use.title!}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              use.description,
+                              style: TextStyle(
+                                fontSize: rs.bodyFont * 0.95,
+                                color: const Color(0xFF334155),
+                                height: 1.45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.spa_outlined,
+                  size: 20,
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.5),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'No non-medicinal cultural, culinary, or practical uses have been recorded for this herb yet.',
+                    style: TextStyle(
+                      fontSize: rs.bodyFont,
+                      fontStyle: FontStyle.italic,
+                      height: 1.5,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+      rs: rs,
+      accentColor: const Color(0xFF795548),
     );
   }
 }

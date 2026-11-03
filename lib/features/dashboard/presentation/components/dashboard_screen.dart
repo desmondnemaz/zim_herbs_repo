@@ -10,8 +10,13 @@ import 'package:zim_herbs_repo/core/theme/spacing.dart';
 
 class DashboardScreen extends StatelessWidget {
   final VoidCallback toogleDashbordSideBar;
+  final ValueChanged<int>? onNavigate;
 
-  const DashboardScreen({super.key, required this.toogleDashbordSideBar});
+  const DashboardScreen({
+    super.key,
+    required this.toogleDashbordSideBar,
+    this.onNavigate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +27,7 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 16),
               
               // 1. Menu Grid (Advanced Layout)
-              const MenuSection(),
+              MenuSection(onNavigate: onNavigate),
               const SizedBox(height: 24),
 
               Padding(
@@ -47,12 +52,16 @@ class DashboardScreen extends StatelessWidget {
                               SectionHeader(
                                 title: "Featured Herbs",
                                 onSeeAll: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const HerbsList(isPublicView: true),
-                                    ),
-                                  );
+                                  if (onNavigate != null) {
+                                    onNavigate!(1);
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const HerbsList(isPublicView: true),
+                                      ),
+                                    );
+                                  }
                                 },
                               ),
                               SizedBox(
@@ -73,12 +82,16 @@ class DashboardScreen extends StatelessWidget {
                               SectionHeader(
                                 title: "Featured Store Products",
                                 onSeeAll: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const StorePage(),
-                                    ),
-                                  );
+                                  if (onNavigate != null) {
+                                    onNavigate!(4);
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const StorePage(),
+                                      ),
+                                    );
+                                  }
                                 },
                               ),
                               SizedBox(

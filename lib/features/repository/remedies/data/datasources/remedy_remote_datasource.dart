@@ -11,17 +11,32 @@ class RemedyRemoteDataSource {
 
   RemedyRemoteDataSource(this.client);
 
+  bool? _useAilmentsRelation;
+
+  Future<bool> _checkAilmentsRelation() async {
+    if (_useAilmentsRelation != null) return _useAilmentsRelation!;
+    try {
+      await client.from('ailments').select('id').limit(1);
+      _useAilmentsRelation = true;
+    } catch (_) {
+      _useAilmentsRelation = false;
+    }
+    return _useAilmentsRelation!;
+  }
+
   // ============================================================
   // GET ALL REMEDIES
   // ============================================================
 
-  /// Fetch all remedies with their conditions and herbs.
+  /// Fetch all remedies with their conditions/ailments and herbs.
   Future<List<RemedyModel>> getAllRemedies() async {
+    final useAilments = await _checkAilmentsRelation();
+    final relation = useAilments ? 'ailments(*)' : 'conditions(*)';
     final response = await client
         .from('remedies')
         .select('''
           *,
-          conditions(*),
+          $relation,
           remedy_herbs(*, herbs(*, herb_images(*)))
         ''')
         .order('name');
@@ -37,12 +52,14 @@ class RemedyRemoteDataSource {
 
   /// Fetch one remedy by its ID.
   Future<RemedyModel?> getRemedyById(String id) async {
+    final useAilments = await _checkAilmentsRelation();
+    final relation = useAilments ? 'ailments(*)' : 'conditions(*)';
     final response =
         await client
             .from('remedies')
             .select('''
           *,
-          conditions(*),
+          $relation,
           remedy_herbs(*, herbs(*, herb_images(*)))
         ''')
             .eq('id', id)
@@ -56,16 +73,18 @@ class RemedyRemoteDataSource {
   // SEARCH REMEDIES
   // ============================================================
 
-  /// Search remedies by name or condition name.
+  /// Search remedies by name or condition/ailment name.
   Future<List<RemedyModel>> searchRemedies(String query) async {
+    final useAilments = await _checkAilmentsRelation();
+    final table = useAilments ? 'ailments' : 'conditions';
     final response = await client
         .from('remedies')
         .select('''
           *,
-          conditions!inner(*),
+          $table!inner(*),
           remedy_herbs(*, herbs(*, herb_images(*)))
         ''')
-        .or('name.ilike.%$query%,conditions.name.ilike.%$query%')
+        .or('name.ilike.%$query%,$table.name.ilike.%$query%')
         .order('name');
 
     return (response as List<dynamic>)
@@ -74,27 +93,34 @@ class RemedyRemoteDataSource {
   }
 
   // ============================================================
-  // GET REMEDIES BY CONDITION
+  // GET REMEDIES BY CONDITION / AILMENT
   // ============================================================
 
-  /// Get remedies for a specific condition.
+  /// Get remedies for a specific condition or ailment.
   Future<List<RemedyModel>> getRemediesByCondition(
     String conditionId,
   ) async {
+    final useAilments = await _checkAilmentsRelation();
+    final table = useAilments ? 'ailments' : 'conditions';
+    final col = useAilments ? 'ailment_id' : 'condition_id';
     final response = await client
         .from('remedies')
         .select('''
           *,
-          conditions!inner(*),
+          $table!inner(*),
           remedy_herbs(*, herbs(*, herb_images(*)))
         ''')
-        .eq('condition_id', conditionId)
+        .eq(col, conditionId)
         .order('name');
 
     return (response as List<dynamic>)
         .map((json) => RemedyModel.fromJson(json as Map<String, dynamic>))
         .toList();
   }
+
+  /// Alias for ailment
+  Future<List<RemedyModel>> getRemediesByAilment(String ailmentId) =>
+      getRemediesByCondition(ailmentId);
 
   // ============================================================
   // GET REMEDIES BY HERB
@@ -102,11 +128,13 @@ class RemedyRemoteDataSource {
 
   /// Get remedies that use a specific herb.
   Future<List<RemedyModel>> getRemediesByHerbId(String herbId) async {
+    final useAilments = await _checkAilmentsRelation();
+    final relation = useAilments ? 'ailments(*)' : 'conditions(*)';
     final response = await client
         .from('remedies')
         .select('''
           *,
-          conditions(*),
+          $relation,
           remedy_herbs!inner(*)
         ''')
         .eq('remedy_herbs.herb_id', herbId);
@@ -142,6 +170,13 @@ class RemedyRemoteDataSource {
     remedyData.remove('remedy_herbs');
     remedyData.remove('treatment_herbs');
     remedyData.remove('conditions');
+    remedyData.remove('ailments');
+
+    final useAilments = await _checkAilmentsRelation();
+    if (useAilments) {
+      remedyData['ailment_id'] = remedy.conditionId;
+      remedyData.remove('condition_id');
+    }
 
     final remedyResponse =
         await client
@@ -192,6 +227,13 @@ class RemedyRemoteDataSource {
     remedyData.remove('remedy_herbs');
     remedyData.remove('treatment_herbs');
     remedyData.remove('conditions');
+    remedyData.remove('ailments');
+
+    final useAilments = await _checkAilmentsRelation();
+    if (useAilments) {
+      remedyData['ailment_id'] = remedy.conditionId;
+      remedyData.remove('condition_id');
+    }
 
     await client
         .from('remedies')

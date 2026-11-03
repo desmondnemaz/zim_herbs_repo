@@ -21,6 +21,7 @@ import 'package:zim_herbs_repo/core/components/app_filter_bar.dart';
 import 'package:zim_herbs_repo/core/components/app_page_header.dart';
 import 'package:zim_herbs_repo/core/components/batch_action_toolbar.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/presentation/add_edit_herb_page.dart';
+import 'package:zim_herbs_repo/features/admin/herb_management/presentation/herb_import_page.dart';
 
 enum HerbFilterOption {
   all,
@@ -598,6 +599,32 @@ class _HerbsListState extends State<HerbsList> {
           : "Botanical catalog & repository",
       icon: Icons.local_florist_rounded,
       onBack: widget.onBack,
+      trailing: !widget.isPublicView
+          ? OutlinedButton.icon(
+              onPressed: () async {
+                final imported = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HerbImportPage(),
+                  ),
+                );
+                if (imported == true && mounted && context.mounted) {
+                  context.read<HerbCubit>().refreshHerbs();
+                }
+              },
+              icon: const Icon(Icons.table_view_rounded, size: 18),
+              label: const Text('Import Excel/CSV'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            )
+          : null,
     );
   }
 

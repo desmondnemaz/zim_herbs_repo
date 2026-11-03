@@ -10,6 +10,51 @@ class HerbRemoteDataSource {
 
   HerbRemoteDataSource(this.client);
 
+  bool? _useAilmentsRelation;
+  bool? _useOtherUsesRelation;
+
+  Future<bool> _checkAilmentsRelation() async {
+    if (_useAilmentsRelation != null) return _useAilmentsRelation!;
+    try {
+      await client.from('ailments').select('id').limit(1);
+      _useAilmentsRelation = true;
+    } catch (_) {
+      _useAilmentsRelation = false;
+    }
+    return _useAilmentsRelation!;
+  }
+
+  Future<bool> _checkOtherUsesRelation() async {
+    if (_useOtherUsesRelation != null) return _useOtherUsesRelation!;
+    try {
+      await client.from('herb_other_uses').select('id').limit(1);
+      _useOtherUsesRelation = true;
+    } catch (_) {
+      _useOtherUsesRelation = false;
+    }
+    return _useOtherUsesRelation!;
+  }
+
+  Future<String> _getHerbSelectQuery({bool innerRemedies = false}) async {
+    final useAilments = await _checkAilmentsRelation();
+    final useOtherUses = await _checkOtherUsesRelation();
+    final relation = useAilments ? 'ailments(*)' : 'conditions(*)';
+    final otherUsesRelation = useOtherUses ? ', herb_other_uses(*)' : '';
+    final remedyRelation =
+        innerRemedies ? 'remedy_herbs!inner(' : 'remedy_herbs(';
+    return '''
+      *,
+      herb_images(*)$otherUsesRelation,
+      $remedyRelation
+        *,
+        remedies(
+          *,
+          $relation
+        )
+      )
+    ''';
+  }
+
   // ============================================================
   // GET ALL HERBS
   // ============================================================
@@ -18,19 +63,10 @@ class HerbRemoteDataSource {
   ///
   /// This is the layer that communicates directly with Supabase.
   Future<List<HerbModel>> getAllHerbs() async {
+    final query = await _getHerbSelectQuery();
     final response = await client
         .from('herbs')
-        .select('''
-          *,
-          herb_images(*),
-          remedy_herbs(
-            *,
-            remedies(
-              *,
-              conditions(*)
-            )
-          )
-        ''')
+        .select(query)
         .order('name_en');
 
     return (response as List<dynamic>)
@@ -48,19 +84,10 @@ class HerbRemoteDataSource {
 
   /// Fetch herbs that are unverified / pending moderator review.
   Future<List<HerbModel>> getUnverifiedHerbs() async {
+    final query = await _getHerbSelectQuery();
     final response = await client
         .from('herbs')
-        .select('''
-          *,
-          herb_images(*),
-          remedy_herbs(
-            *,
-            remedies(
-              *,
-              conditions(*)
-            )
-          )
-        ''')
+        .select(query)
         .or('is_approved.is.false,is_approved.is.null')
         .order('created_at', ascending: false);
 
@@ -105,19 +132,10 @@ class HerbRemoteDataSource {
   Future<List<HerbModel>> getLatestHerbs({
     int limit = 5,
   }) async {
+    final query = await _getHerbSelectQuery();
     final response = await client
         .from('herbs')
-        .select('''
-          *,
-          herb_images(*),
-          remedy_herbs(
-            *,
-            remedies(
-              *,
-              conditions(*)
-            )
-          )
-        ''')
+        .select(query)
         .order(
           'created_at',
           ascending: false,
@@ -144,19 +162,10 @@ class HerbRemoteDataSource {
   Future<List<HerbModel>> getTrendingHerbs({
     int limit = 5,
   }) async {
+    final query = await _getHerbSelectQuery();
     final response = await client
         .from('herbs')
-        .select('''
-          *,
-          herb_images(*),
-          remedy_herbs(
-            *,
-            remedies(
-              *,
-              conditions(*)
-            )
-          )
-        ''')
+        .select(query)
         .order(
           'updated_at',
           ascending: false,
@@ -191,19 +200,10 @@ class HerbRemoteDataSource {
   Future<HerbModel?> getHerbById(
     String id,
   ) async {
+    final query = await _getHerbSelectQuery();
     final response = await client
         .from('herbs')
-        .select('''
-          *,
-          herb_images(*),
-          remedy_herbs(
-            *,
-            remedies(
-              *,
-              conditions(*)
-            )
-          )
-        ''')
+        .select(query)
         .eq('id', id)
         .maybeSingle();
 
@@ -222,23 +222,16 @@ class HerbRemoteDataSource {
   Future<List<HerbModel>> searchHerbs(
     String query,
   ) async {
+    final selectQuery = await _getHerbSelectQuery();
     final response = await client
         .from('herbs')
-        .select('''
-          *,
-          herb_images(*),
-          remedy_herbs(
-            *,
-            remedies(
-              *,
-              conditions(*)
-            )
-          )
-        ''')
+        .select(selectQuery)
         .or(
           'name_en.ilike.%$query%,'
           'name_sn.ilike.%$query%,'
-          'name_nd.ilike.%$query%',
+          'name_nd.ilike.%$query%,'
+          'scientific_name.ilike.%$query%,'
+          'places_found.ilike.%$query%',
         )
         .order('name_en');
 
@@ -252,28 +245,24 @@ class HerbRemoteDataSource {
   }
 
   // ============================================================
-  // GET HERBS BY CONDITION
+  // GET HERBS BY CONDITION / AILMENT
   // ============================================================
 
-  /// Find herbs associated with a specific condition.
+  /// Find herbs associated with a specific condition or ailment.
   Future<List<HerbModel>> getHerbsByCondition(
     String conditionId,
   ) async {
+    final selectQuery = await _getHerbSelectQuery(innerRemedies: true);
+    final useAilments = await _checkAilmentsRelation();
+    final conditionCol = useAilments
+        ? 'remedy_herbs.remedies.ailment_id'
+        : 'remedy_herbs.remedies.condition_id';
+
     final response = await client
         .from('herbs')
-        .select('''
-          *,
-          herb_images(*),
-          remedy_herbs!inner(
-            *,
-            remedies(
-              *,
-              conditions(*)
-            )
-          )
-        ''')
+        .select(selectQuery)
         .eq(
-          'remedy_herbs.remedies.condition_id',
+          conditionCol,
           conditionId,
         )
         .order('name_en');
@@ -286,6 +275,10 @@ class HerbRemoteDataSource {
         )
         .toList();
   }
+
+  /// Alias for ailment
+  Future<List<HerbModel>> getHerbsByAilment(String ailmentId) =>
+      getHerbsByCondition(ailmentId);
 
   // ============================================================
   // ADD HERB IMAGE
@@ -389,5 +382,19 @@ class HerbRemoteDataSource {
         .from('herbs')
         .delete()
         .inFilter('id', ids);
+  }
+
+  // ============================================================
+  // HERB OTHER USES
+  // ============================================================
+
+  /// Add a non-medicinal use to herb_other_uses table.
+  Future<void> addHerbOtherUse(Map<String, dynamic> useJson) async {
+    await client.from('herb_other_uses').insert(useJson);
+  }
+
+  /// Delete a non-medicinal use by its ID.
+  Future<void> deleteHerbOtherUse(String useId) async {
+    await client.from('herb_other_uses').delete().eq('id', useId);
   }
 }

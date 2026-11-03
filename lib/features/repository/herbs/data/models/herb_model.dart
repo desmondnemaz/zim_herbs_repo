@@ -21,6 +21,7 @@ library;
 import 'package:zim_herbs_repo/core/models/record_audit_entry.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/features/repository/remedies/data/models/remedy_model.dart';
+import 'herb_other_use_model.dart';
 
 /// Import the DOMAIN entity.
 ///
@@ -59,6 +60,24 @@ class HerbModel {
 
   /// Optional Ndebele name.
   final String? nameNd;
+
+  /// Botanical/scientific binomial name (e.g. Lippia javanica).
+  final String? scientificName;
+
+  /// Plant family (e.g. Verbenaceae).
+  final String? family;
+
+  /// Growth habit (e.g. Tree, Shrub, Herb, Climber).
+  final String? growthHabit;
+
+  /// Parts of the plant used (e.g. Leaves, Roots, Bark).
+  final List<String> partsUsed;
+
+  /// Where found / geographic distribution.
+  final String? placesFound;
+
+  /// Exotic status (Indigenous, Naturalized, Exotic, Invasive).
+  final String? exoticStatus;
 
   /// Optional description of the herb.
   final String? description;
@@ -107,6 +126,9 @@ class HerbModel {
   /// HerbImageModel
   final List<HerbImageModel> images;
 
+  /// Other non-medicinal uses belonging to this herb.
+  final List<HerbOtherUseModel> otherUses;
+
   /// Remedies associated with this herb.
   final List<RemedyModel> remedies;
 
@@ -119,6 +141,12 @@ class HerbModel {
     required this.nameEn,
     this.nameSn,
     this.nameNd,
+    this.scientificName,
+    this.family,
+    this.growthHabit,
+    this.partsUsed = const [],
+    this.placesFound,
+    this.exoticStatus = 'Indigenous',
     this.description,
     this.isApproved = true,
     this.validationStatus = RecordValidationStatus.published,
@@ -139,6 +167,7 @@ class HerbModel {
     this.rejectedAt,
     this.rejectionReason,
     this.images = const [],
+    this.otherUses = const [],
     List<RemedyModel>? remedies,
     List<RemedyModel>? treatments,
   }) : remedies = remedies ?? treatments ?? const [];
@@ -176,10 +205,17 @@ class HerbModel {
       nameEn: nameEn,
       nameSn: nameSn,
       nameNd: nameNd,
+      scientificName: scientificName,
+      family: family,
+      growthHabit: growthHabit,
+      partsUsed: partsUsed,
+      placesFound: placesFound,
+      exoticStatus: exoticStatus,
       description: description,
       isApproved: isApproved,
       validationStatus: validationStatus,
       images: images.map((image) => image.toEntity()).toList(),
+      otherUses: otherUses.map((u) => u.toEntity()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,
       createdBy: createdBy,
@@ -224,10 +260,17 @@ class HerbModel {
       nameEn: herb.nameEn,
       nameSn: herb.nameSn,
       nameNd: herb.nameNd,
+      scientificName: herb.scientificName,
+      family: herb.family,
+      growthHabit: herb.growthHabit,
+      partsUsed: herb.partsUsed,
+      placesFound: herb.placesFound,
+      exoticStatus: herb.exoticStatus,
       description: herb.description,
       isApproved: herb.isApproved,
       validationStatus: herb.validationStatus,
       images: herb.images.map((img) => HerbImageModel.fromEntity(img)).toList(),
+      otherUses: herb.otherUses.map((u) => HerbOtherUseModel.fromEntity(u)).toList(),
       createdAt: herb.createdAt,
       updatedAt: herb.updatedAt,
       createdBy: herb.createdBy,
@@ -306,6 +349,18 @@ class HerbModel {
       /// Ndebele name can be null.
       nameNd: json['name_nd'] as String?,
 
+      /// Botanical & ecological fields
+      scientificName: json['scientific_name'] as String?,
+      family: json['family'] as String?,
+      growthHabit: json['growth_habit'] as String?,
+      partsUsed: json['parts_used'] is List
+          ? (json['parts_used'] as List).map((e) => e.toString()).toList()
+          : (json['parts_used'] is String && (json['parts_used'] as String).isNotEmpty
+              ? (json['parts_used'] as String).split(',').map((s) => s.trim()).toList()
+              : const <String>[]),
+      placesFound: json['places_found'] as String?,
+      exoticStatus: json['exotic_status'] as String? ?? 'Indigenous',
+
       /// Description can also be null.
       description: json['description'] as String?,
 
@@ -368,6 +423,12 @@ class HerbModel {
       /// Attach the images we extracted above.
       images: images,
 
+      /// Non-medicinal other uses
+      otherUses: (json['herb_other_uses'] as List<dynamic>?)
+              ?.map((e) => HerbOtherUseModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+
       /// Extract remedy information.
       ///
       /// Supabase returns:
@@ -424,6 +485,12 @@ class HerbModel {
       'name_en': nameEn,
       'name_sn': nameSn,
       'name_nd': nameNd,
+      if (scientificName != null) 'scientific_name': scientificName,
+      if (family != null) 'family': family,
+      if (growthHabit != null) 'growth_habit': growthHabit,
+      'parts_used': partsUsed,
+      if (placesFound != null) 'places_found': placesFound,
+      if (exoticStatus != null) 'exotic_status': exoticStatus,
       'description': description,
       'is_approved': isApproved,
       'validation_status': validationStatus.dbValue,

@@ -56,10 +56,17 @@ class _AdminDrawerSideBarState extends State<AdminDrawerSideBar> {
       ),
       const _AdminNavItem(
         index: 3,
-        label: 'Conditions',
+        label: 'Ailments',
         icon: Icons.monitor_heart_outlined,
         activeIcon: Icons.monitor_heart_rounded,
-        accentColor: Color(0xFF4DD0E1), // Medical Cyan/Teal (matching Conditions card)
+        accentColor: Color(0xFF4DD0E1), // Medical Cyan/Teal (matching Ailments card)
+      ),
+      const _AdminNavItem(
+        index: 9,
+        label: 'Body Parts',
+        icon: Icons.accessibility_new_rounded,
+        activeIcon: Icons.accessibility_new_rounded,
+        accentColor: Color(0xFF26A69A), // Anatomical Teal
       ),
       const _AdminNavItem(
         index: 4,

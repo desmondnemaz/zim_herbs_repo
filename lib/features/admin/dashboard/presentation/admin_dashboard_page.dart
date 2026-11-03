@@ -96,6 +96,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         return 'Reports';
       case 8:
         return 'Analytics';
+      case 9:
+        return 'Body Parts';
       default:
         return 'Overview';
     }
@@ -104,7 +106,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   /// Sections whose screens render their own header with a back button
   /// (HerbsList, ConditionsListPage, RemediesList, StorePage via `onBack`).
   /// The shell must not stack its navbar on top of them.
-  static const _sectionsWithOwnHeader = {2, 3, 4, 5};
+  static const _sectionsWithOwnHeader = {2, 3, 4, 5, 7, 8, 9};
 
   /// Mobile/Tablet app bar, chosen per section:
   /// - Overview (home): brand navbar with drawer, offline badge and profile.
