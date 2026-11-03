@@ -390,7 +390,7 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                                 const SizedBox(width: 6),
                                                 const Text(
-                                                  "Admin Console",
+                                                  "View Admin App",
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w600,
