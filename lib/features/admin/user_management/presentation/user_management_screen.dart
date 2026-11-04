@@ -5,6 +5,7 @@ import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
 import 'package:zim_herbs_repo/core/errors/failure.dart';
 import 'package:zim_herbs_repo/core/services/user_export_service.dart';
+import 'package:zim_herbs_repo/core/services/user_presence_service.dart';
 import 'package:zim_herbs_repo/core/components/app_page_header.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/admin/user_management/domain/role_update_rules.dart';
@@ -1141,6 +1142,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       if (_selectedRoleFilter == 'deactivated' && user['is_active'] != false) {
         return false;
       }
+      if (_selectedRoleFilter == 'online') {
+        final userId = user['id'] as String? ?? '';
+        final lastSeen = user['last_seen_at'] != null
+            ? DateTime.tryParse(user['last_seen_at'].toString())
+            : null;
+        if (!UserPresenceService().isUserOnline(userId, lastSeenAt: lastSeen)) {
+          return false;
+        }
+      }
 
       final email = (user['email'] ?? '').toString().toLowerCase();
       final name = (user['full_name'] ?? '').toString().toLowerCase();
@@ -1264,6 +1274,27 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 child: Row(
                   children: [
                     _buildFilterChip('All Users', 'all', _users.length),
+                    const SizedBox(width: 8),
+                    ValueListenableBuilder<Set<String>>(
+                      valueListenable: UserPresenceService().onlineUserIds,
+                      builder: (context, onlineIds, _) {
+                        final onlineCount = _users.where((u) {
+                          final uid = u['id'] as String? ?? '';
+                          final lastSeen = u['last_seen_at'] != null
+                              ? DateTime.tryParse(u['last_seen_at'].toString())
+                              : null;
+                          return UserPresenceService()
+                              .isUserOnline(uid, lastSeenAt: lastSeen);
+                        }).length;
+
+                        return _buildFilterChip(
+                          'Online Now',
+                          'online',
+                          onlineCount,
+                          color: const Color(0xFF0F766E),
+                        );
+                      },
+                    ),
                     const SizedBox(width: 8),
                     _buildFilterChip(
                       'Administrators',
@@ -1829,6 +1860,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         final fullName = (user['full_name'] as String?)?.trim();
         final email = user['email'] as String? ?? 'No email';
         final avatarUrl = user['avatar_url'] as String?;
+        final userId = user['id'] as String? ?? '';
+        final lastSeenAt = user['last_seen_at'] != null
+            ? DateTime.tryParse(user['last_seen_at'].toString())
+            : null;
+        final isOnline = UserPresenceService().isUserOnline(userId, lastSeenAt: lastSeenAt);
+        final lastSeenText = UserPresenceService().formatLastSeen(userId, lastSeenAt: lastSeenAt);
 
         String formattedDate = 'N/A';
         if (user['created_at'] != null) {
@@ -1868,36 +1905,55 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Avatar with role indicator ring
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: !isActive
-                        ? Colors.red.shade400
-                        : (isAdmin
-                            ? theme.colorScheme.primary
-                            : (isModerator
-                                ? Colors.indigo
-                                : (isPractitioner
-                                    ? Colors.teal
-                                    : (isSupplier
-                                        ? Colors.orange
-                                        : Colors.grey.shade300)))),
-                    backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl == null || avatarUrl.isEmpty
-                        ? Text(
-                            (fullName?.isNotEmpty == true
-                                    ? fullName![0]
-                                    : email[0])
-                                .toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                  // Avatar with role indicator ring and live online dot
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: !isActive
+                            ? Colors.red.shade400
+                            : (isAdmin
+                                ? theme.colorScheme.primary
+                                : (isModerator
+                                    ? Colors.indigo
+                                    : (isPractitioner
+                                        ? Colors.teal
+                                        : (isSupplier
+                                            ? Colors.orange
+                                            : Colors.grey.shade300)))),
+                        backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                            ? NetworkImage(avatarUrl)
+                            : null,
+                        child: avatarUrl == null || avatarUrl.isEmpty
+                            ? Text(
+                                (fullName?.isNotEmpty == true
+                                        ? fullName![0]
+                                        : email[0])
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              )
+                            : null,
+                      ),
+                      if (isOnline)
+                        Positioned(
+                          right: -1,
+                          bottom: -1,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF22C55E),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
-                          )
-                        : null,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(width: 14),
                   // Name and Email
@@ -1984,6 +2040,51 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     spacing: 6,
                     runSpacing: 4,
                     children: [
+                      // Online / Activity Status Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isOnline
+                              ? const Color(0xFF22C55E).withValues(alpha: 0.12)
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isOnline
+                                ? const Color(0xFF22C55E).withValues(alpha: 0.45)
+                                : Colors.grey.shade300,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: isOnline
+                                    ? const Color(0xFF22C55E)
+                                    : Colors.grey.shade500,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              lastSeenText,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isOnline
+                                    ? const Color(0xFF15803D)
+                                    : Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       if (!isActive)
                         _buildBadge('DEACTIVATED', Colors.red.shade700),
                       if (isAdmin)
@@ -2275,6 +2376,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final fullName = (user['full_name'] as String?)?.trim();
     final email = user['email'] as String? ?? 'No email';
     final avatarUrl = user['avatar_url'] as String?;
+    final userId = user['id'] as String? ?? '';
+    final lastSeenAt = user['last_seen_at'] != null
+        ? DateTime.tryParse(user['last_seen_at'].toString())
+        : null;
+    final isOnline = UserPresenceService().isUserOnline(userId, lastSeenAt: lastSeenAt);
+    final lastSeenText = UserPresenceService().formatLastSeen(userId, lastSeenAt: lastSeenAt);
 
     String formattedDate = 'N/A';
     if (user['created_at'] != null) {
@@ -2295,40 +2402,59 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             flex: 3,
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 17,
-                  backgroundColor: !isActive
-                      ? Colors.red.shade400
-                      : (isAdmin
-                          ? theme.colorScheme.primary
-                          : (isModerator
-                              ? Colors.indigo
-                              : (isPractitioner
-                                  ? Colors.teal
-                                  : (isSupplier
-                                      ? Colors.orange
-                                      : const Color(0xFFE2E8F0))))),
-                  backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                      ? NetworkImage(avatarUrl)
-                      : null,
-                  child: avatarUrl == null || avatarUrl.isEmpty
-                      ? Text(
-                          (fullName?.isNotEmpty == true
-                                  ? fullName![0]
-                                  : email[0])
-                              .toUpperCase(),
-                          style: TextStyle(
-                            color: (isAdmin ||
-                                    isModerator ||
-                                    isPractitioner ||
-                                    isSupplier)
-                                ? Colors.white
-                                : const Color(0xFF475569),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 17,
+                      backgroundColor: !isActive
+                          ? Colors.red.shade400
+                          : (isAdmin
+                              ? theme.colorScheme.primary
+                              : (isModerator
+                                  ? Colors.indigo
+                                  : (isPractitioner
+                                      ? Colors.teal
+                                      : (isSupplier
+                                          ? Colors.orange
+                                          : const Color(0xFFE2E8F0))))),
+                      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                          ? NetworkImage(avatarUrl)
+                          : null,
+                      child: avatarUrl == null || avatarUrl.isEmpty
+                          ? Text(
+                              (fullName?.isNotEmpty == true
+                                      ? fullName![0]
+                                      : email[0])
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                color: (isAdmin ||
+                                        isModerator ||
+                                        isPractitioner ||
+                                        isSupplier)
+                                    ? Colors.white
+                                    : const Color(0xFF475569),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                    ),
+                    if (isOnline)
+                      Positioned(
+                        right: -1,
+                        bottom: -1,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF22C55E),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
                           ),
-                        )
-                      : null,
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2418,12 +2544,49 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
           ),
 
-          // Joined Date
+          // Joined Date & Activity Status
           Expanded(
             flex: 2,
-            child: Text(
-              formattedDate,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isOnline
+                            ? const Color(0xFF22C55E)
+                            : Colors.grey.shade400,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      lastSeenText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight:
+                            isOnline ? FontWeight.bold : FontWeight.w500,
+                        color: isOnline
+                            ? const Color(0xFF15803D)
+                            : Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  formattedDate,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
             ),
           ),
 

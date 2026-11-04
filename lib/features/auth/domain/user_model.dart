@@ -39,6 +39,9 @@ class UserModel {
   final String? location;
   final bool onboardingCompleted;
   final bool isActive;
+  /// Timestamp of the user's last recorded activity in the application.
+  /// Used for activity audits and determining offline vs online states.
+  final DateTime? lastSeenAt;
 
   const UserModel({
     required this.id,
@@ -58,6 +61,7 @@ class UserModel {
     this.location,
     this.onboardingCompleted = false,
     this.isActive = true,
+    this.lastSeenAt,
   }) : _isModerator = isModerator;
 
   /// True if the user is a moderator or an administrator (admins inherit all moderation rights).
@@ -93,6 +97,7 @@ class UserModel {
     String? location,
     bool? onboardingCompleted,
     bool? isActive,
+    DateTime? lastSeenAt,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -112,6 +117,7 @@ class UserModel {
       location: location ?? this.location,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       isActive: isActive ?? this.isActive,
+      lastSeenAt: lastSeenAt ?? this.lastSeenAt,
     );
   }
 
@@ -136,6 +142,7 @@ class UserModel {
       'location': location,
       'onboarding_completed': onboardingCompleted,
       'is_active': isActive,
+      if (lastSeenAt != null) 'last_seen_at': lastSeenAt!.toIso8601String(),
     };
   }
 
@@ -149,6 +156,12 @@ class UserModel {
     final List<String> interestsList = (interestsRaw is List)
         ? interestsRaw.map((e) => e.toString()).toList()
         : const [];
+
+    final rawLastSeen = json['last_seen_at'];
+    DateTime? parsedLastSeen;
+    if (rawLastSeen != null) {
+      parsedLastSeen = DateTime.tryParse(rawLastSeen.toString());
+    }
 
     return UserModel(
       id: (json['id'] ?? '') as String,
@@ -173,6 +186,7 @@ class UserModel {
       location: json['location'] as String?,
       onboardingCompleted: (json['onboarding_completed'] as bool?) ?? false,
       isActive: (json['is_active'] as bool?) ?? true,
+      lastSeenAt: parsedLastSeen,
     );
   }
 }

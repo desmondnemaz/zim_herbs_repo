@@ -13,6 +13,7 @@ import 'package:zim_herbs_repo/features/admin/remedy_management/presentation/add
 import 'package:zim_herbs_repo/features/admin/ailment_management/presentation/components/add_edit_ailment_dialog.dart';
 import 'package:zim_herbs_repo/features/admin/ailment_management/presentation/body_parts_page.dart';
 import 'package:zim_herbs_repo/features/repository/ailments/presentation/cubit/ailment_cubit.dart';
+import 'package:zim_herbs_repo/core/services/user_presence_service.dart';
 
 import 'package:zim_herbs_repo/features/auth/domain/user_model.dart';
 
@@ -254,7 +255,58 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                       onTap: () => widget.onNavigate?.call(6),
                     );
 
-                    // On mobile: 2-column layout for standard cards with Pending Reviews spanning full width
+                    // Realtime Live Online Users Stat Card
+                    final onlineUsersCard = ValueListenableBuilder<int>(
+                      valueListenable: UserPresenceService().onlineUserCount,
+                      builder: (context, count, _) {
+                        return _StatCard(
+                          title: 'Online Now',
+                          value: '$count',
+                          icon: Icons.wifi_tethering_rounded,
+                          color: const Color(0xFF0F766E),
+                          onTap: () => widget.onNavigate?.call(6),
+                          badge: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF22C55E).withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFF22C55E),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF22C55E),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  'LIVE',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+
+                    // On mobile: 2-column layout for uniform pairs
                     if (rs.isMobile || availableWidth < 600) {
                       final double colWidth = ((availableWidth - spacing) / 2).floorToDouble();
 
@@ -277,17 +329,19 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                             ],
                           ),
                           const SizedBox(height: spacing),
-                          SizedBox(
-                            width: double.infinity,
-                            height: cardHeight,
-                            child: pendingReviewsCard,
+                          Row(
+                            children: [
+                              SizedBox(width: colWidth, height: cardHeight, child: onlineUsersCard),
+                              const SizedBox(width: spacing),
+                              SizedBox(width: colWidth, height: cardHeight, child: pendingReviewsCard),
+                            ],
                           ),
                         ],
                       );
                     }
 
                     // On tablet & desktop viewports: dynamic wrapping
-                    final int count = (availableWidth / 220).floor().clamp(1, 5);
+                    final int count = (availableWidth / 220).floor().clamp(1, 6);
                     final double cardWidth =
                         ((availableWidth - (spacing * (count - 1))) / count)
                             .floorToDouble();
@@ -299,8 +353,9 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                         SizedBox(width: cardWidth, height: cardHeight, child: herbsCard),
                         SizedBox(width: cardWidth, height: cardHeight, child: conditionsCard),
                         SizedBox(width: cardWidth, height: cardHeight, child: remediesCard),
-                        SizedBox(width: cardWidth, height: cardHeight, child: pendingReviewsCard),
                         SizedBox(width: cardWidth, height: cardHeight, child: usersCard),
+                        SizedBox(width: cardWidth, height: cardHeight, child: onlineUsersCard),
+                        SizedBox(width: cardWidth, height: cardHeight, child: pendingReviewsCard),
                       ],
                     );
                   },
@@ -461,6 +516,7 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback? onTap;
+  final Widget? badge;
 
   const _StatCard({
     required this.title,
@@ -468,6 +524,7 @@ class _StatCard extends StatelessWidget {
     required this.icon,
     required this.color,
     this.onTap,
+    this.badge,
   });
 
   @override
@@ -533,6 +590,7 @@ class _StatCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (badge != null) badge!,
                 ],
               ),
               const SizedBox(height: 6),

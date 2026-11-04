@@ -17,6 +17,7 @@ import 'package:zim_herbs_repo/features/marketplace/store/data/repository/store_
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/store_bloc.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/store_event.dart';
 import 'package:zim_herbs_repo/features/marketplace/store/bloc/cart_cubit.dart';
+import 'package:zim_herbs_repo/core/services/user_presence_service.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -94,20 +95,26 @@ class _MyAppState extends State<MyApp> {
 ],
 
       child: BlocListener<AuthCubit, AuthState>(
-            listenWhen: (previous, current) {
-              if (current is Authenticated) {
-                _wasAuthenticated = true;
-              }
-              return current is Unauthenticated && _wasAuthenticated;
-            },
-            listener: (context, authState) {
+        listenWhen: (previous, current) => previous != current,
+        listener: (context, authState) {
+          if (authState is Authenticated) {
+            _wasAuthenticated = true;
+            // Begin tracking presence and record persistent activity for this user session
+            UserPresenceService().startTracking(authState.user);
+          } else if (authState is Unauthenticated) {
+            // Immediately drop presence socket tracking
+            UserPresenceService().stopTracking();
+
+            if (_wasAuthenticated) {
               _wasAuthenticated = false;
               rootNavigatorKey.currentState?.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const AuthGate()),
                 (route) => false,
               );
-            },
-            child: MaterialApp(
+            }
+          }
+        },
+        child: MaterialApp(
               navigatorKey: rootNavigatorKey,
               scaffoldMessengerKey: rootScaffoldMessengerKey,
               debugShowCheckedModeBanner: false,

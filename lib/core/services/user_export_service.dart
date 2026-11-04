@@ -22,7 +22,7 @@ class UserExportService {
     final formattedDate =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
-    final tableHeaders = ['#', 'Full Name', 'Email', 'Role(s)', 'Joined Date'];
+    final tableHeaders = ['#', 'Full Name', 'Email', 'Role(s)', 'Joined Date', 'Last Active'];
 
     final tableData = <List<String>>[];
     for (int i = 0; i < users.length; i++) {
@@ -46,12 +46,22 @@ class UserExportService {
         } catch (_) {}
       }
 
+      String lastSeenStr = 'N/A';
+      if (user['last_seen_at'] != null) {
+        try {
+          final dt = DateTime.parse(user['last_seen_at'].toString());
+          lastSeenStr =
+              '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+        } catch (_) {}
+      }
+
       tableData.add([
         '${i + 1}',
         fullName?.isNotEmpty == true ? fullName! : 'Unnamed User',
         email,
         roles.join(', '),
         createdAtStr,
+        lastSeenStr,
       ]);
     }
 
@@ -160,6 +170,7 @@ class UserExportService {
       'Is Supplier',
       'Is Practitioner',
       'Joined Date',
+      'Last Active',
     ]);
 
     for (final user in users) {
@@ -173,6 +184,7 @@ class UserExportService {
         user['is_supplier'] == true ? 'YES' : 'NO',
         user['is_practitioner'] == true ? 'YES' : 'NO',
         user['created_at'] ?? '',
+        user['last_seen_at'] ?? '',
       ]);
     }
 
