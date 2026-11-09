@@ -371,6 +371,15 @@ class HerbRemoteDataSource {
   }
 
   // ============================================================
+  // DELETE HERB IMAGE
+  // ============================================================
+
+  /// Delete an image record from the herb_images table.
+  Future<void> deleteHerbImage(String imageId) async {
+    await client.from('herb_images').delete().eq('id', imageId);
+  }
+
+  // ============================================================
   // CREATE HERB
   // ============================================================
 

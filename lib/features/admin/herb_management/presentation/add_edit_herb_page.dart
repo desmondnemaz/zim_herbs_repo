@@ -67,6 +67,8 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
 
   final List<XFile> _selectedImages = [];
   final List<Uint8List> _selectedImageBytes = [];
+  late List<HerbImageModel> _existingImages;
+  final List<String> _deletedImageIds = [];
   bool _isSaving = false;
   final ImagePicker _picker = ImagePicker();
   final HerbRemoteDataSource _repository =
@@ -119,6 +121,7 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
   @override
   void initState() {
     super.initState();
+    _existingImages = List<HerbImageModel>.from(widget.herb?.images ?? []);
     _nameEnController = TextEditingController(text: widget.herb?.nameEn ?? '');
     _nameSnController = TextEditingController(text: widget.herb?.nameSn ?? '');
     _nameNdController = TextEditingController(text: widget.herb?.nameNd ?? '');
@@ -230,6 +233,13 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
     setState(() {
       _selectedImages.removeAt(index);
       _selectedImageBytes.removeAt(index);
+    });
+  }
+
+  void _removeExistingImage(int index) {
+    setState(() {
+      final removed = _existingImages.removeAt(index);
+      _deletedImageIds.add(removed.id);
     });
   }
 
@@ -357,7 +367,7 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
               ? (widget.herb?.verifiedAt ?? DateTime.now())
               : null,
           moderationNotes: widget.herb?.moderationNotes,
-          images: widget.herb?.images ?? [],
+          images: _existingImages,
           remedies: widget.herb?.remedies ?? [],
         );
 
@@ -396,7 +406,16 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
           }
         }
 
-        // 4. Upload All Selected Images
+        // 4. Delete Any Removed Existing Images
+        for (final imageId in _deletedImageIds) {
+          try {
+            await _repository.deleteHerbImage(imageId);
+          } catch (e) {
+            debugPrint('Error deleting removed herb image $imageId: $e');
+          }
+        }
+
+        // 5. Upload All Selected/Pasted Images
         for (var i = 0; i < _selectedImages.length; i++) {
           try {
             final image = _selectedImages[i];
@@ -495,21 +514,53 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
                           child: ListView(
                         scrollDirection: Axis.horizontal,
                         children: [
-                          if (widget.herb != null)
-                            ...widget.herb!.images.map(
-                              (img) => Padding(
-                                padding: const EdgeInsets.only(right: 10.0),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(
-                                    img.imageUrl,
-                                    width: 120,
-                                    height: 120,
-                                    fit: BoxFit.cover,
+                          ..._existingImages.asMap().entries.map(
+                            (entry) => Stack(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 10.0),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      entry.value.imageUrl,
+                                      width: 120,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Container(
+                                        width: 120,
+                                        height: 120,
+                                        color: Colors.grey.shade200,
+                                        child: const Icon(
+                                          Icons.broken_image_rounded,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                Positioned(
+                                  right: 14,
+                                  top: 4,
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        _removeExistingImage(entry.key),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
                           ..._selectedImages.asMap().entries.map(
                                 (entry) => Stack(
                                   children: [

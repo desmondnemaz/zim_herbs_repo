@@ -51,6 +51,11 @@ abstract class HerbRepository {
     HerbImage image,
   );
 
+  /// Delete an image record for a herb.
+  Future<void> deleteHerbImage(
+    String imageId,
+  );
+
   /// Create a new herb.
   Future<Herb> createHerb(
     Herb herb,

@@ -94,6 +94,11 @@ Future<List<Herb>> searchHerbs(String query) async {
   }
 
   @override
+  Future<void> deleteHerbImage(String imageId) async {
+    await dataSource.deleteHerbImage(imageId);
+  }
+
+  @override
   Future<Herb> createHerb(Herb herb) async {
   final model = HerbModel.fromEntity(herb);
 

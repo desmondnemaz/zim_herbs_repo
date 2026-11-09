@@ -32,6 +32,8 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
 
   final List<XFile> _selectedImages = [];
   final List<Uint8List> _selectedImageBytes = [];
+  late List<HerbImageModel> _existingImages;
+  final List<String> _deletedImageIds = [];
   bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
   final HerbRemoteDataSource _repository =
@@ -40,6 +42,7 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
   @override
   void initState() {
     super.initState();
+    _existingImages = List<HerbImageModel>.from(widget.herb?.images ?? []);
     _nameEnController = TextEditingController(text: widget.herb?.nameEn ?? '');
     _nameSnController = TextEditingController(text: widget.herb?.nameSn ?? '');
     _nameNdController = TextEditingController(text: widget.herb?.nameNd ?? '');
@@ -86,6 +89,13 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
     setState(() {
       _selectedImages.removeAt(index);
       _selectedImageBytes.removeAt(index);
+    });
+  }
+
+  void _removeExistingImage(int index) {
+    setState(() {
+      final removed = _existingImages.removeAt(index);
+      _deletedImageIds.add(removed.id);
     });
   }
 
@@ -174,21 +184,52 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
                       scrollDirection: Axis.horizontal,
                       children: [
                         // Existing Images (from database)
-                        if (widget.herb != null)
-                          ...widget.herb!.images.map(
-                            (img) => Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  img.imageUrl,
-                                  width: 100,
-                                  height: 100,
-                                  fit: BoxFit.cover,
+                        ..._existingImages.asMap().entries.map(
+                          (entry) => Stack(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    entry.value.imageUrl,
+                                    width: 100,
+                                    height: 100,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => Container(
+                                      width: 100,
+                                      height: 100,
+                                      color: Colors.grey.shade200,
+                                      child: const Icon(
+                                        Icons.broken_image_rounded,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                              Positioned(
+                                right: 4,
+                                top: 0,
+                                child: GestureDetector(
+                                  onTap: () => _removeExistingImage(entry.key),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
 
                         // Newly Selected Images
                         ..._selectedImages.asMap().entries.map(
@@ -453,7 +494,7 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
           validationStatus: widget.herb?.validationStatus,
           createdAt: widget.herb?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
-          images: widget.herb?.images ?? [],
+          images: _existingImages,
           remedies: widget.herb?.remedies ?? [],
         );
 
@@ -465,7 +506,16 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
           return;
         }
 
-        // 3. Upload All Selected Images
+        // 3. Delete Any Removed Existing Images
+        for (final imageId in _deletedImageIds) {
+          try {
+            await _repository.deleteHerbImage(imageId);
+          } catch (e) {
+            debugPrint('Error deleting removed herb image $imageId: $e');
+          }
+        }
+
+        // 4. Upload All Selected Images
         for (var image in _selectedImages) {
           try {
             final bytes = await image.readAsBytes();
