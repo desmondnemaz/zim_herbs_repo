@@ -51,7 +51,6 @@ void main() {
       expect(first.herb.otherUsesNotes, contains('herbal tea'));
       expect(first.herb.description, contains('Cough and colds'));
     });
-    });
 
     test('parseSpreadsheet correctly parses Excel bytes', () {
       final bytes = HerbSpreadsheetService.generateStandardExcelTemplate();
