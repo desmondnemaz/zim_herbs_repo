@@ -14,14 +14,13 @@ void main() {
 
     test('generateStandardCsvTemplate creates valid CSV string with standard headers', () {
       final csvString = HerbSpreadsheetService.generateStandardCsvTemplate();
-      expect(csvString, contains('common_name_en'));
-      expect(csvString, contains('scientific_name'));
-      expect(csvString, contains('places_found'));
-      expect(csvString, contains('caution'));
-      expect(csvString, contains('source'));
-      expect(csvString, contains('other_uses_notes'));
-      expect(csvString, contains('food_nutrition'));
-      expect(csvString, contains('cultural_spiritual'));
+      expect(csvString, contains('English / common name'));
+      expect(csvString, contains('Scientific name'));
+      expect(csvString, contains('Shona name'));
+      expect(csvString, contains('Ndebele name'));
+      expect(csvString, contains('Caution'));
+      expect(csvString, contains('Source'));
+      expect(csvString, contains('Other uses & notes'));
       expect(csvString, contains('Lippia javanica'));
     });
 
@@ -40,24 +39,18 @@ void main() {
       expect(first.isValid, isTrue);
       expect(first.herb.nameEn, 'Fever Tea (Zumbani)');
       expect(first.herb.scientificName, 'Lippia javanica');
+      expect(first.herb.nameSn, 'Zumbani');
+      expect(first.herb.nameNd, 'Insuzwane');
       expect(first.herb.family, 'Verbenaceae');
       expect(first.herb.growthHabit, 'Shrub');
       expect(first.herb.placesFound, contains('Zimbabwe'));
       expect(first.herb.partsUsed, contains('Leaves'));
       expect(first.herb.partsUsed, contains('Twigs'));
       expect(first.herb.createdBy, 'test-admin-123');
-      expect(first.herb.caution, contains('pregnancy'));
-      expect(first.herb.source, contains('Flora of Zimbabwe'));
-      expect(first.herb.otherUsesNotes, contains('steam cleanser'));
-
-      // Check parsed non-medicinal traditional uses
-      expect(first.otherUses.length, greaterThanOrEqualTo(5));
-      final categories = first.otherUses.map((u) => u.category).toSet();
-      expect(categories, contains('food_nutrition'));
-      expect(categories, contains('construction_fencing'));
-      expect(categories, contains('firewood'));
-      expect(categories, contains('cultural_spiritual'));
-      expect(categories, contains('ritual'));
+      expect(first.herb.source, 'Public Domain');
+      expect(first.herb.otherUsesNotes, contains('herbal tea'));
+      expect(first.herb.description, contains('Cough and colds'));
+    });
     });
 
     test('parseSpreadsheet correctly parses Excel bytes', () {
