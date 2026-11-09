@@ -289,6 +289,9 @@ class HerbCubit extends Cubit<HerbState> {
           placesFound: current.placesFound,
           exoticStatus: current.exoticStatus,
           description: current.description,
+          caution: current.caution,
+          source: current.source,
+          otherUsesNotes: current.otherUsesNotes,
           validationStatus: isApproved
               ? RecordValidationStatus.published
               : RecordValidationStatus.underReview,
@@ -344,6 +347,9 @@ class HerbCubit extends Cubit<HerbState> {
           placesFound: current.placesFound,
           exoticStatus: current.exoticStatus,
           description: current.description,
+          caution: current.caution,
+          source: current.source,
+          otherUsesNotes: current.otherUsesNotes,
           validationStatus: targetStatus,
           images: current.images,
           otherUses: current.otherUses,

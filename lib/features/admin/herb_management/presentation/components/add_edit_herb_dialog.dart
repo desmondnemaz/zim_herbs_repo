@@ -24,6 +24,9 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
   late TextEditingController _nameSnController;
   late TextEditingController _nameNdController;
   late TextEditingController _descriptionController;
+  late TextEditingController _cautionController;
+  late TextEditingController _sourceController;
+  late TextEditingController _otherUsesNotesController;
 
   final List<XFile> _selectedImages = [];
   final List<Uint8List> _selectedImageBytes = [];
@@ -41,6 +44,15 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
     _descriptionController = TextEditingController(
       text: widget.herb?.description ?? '',
     );
+    _cautionController = TextEditingController(
+      text: widget.herb?.caution ?? '',
+    );
+    _sourceController = TextEditingController(
+      text: widget.herb?.source ?? '',
+    );
+    _otherUsesNotesController = TextEditingController(
+      text: widget.herb?.otherUsesNotes ?? '',
+    );
   }
 
   @override
@@ -49,6 +61,9 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
     _nameSnController.dispose();
     _nameNdController.dispose();
     _descriptionController.dispose();
+    _cautionController.dispose();
+    _sourceController.dispose();
+    _otherUsesNotesController.dispose();
     super.dispose();
   }
 
@@ -219,6 +234,33 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
                 ),
                 maxLines: 3,
               ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _cautionController,
+                decoration: InputDecoration(
+                  labelText: 'Caution / Warnings (Optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _sourceController,
+                decoration: InputDecoration(
+                  labelText: 'Source / References (Optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _otherUsesNotesController,
+                decoration: InputDecoration(
+                  labelText: 'Other Uses & Notes (Optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
             ],
           ),
         ),
@@ -271,6 +313,22 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
               _descriptionController.text.isEmpty
                   ? null
                   : _descriptionController.text,
+          caution: _cautionController.text.trim().isEmpty
+              ? null
+              : _cautionController.text.trim(),
+          source: _sourceController.text.trim().isEmpty
+              ? null
+              : _sourceController.text.trim(),
+          otherUsesNotes: _otherUsesNotesController.text.trim().isEmpty
+              ? null
+              : _otherUsesNotesController.text.trim(),
+          scientificName: widget.herb?.scientificName,
+          family: widget.herb?.family,
+          growthHabit: widget.herb?.growthHabit,
+          partsUsed: widget.herb?.partsUsed ?? const [],
+          placesFound: widget.herb?.placesFound,
+          exoticStatus: widget.herb?.exoticStatus ?? 'Indigenous',
+          validationStatus: widget.herb?.validationStatus,
           createdAt: widget.herb?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
           images: widget.herb?.images ?? [],

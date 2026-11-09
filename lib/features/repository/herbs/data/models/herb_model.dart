@@ -82,6 +82,15 @@ class HerbModel {
   /// Optional description of the herb.
   final String? description;
 
+  /// Optional caution or safety warnings.
+  final String? caution;
+
+  /// Optional literature, citation, or knowledge source.
+  final String? source;
+
+  /// Optional other uses and general notes.
+  final String? otherUsesNotes;
+
   /// Multi-stage validation status (draft -> submitted -> under_review -> validated -> published -> rejected / archived).
   final RecordValidationStatus validationStatus;
 
@@ -150,6 +159,9 @@ class HerbModel {
     this.placesFound,
     this.exoticStatus = 'Indigenous',
     this.description,
+    this.caution,
+    this.source,
+    this.otherUsesNotes,
     bool? isApproved,
     RecordValidationStatus? validationStatus,
     this.createdAt,
@@ -218,6 +230,9 @@ class HerbModel {
       placesFound: placesFound,
       exoticStatus: exoticStatus,
       description: description,
+      caution: caution,
+      source: source,
+      otherUsesNotes: otherUsesNotes,
       validationStatus: validationStatus,
       images: images.map((image) => image.toEntity()).toList(),
       otherUses: otherUses.map((u) => u.toEntity()).toList(),
@@ -272,6 +287,9 @@ class HerbModel {
       placesFound: herb.placesFound,
       exoticStatus: herb.exoticStatus,
       description: herb.description,
+      caution: herb.caution,
+      source: herb.source,
+      otherUsesNotes: herb.otherUsesNotes,
       validationStatus: herb.validationStatus,
       images: herb.images.map((img) => HerbImageModel.fromEntity(img)).toList(),
       otherUses: herb.otherUses.map((u) => HerbOtherUseModel.fromEntity(u)).toList(),
@@ -367,6 +385,11 @@ class HerbModel {
 
       /// Description can also be null.
       description: json['description'] as String?,
+
+      /// Optional caution, source, and other uses notes.
+      caution: json['caution'] as String?,
+      source: json['source'] as String?,
+      otherUsesNotes: (json['other_uses_notes'] ?? json['other_uses']) as String?,
 
       /// Convert the Supabase timestamp into DateTime.
       ///
@@ -492,6 +515,9 @@ class HerbModel {
       if (placesFound != null) 'places_found': placesFound,
       if (exoticStatus != null) 'exotic_status': exoticStatus,
       'description': description,
+      if (caution != null) 'caution': caution,
+      if (source != null) 'source': source,
+      if (otherUsesNotes != null) 'other_uses_notes': otherUsesNotes,
       'validation_status': validationStatus.dbValue,
       if (createdBy != null) 'created_by': createdBy,
       if (updatedBy != null) 'updated_by': updatedBy,

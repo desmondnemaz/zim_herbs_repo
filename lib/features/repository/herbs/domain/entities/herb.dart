@@ -37,6 +37,9 @@ class Herb {
   final String? placesFound;
   final String? exoticStatus;
   final String? description;
+  final String? caution;
+  final String? source;
+  final String? otherUsesNotes;
   final RecordValidationStatus validationStatus;
   final List<HerbImage> images;
   final List<HerbOtherUse> otherUses;
@@ -74,6 +77,9 @@ class Herb {
     this.placesFound,
     this.exoticStatus = 'Indigenous',
     this.description,
+    this.caution,
+    this.source,
+    this.otherUsesNotes,
     bool? isApproved,
     RecordValidationStatus? validationStatus,
     this.images = const [],

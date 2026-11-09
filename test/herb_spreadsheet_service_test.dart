@@ -17,6 +17,9 @@ void main() {
       expect(csvString, contains('common_name_en'));
       expect(csvString, contains('scientific_name'));
       expect(csvString, contains('places_found'));
+      expect(csvString, contains('caution'));
+      expect(csvString, contains('source'));
+      expect(csvString, contains('other_uses_notes'));
       expect(csvString, contains('food_nutrition'));
       expect(csvString, contains('cultural_spiritual'));
       expect(csvString, contains('Lippia javanica'));
@@ -43,6 +46,9 @@ void main() {
       expect(first.herb.partsUsed, contains('Leaves'));
       expect(first.herb.partsUsed, contains('Twigs'));
       expect(first.herb.createdBy, 'test-admin-123');
+      expect(first.herb.caution, contains('pregnancy'));
+      expect(first.herb.source, contains('Flora of Zimbabwe'));
+      expect(first.herb.otherUsesNotes, contains('steam cleanser'));
 
       // Check parsed non-medicinal traditional uses
       expect(first.otherUses.length, greaterThanOrEqualTo(5));

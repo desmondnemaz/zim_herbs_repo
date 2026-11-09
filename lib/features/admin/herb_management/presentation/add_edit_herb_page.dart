@@ -54,6 +54,9 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
   late TextEditingController _placesFoundController;
   late TextEditingController _partsUsedController;
   late TextEditingController _descriptionController;
+  late TextEditingController _cautionController;
+  late TextEditingController _sourceController;
+  late TextEditingController _otherUsesNotesController;
 
   String? _growthHabit;
   String? _exoticStatus;
@@ -126,6 +129,11 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
         TextEditingController(text: widget.herb?.partsUsed.join(', ') ?? '');
     _descriptionController =
         TextEditingController(text: widget.herb?.description ?? '');
+    _cautionController =
+        TextEditingController(text: widget.herb?.caution ?? '');
+    _sourceController = TextEditingController(text: widget.herb?.source ?? '');
+    _otherUsesNotesController =
+        TextEditingController(text: widget.herb?.otherUsesNotes ?? '');
 
     _growthHabit = widget.herb?.growthHabit;
     _exoticStatus = widget.herb?.exoticStatus ?? 'Indigenous';
@@ -164,6 +172,9 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
     _placesFoundController.dispose();
     _partsUsedController.dispose();
     _descriptionController.dispose();
+    _cautionController.dispose();
+    _sourceController.dispose();
+    _otherUsesNotesController.dispose();
     for (final item in _otherUses) {
       item.dispose();
     }
@@ -268,6 +279,15 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
           description: _descriptionController.text.trim().isEmpty
               ? null
               : _descriptionController.text.trim(),
+          caution: _cautionController.text.trim().isEmpty
+              ? null
+              : _cautionController.text.trim(),
+          source: _sourceController.text.trim().isEmpty
+              ? null
+              : _sourceController.text.trim(),
+          otherUsesNotes: _otherUsesNotesController.text.trim().isEmpty
+              ? null
+              : _otherUsesNotesController.text.trim(),
           validationStatus: effectiveIsApproved
               ? RecordValidationStatus.published
               : (widget.herb?.validationStatus == RecordValidationStatus.published && !canModerate
@@ -849,6 +869,41 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
                       maxLines: 4,
                       hint:
                           'Aromatic woody shrub, dense flowering clusters, ecological context...',
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Section 5b: Safety Precautions, Sources & Notes
+                    _buildSectionHeader(
+                      icon: Icons.health_and_safety_rounded,
+                      title: 'Safety, Citations & General Notes',
+                      rs: rs,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTextField(
+                      controller: _cautionController,
+                      label: 'Caution / Warnings (Optional)',
+                      rs: rs,
+                      maxLines: 3,
+                      hint:
+                          'Toxicity warnings, contraindications, side effects, precautions during pregnancy or high dosages...',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _sourceController,
+                      label: 'Source / References (Optional)',
+                      rs: rs,
+                      maxLines: 2,
+                      hint:
+                          'Literature citations, botanical monographs, research papers, or traditional community sources...',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _otherUsesNotesController,
+                      label: 'Other Uses & Notes (Optional)',
+                      rs: rs,
+                      maxLines: 3,
+                      hint:
+                          'General practical uses, preparation notes, traditional knowledge context...',
                     ),
                     const SizedBox(height: 28),
 

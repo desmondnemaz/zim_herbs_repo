@@ -43,6 +43,9 @@ class HerbSpreadsheetService {
     'places_found',
     'exotic_status',
     'description',
+    'caution',
+    'source',
+    'other_uses_notes',
     'food_nutrition',
     'construction_fencing',
     'firewood',
@@ -63,6 +66,9 @@ class HerbSpreadsheetService {
     'Common across Zimbabwe in open grasslands, rocky slopes, and roadsides',
     'Indigenous',
     'Aromatic woody shrub with dense clusters of small white flowers.',
+    'Avoid high doses during pregnancy; consult healthcare practitioner.',
+    'Flora of Zimbabwe; Gelfand et al. (1985)',
+    'Traditional steam cleanser, insect repellent, and herbal tea.',
     'Herbal tea beverage consumed hot or cold.',
     'Fresh branches used for pest repellent in granaries.',
     'Dry stems burn easily; used for kindling.',
@@ -362,6 +368,29 @@ class HerbSpreadsheetService {
     if (cleaned == 'shona' || cleaned == 'shona_name') return 'name_shona';
     if (cleaned == 'ndebele' || cleaned == 'ndebele_name') return 'name_ndebele';
     if (cleaned == 'botanical_name') return 'scientific_name';
+    if (cleaned == 'caution' ||
+        cleaned == 'cautions' ||
+        cleaned == 'warning' ||
+        cleaned == 'warnings' ||
+        cleaned == 'precautions') {
+      return 'caution';
+    }
+    if (cleaned == 'source' ||
+        cleaned == 'sources' ||
+        cleaned == 'reference' ||
+        cleaned == 'references' ||
+        cleaned == 'citation' ||
+        cleaned == 'citations') {
+      return 'source';
+    }
+    if (cleaned == 'other_uses_&_notes' ||
+        cleaned == 'other_uses_and_notes' ||
+        cleaned == 'other_uses_notes' ||
+        cleaned == 'other_uses_notes_notes' ||
+        cleaned == 'other_uses_&_notes' ||
+        cleaned == 'notes') {
+      return 'other_uses_notes';
+    }
     return cleaned;
   }
 
@@ -382,6 +411,9 @@ class HerbSpreadsheetService {
     final placesFound = row['places_found'] ?? row['distribution'];
     final exoticStatus = row['exotic_status'] ?? 'Indigenous';
     final description = row['description'];
+    final caution = row['caution'];
+    final source = row['source'];
+    final otherUsesNotes = row['other_uses_notes'] ?? row['other_uses'];
 
     // Mandatory validation
     if (nameEn.isEmpty) {
@@ -441,6 +473,9 @@ class HerbSpreadsheetService {
       placesFound: placesFound,
       exoticStatus: exoticStatus,
       description: description,
+      caution: caution,
+      source: source,
+      otherUsesNotes: otherUsesNotes,
       createdBy: currentUserId,
       createdAt: DateTime.now(),
       otherUses: otherUses,

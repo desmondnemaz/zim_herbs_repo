@@ -562,6 +562,48 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                                   // Other Traditional & Practical Uses (Food, Construction, Firewood, Cultural, Ritual)
                                   _buildOtherUsesSection(herb, rs),
 
+                                  if (herb.caution != null &&
+                                      herb.caution!.trim().isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSectionCard(
+                                      icon: Icons.warning_amber_rounded,
+                                      title: 'Caution & Warnings',
+                                      content: Text(
+                                        herb.caution!.trim(),
+                                        style: TextStyle(
+                                          fontSize: rs.bodyFont,
+                                          height: 1.6,
+                                          color: const Color(0xFF9A3412),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      rs: rs,
+                                      accentColor: const Color(0xFFEA580C),
+                                    ),
+                                  ],
+
+                                  if (herb.source != null &&
+                                      herb.source!.trim().isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSectionCard(
+                                      icon: Icons.menu_book_rounded,
+                                      title: 'Sources & References',
+                                      content: Text(
+                                        herb.source!.trim(),
+                                        style: TextStyle(
+                                          fontSize: rs.bodyFont,
+                                          height: 1.6,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.85),
+                                        ),
+                                      ),
+                                      rs: rs,
+                                      accentColor: const Color(0xFF0D9488),
+                                    ),
+                                  ],
+
                                   if (!widget.isPublicView) ...[
                                     const SizedBox(height: 24),
 
@@ -1423,14 +1465,70 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
   Widget _buildOtherUsesSection(Herb herb, ResponsiveSize rs) {
     final theme = Theme.of(context);
     final uses = herb.otherUses;
+    final hasNotes = herb.otherUsesNotes != null &&
+        herb.otherUsesNotes!.trim().isNotEmpty;
+    final hasUses = uses.isNotEmpty || hasNotes;
 
     return _buildSectionCard(
       icon: Icons.volunteer_activism_rounded,
       title: 'Traditional & Practical Uses (Non-Medicinal)',
-      content: uses.isNotEmpty
+      content: hasUses
           ? Column(
-              children: uses.map((use) {
-                return Container(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasNotes) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color:
+                                theme.colorScheme.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.notes_rounded,
+                              size: 18, color: theme.colorScheme.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Other Uses & Notes',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                herb.otherUsesNotes!.trim(),
+                                style: TextStyle(
+                                  fontSize: rs.bodyFont * 0.95,
+                                  color: const Color(0xFF334155),
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                ...uses.map((use) {
+                  return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -1493,8 +1591,9 @@ class _HerbDetailsPageState extends State<HerbDetailsPage>
                     ],
                   ),
                 );
-              }).toList(),
-            )
+              }),
+            ],
+          )
           : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

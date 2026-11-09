@@ -157,6 +157,24 @@ class _HerbImportPageState extends State<HerbImportPage> {
       example: 'Aromatic woody shrub...',
     ),
     _ColumnRuleSpec(
+      keyName: 'caution',
+      label: 'Caution / Warnings',
+      required: false,
+      example: 'Avoid high doses during early pregnancy',
+    ),
+    _ColumnRuleSpec(
+      keyName: 'source',
+      label: 'Source / References',
+      required: false,
+      example: 'Flora of Zimbabwe; Ethnobotanical survey',
+    ),
+    _ColumnRuleSpec(
+      keyName: 'other_uses_notes',
+      label: 'Other Uses & Notes',
+      required: false,
+      example: 'Used for traditional steam bath & granary pest control',
+    ),
+    _ColumnRuleSpec(
       keyName: 'food_nutrition',
       label: 'Food & Nutrition',
       required: false,
