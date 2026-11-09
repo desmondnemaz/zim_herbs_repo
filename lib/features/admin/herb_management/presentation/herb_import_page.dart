@@ -354,14 +354,9 @@ class _HerbImportPageState extends State<HerbImportPage> {
       _statusMessage = 'Starting import of ${validRows.length} herbs...';
     });
 
-    final HerbRepository repo;
-    try {
-      repo = context.read<HerbRepository>();
-    } catch (_) {
-      final client = Supabase.instance.client;
-      final dataSource = HerbRemoteDataSource(client);
-      repo = HerbRepositoryImpl(dataSource);
-    }
+    final client = Supabase.instance.client;
+    final dataSource = HerbRemoteDataSource(client);
+    final HerbRepository repo = HerbRepositoryImpl(dataSource);
 
     final authState = context.read<AuthCubit>().state;
     final currentUserId =
