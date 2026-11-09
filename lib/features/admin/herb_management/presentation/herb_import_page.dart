@@ -5,12 +5,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:printing/printing.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:zim_herbs_repo/core/components/app_page_header.dart';
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/admin/herb_management/data/services/herb_spreadsheet_service.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/repositories/herb_repository_impl.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/domain/entities/herb.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/domain/repositories/herb_repository.dart';
 import 'package:zim_herbs_repo/features/repository/herbs/presentation/cubit/herb_cubit.dart';
 
@@ -346,47 +351,97 @@ class _HerbImportPageState extends State<HerbImportPage> {
       _importedSuccessCount = 0;
       _importedErrorCount = 0;
       _importedOtherUsesCount = 0;
-      _statusMessage = 'Importing 0 of ${validRows.length}...';
+      _statusMessage = 'Starting import of ${validRows.length} herbs...';
     });
 
-    final repo = context.read<HerbRepository>();
+    final HerbRepository repo;
+    try {
+      repo = context.read<HerbRepository>();
+    } catch (_) {
+      final client = Supabase.instance.client;
+      final dataSource = HerbRemoteDataSource(client);
+      repo = HerbRepositoryImpl(dataSource);
+    }
+
+    final authState = context.read<AuthCubit>().state;
+    final currentUserId =
+        authState is Authenticated ? authState.user.id : null;
+    final canModerate =
+        authState is Authenticated && authState.user.canModerate;
+
     int successCount = 0;
     int errorCount = 0;
     int usesCount = 0;
 
-    for (int i = 0; i < validRows.length; i++) {
-      final row = validRows[i];
-      try {
-        final createdHerb = await repo.createHerb(row.herb.toEntity());
-        for (final otherUse in row.otherUses) {
-          final enrichedUse =
-              otherUse.toEntity().copyWith(herbId: createdHerb.id);
-          await repo.addHerbOtherUse(enrichedUse);
-          usesCount++;
-        }
-        successCount++;
-      } catch (_) {
-        errorCount++;
-      }
+    try {
+      for (int i = 0; i < validRows.length; i++) {
+        final row = validRows[i];
+        try {
+          final rawEntity = row.herb.toEntity();
+          final entityToSave = Herb(
+            id: rawEntity.id,
+            nameEn: rawEntity.nameEn,
+            nameSn: rawEntity.nameSn,
+            nameNd: rawEntity.nameNd,
+            scientificName: rawEntity.scientificName,
+            family: rawEntity.family,
+            growthHabit: rawEntity.growthHabit,
+            partsUsed: rawEntity.partsUsed,
+            placesFound: rawEntity.placesFound,
+            exoticStatus: rawEntity.exoticStatus,
+            description: rawEntity.description,
+            caution: rawEntity.caution,
+            source: rawEntity.source,
+            otherUsesNotes: rawEntity.otherUsesNotes,
+            validationStatus: canModerate
+                ? RecordValidationStatus.published
+                : RecordValidationStatus.submitted,
+            images: rawEntity.images,
+            otherUses: rawEntity.otherUses,
+            createdAt: rawEntity.createdAt ?? DateTime.now(),
+            updatedAt: DateTime.now(),
+            createdBy: currentUserId ?? rawEntity.createdBy,
+            updatedBy: currentUserId,
+            verifiedBy: canModerate ? currentUserId : null,
+            verifiedAt: canModerate ? DateTime.now() : null,
+          );
 
+          final createdHerb = await repo.createHerb(entityToSave);
+
+          for (final otherUse in row.otherUses) {
+            final enrichedUse =
+                otherUse.toEntity().copyWith(herbId: createdHerb.id);
+            await repo.addHerbOtherUse(enrichedUse);
+            usesCount++;
+          }
+          successCount++;
+        } catch (e, stackTrace) {
+          debugPrint('[HerbImportPage] Error importing row $i (${row.herb.displayName}): $e\n$stackTrace');
+          errorCount++;
+        }
+
+        if (mounted) {
+          setState(() {
+            _importProgress = (i + 1) / validRows.length;
+            _importedSuccessCount = successCount;
+            _importedErrorCount = errorCount;
+            _importedOtherUsesCount = usesCount;
+            _statusMessage =
+                'Imported ${i + 1} of ${validRows.length} herbs ($successCount saved)';
+          });
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('[HerbImportPage] Fatal import loop error: $e\n$stackTrace');
+      _showError('Import halted: $e');
+    } finally {
       if (mounted) {
+        context.read<HerbCubit>().loadHerbs();
         setState(() {
-          _importProgress = (i + 1) / validRows.length;
-          _importedSuccessCount = successCount;
-          _importedErrorCount = errorCount;
-          _importedOtherUsesCount = usesCount;
-          _statusMessage =
-              'Imported ${i + 1} of ${validRows.length} herbs ($successCount saved)';
+          _isImporting = false;
+          _importCompleted = true;
         });
       }
-    }
-
-    if (mounted) {
-      context.read<HerbCubit>().loadHerbs();
-      setState(() {
-        _isImporting = false;
-        _importCompleted = true;
-      });
     }
   }
 

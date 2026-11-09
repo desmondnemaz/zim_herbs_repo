@@ -352,29 +352,100 @@ class HerbSpreadsheetService {
   }
 
   static String _normalizeHeader(String raw) {
-    final cleaned =
-        raw.trim().toLowerCase().replaceAll(RegExp(r'[\s\-]+'), '_');
-    // Normalize aliases
+    final cleaned = raw
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s\-/]+'), '_')
+        .replaceAll(RegExp(r'[^\w_]'), '');
+
+    // Normalize English / Common Name aliases
     if (cleaned == 'english_name' ||
         cleaned == 'name' ||
-        cleaned == 'common_name') {
+        cleaned == 'common_name' ||
+        cleaned == 'english_common_name' ||
+        cleaned == 'common_name_en' ||
+        cleaned == 'name_en') {
       return 'common_name_en';
     }
+
+    // Distribution / Where found aliases
     if (cleaned == 'distribution' ||
         cleaned == 'where_found' ||
-        cleaned == 'location') {
+        cleaned == 'location' ||
+        cleaned == 'places_found' ||
+        cleaned == 'where_commonly_found' ||
+        cleaned == 'where_commonly_found_used') {
       return 'places_found';
     }
-    if (cleaned == 'shona' || cleaned == 'shona_name') return 'name_shona';
-    if (cleaned == 'ndebele' || cleaned == 'ndebele_name') return 'name_ndebele';
-    if (cleaned == 'botanical_name') return 'scientific_name';
+
+    // Shona name aliases
+    if (cleaned == 'shona' ||
+        cleaned == 'shona_name' ||
+        cleaned == 'name_shona' ||
+        cleaned == 'name_sn') {
+      return 'name_shona';
+    }
+
+    // Ndebele name aliases
+    if (cleaned == 'ndebele' ||
+        cleaned == 'ndebele_name' ||
+        cleaned == 'name_ndebele' ||
+        cleaned == 'name_nd') {
+      return 'name_ndebele';
+    }
+
+    // Botanical / scientific name aliases
+    if (cleaned == 'scientific_name' ||
+        cleaned == 'botanical_name' ||
+        cleaned == 'species' ||
+        cleaned == 'binomial_name') {
+      return 'scientific_name';
+    }
+
+    // Parts used aliases
+    if (cleaned == 'part_used' ||
+        cleaned == 'parts_used' ||
+        cleaned == 'plant_parts_used') {
+      return 'parts_used';
+    }
+
+    // Exotic origin status aliases
+    if (cleaned == 'exotic_to_zimbabwe' ||
+        cleaned == 'exotic' ||
+        cleaned == 'exotic_status' ||
+        cleaned == 'origin') {
+      return 'exotic_status';
+    }
+
+    // Traditional Medicinal Uses aliases
+    if (cleaned == 'traditional_use' ||
+        cleaned == 'traditional_uses' ||
+        cleaned == 'traditional_use_ailments_treated' ||
+        cleaned == 'ailments_treated' ||
+        cleaned == 'medicinal_uses' ||
+        cleaned == 'uses') {
+      return 'traditional_uses';
+    }
+
+    // Ailment categories
+    if (cleaned == 'ailment_categories' ||
+        cleaned == 'ailment_category' ||
+        cleaned == 'categories' ||
+        cleaned == 'body_systems') {
+      return 'ailment_categories';
+    }
+
+    // Caution / safety warnings
     if (cleaned == 'caution' ||
         cleaned == 'cautions' ||
         cleaned == 'warning' ||
         cleaned == 'warnings' ||
-        cleaned == 'precautions') {
+        cleaned == 'precautions' ||
+        cleaned == 'toxicity') {
       return 'caution';
     }
+
+    // Bibliographic source
     if (cleaned == 'source' ||
         cleaned == 'sources' ||
         cleaned == 'reference' ||
@@ -383,14 +454,15 @@ class HerbSpreadsheetService {
         cleaned == 'citations') {
       return 'source';
     }
-    if (cleaned == 'other_uses_&_notes' ||
+
+    // Other uses & general notes
+    if (cleaned == 'other_uses_notes' ||
         cleaned == 'other_uses_and_notes' ||
-        cleaned == 'other_uses_notes' ||
-        cleaned == 'other_uses_notes_notes' ||
-        cleaned == 'other_uses_&_notes' ||
+        cleaned == 'other_uses' ||
         cleaned == 'notes') {
       return 'other_uses_notes';
     }
+
     return cleaned;
   }
 
@@ -402,18 +474,39 @@ class HerbSpreadsheetService {
     final errors = <String>[];
     final warnings = <String>[];
 
-    final nameEn = row['common_name_en'] ?? row['name_en'] ?? '';
-    final scientificName = row['scientific_name'];
-    final nameSn = row['name_shona'] ?? row['name_sn'];
-    final nameNd = row['name_ndebele'] ?? row['name_nd'];
-    final family = row['family'];
-    final growthHabit = row['growth_habit'];
-    final placesFound = row['places_found'] ?? row['distribution'];
-    final exoticStatus = row['exotic_status'] ?? 'Indigenous';
-    final description = row['description'];
-    final caution = row['caution'];
-    final source = row['source'];
-    final otherUsesNotes = row['other_uses_notes'] ?? row['other_uses'];
+    var nameEn = row['common_name_en'] ?? row['name_en'] ?? '';
+    final rawNameSn = row['name_shona'] ?? row['name_sn'];
+    final nameSn = (rawNameSn != null && rawNameSn.trim().toLowerCase() != 'not found')
+        ? rawNameSn.trim()
+        : null;
+
+    final rawNameNd = row['name_ndebele'] ?? row['name_nd'];
+    final nameNd = (rawNameNd != null &&
+            rawNameNd.trim().toLowerCase() != 'not found' &&
+            rawNameNd.trim().toLowerCase() != 'none')
+        ? rawNameNd.trim()
+        : null;
+
+    final rawScientific = row['scientific_name'];
+    final scientificName = (rawScientific != null &&
+            rawScientific.trim().toLowerCase() != 'not yet identified' &&
+            rawScientific.trim().toLowerCase() != 'unknown')
+        ? rawScientific.trim()
+        : null;
+
+    // Handle Zimbabwean herbs that have no common English name
+    final isGenericEn = nameEn.trim().isEmpty ||
+        nameEn.trim().toLowerCase() == 'no widely used english name' ||
+        nameEn.trim().toLowerCase() == 'not found' ||
+        nameEn.trim().toLowerCase() == 'none';
+
+    if (isGenericEn) {
+      if (nameSn != null && nameSn.isNotEmpty) {
+        nameEn = nameSn;
+      } else if (scientificName != null && scientificName.isNotEmpty) {
+        nameEn = scientificName;
+      }
+    }
 
     // Mandatory validation
     if (nameEn.isEmpty) {
@@ -423,15 +516,85 @@ class HerbSpreadsheetService {
       warnings.add('No scientific name provided');
     }
 
+    final rawFamily = row['family'];
+    final family = (rawFamily != null &&
+            rawFamily.trim().toLowerCase() != 'not yet identified')
+        ? rawFamily.trim()
+        : null;
+
+    final rawGrowthHabit = row['growth_habit'];
+    final growthHabit = (rawGrowthHabit != null &&
+            rawGrowthHabit.trim().toLowerCase() != 'not yet identified')
+        ? rawGrowthHabit.trim()
+        : null;
+
+    final placesFound = row['places_found'] ?? row['distribution'];
+
+    // Map Exotic Status (handles "Yes" / "No" / "Unknown" / "Indigenous")
+    var exoticStatus = row['exotic_status'] ?? 'Indigenous';
+    final lowerExotic = exoticStatus.trim().toLowerCase();
+    if (lowerExotic == 'no' || lowerExotic == 'indigenous') {
+      exoticStatus = 'Indigenous';
+    } else if (lowerExotic == 'yes' ||
+        lowerExotic.contains('exotic') ||
+        lowerExotic.contains('cultivated')) {
+      exoticStatus = 'Exotic / Cultivated';
+    } else if (lowerExotic == 'unknown') {
+      exoticStatus = 'Indigenous';
+    }
+
     // Parts used parsing
     final partsUsedRaw = row['parts_used'];
-    final partsUsed = (partsUsedRaw != null && partsUsedRaw.isNotEmpty)
+    final partsUsed = (partsUsedRaw != null &&
+            partsUsedRaw.isNotEmpty &&
+            partsUsedRaw.trim().toLowerCase() != 'not specified')
         ? partsUsedRaw
             .split(RegExp(r'[,;/|]'))
             .map((s) => s.trim())
-            .where((s) => s.isNotEmpty)
+            .where((s) => s.isNotEmpty && s.toLowerCase() != 'not specified')
             .toList()
         : <String>[];
+
+    // Caution parsing
+    final rawCaution = row['caution'];
+    final caution = (rawCaution != null &&
+            rawCaution.trim().isNotEmpty &&
+            rawCaution.trim().toLowerCase() != 'no specific warning recorded' &&
+            rawCaution.trim().toLowerCase() != 'none')
+        ? rawCaution.trim()
+        : null;
+
+    // Source parsing
+    final rawSource = row['source'];
+    final source =
+        (rawSource != null && rawSource.trim().isNotEmpty) ? rawSource.trim() : null;
+
+    // Other uses & notes parsing
+    final rawOtherUses = row['other_uses_notes'] ?? row['other_uses'];
+    final otherUsesNotes = (rawOtherUses != null &&
+            rawOtherUses.trim().isNotEmpty &&
+            rawOtherUses.trim().toLowerCase() != 'none recorded' &&
+            rawOtherUses.trim().toLowerCase() != 'none')
+        ? rawOtherUses.trim()
+        : null;
+
+    // Description & Traditional Medicinal Uses mapping
+    var description = row['description'];
+    final traditionalUses = row['traditional_uses'];
+    final ailmentCategories = row['ailment_categories'];
+    if (description == null || description.trim().isEmpty) {
+      final buffer = StringBuffer();
+      if (traditionalUses != null && traditionalUses.trim().isNotEmpty) {
+        buffer.write(traditionalUses.trim());
+      }
+      if (ailmentCategories != null && ailmentCategories.trim().isNotEmpty) {
+        if (buffer.isNotEmpty) buffer.write('\n\nAilment Categories: ');
+        buffer.write(ailmentCategories.trim());
+      }
+      if (buffer.isNotEmpty) {
+        description = buffer.toString();
+      }
+    }
 
     final herbId = _uuid.v4();
 

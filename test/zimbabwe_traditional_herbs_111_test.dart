@@ -1,0 +1,191 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:zim_herbs_repo/features/admin/herb_management/data/services/herb_spreadsheet_service.dart';
+
+void main() {
+  group('111 Zimbabwean Traditional Herbs Dataset Import Test', () {
+    const rawTsv = '''#	Shona name	Ndebele name	English / common name	Scientific name	Family	Growth habit	Part used	Traditional use (ailments treated)	Ailment categories	Where commonly found / used	Exotic to Zimbabwe	Caution	Source	Other uses & notes
+1	Mugan'acha	Not found	Live-long	Lannea discolor	Anacardiaceae	Tree	Fibre; roots	Heavy menstrual flow (fibre extract drunk); sore eyes (root extract as eye drops). Also: Fevers and constipation in children (bark and root infusion)	Women's health; Eyes & ears; Fever; Digestive; Child health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Grape-like fruit eaten fresh; poles used for fencing (they take root and regrow)
+2	Mutsambatsi (Tsambatsi)	Not found	Wild grape (Lannea)	Lannea edulis	Anacardiaceae	Shrub	Roots	Bilharzia, diarrhoea, gonorrhoea (extract drunk)	Parasites; Digestive; STIs	Buhera; South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible grape-like fruit
+3	Mumango	umango	Mango	Mangifera indica	Anacardiaceae	Tree	Bark	Diarrhoea (extract drunk). Also: Respiratory problems (tender leaves); dysentery (bark)	Digestive; Respiratory	South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Maroyi 2013; ZimbOriginal	Mango fruit widely eaten
+4	Mubhedha (Mubedu)	Not found	Tropical resin tree	Ozoroa insignis	Anacardiaceae	Shrub	Roots	Diarrhoea, sexually transmitted infections (extract drunk)	Digestive; STIs	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013; ZimbOriginal	Small, kidney-shaped, raisin-like edible fruit, black and wrinkled when ripe
+5	Mufokosiana (Mufokosiyana)	Not found	Wild currant (Searsia)	Rhus longipes	Anacardiaceae	Tree	Roots	Infertility in women; to dilate the birth canal	Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+6	Mupfura	umganu	Marula	Sclerocarya birrea	Anacardiaceae	Tree	Roots	Sore eyes (steam directed into eyes). Local use: Kudzora nhengo kumadzimai (women's reproductive health); seed used for mudododo	Eyes & ears; Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Fleshy plum-like fruit eaten fresh and brewed; also listed as subsp. caffra
+7	Mubikasadza	Not found	Nana-berry	Searsia dentata	Anacardiaceae	Shrub	Leaves	Ulcers, diarrhoea, stomach problems (leaf sap)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Shiny red fruit when ripe
+8	Mufokosiana (Mufokosiyana)	Not found	Common wild currant	Searsia pyroides	Anacardiaceae	Shrub	Roots	Cough (extract drunk)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+9	Mufokosiana (Mufokosiyana)	Not found	Kalahari currant	Searsia tenuinervis	Anacardiaceae	Shrub	Leaves	Heavy menstruation (extract drunk)	Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+10	Muroro	Not found	Wild custard apple	Annona stenophylla	Annonaceae	Shrub	Roots	Boils (paste); chest pains and STIs (extract drunk); mixed with Mufufu roots as a snake repellent	Skin & wounds; Respiratory; STIs; Other	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+11	Muruguru	Not found	Forest num-num	Carissa bispinosa	Apocynaceae	Shrub	Roots	Cough, diarrhoea (extract drunk)	Respiratory; Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit
+12	Muruguru	Not found	Simple-spined num-num	Carissa edulis	Apocynaceae	Shrub	Roots	Diarrhoea, cough (extract drunk)	Digestive; Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit
+13	Chirindamatongo	Not found	Madagascar periwinkle	Catharanthus roseus	Apocynaceae	Herb	Roots	Stomach problems (extract drunk). Also: Specifically diarrhoea, dysentery and indigestion	Digestive	South-central Zimbabwe (Masvingo & Midlands)	Yes	Contains potent alkaloids; toxic in excess	Maroyi 2013; ZimbOriginal	None recorded
+14	Rukato	Not found	Wild asparagus	Asparagus africanus	Asparagaceae	Climber	Roots	Diarrhoea, pneumonia; to dilate the birth canal	Digestive; Respiratory; Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+15	Zvikonje	Not found	Snake plant	Sansevieria aethiopica	Asparagaceae	Herb	Leaves	Earache (leaf sap squeezed into ear)	Eyes & ears	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+16	Masavamhanda (Mushayamhanda)	Not found	Snake plant	Sansevieria hyacinthoides	Asparagaceae	Herb	Leaves; rhizome; roots	Dehydration and colic in infants; sprained ankle (leaf dressing); preparing the birth canal in pregnancy; toothache (warm rhizome extract held in mouth)	Child health; Digestive; Pain; Women's health; Dental	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+17	Gavakava	inhlaba	Aloe	Aloe greatheadii	Asphodelaceae	Herb	Leaves	Constipation, gonorrhoea (extract drunk). Local use: Stomach ache; used as an antibiotic	Digestive; STIs; General infections	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+18	Mupasa	Not found	Coast silver oak	Brachylaena discolor	Asteraceae	Herb	Leaves	Ulcers (leaves chewed, juice swallowed)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+19	Chifumuro	Not found	No widely used English name	Dicoma anomala	Asteraceae	Herb	Bulb	Stomach upset (extract drunk). Also: Wide range of illnesses; bulb worn by children as protection against 'spiritually induced' illness	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Believed to counteract or expose (fumura) spells
+20	Ruhwahwa	Not found	Dwarf marigold	Schkuhria pinnata	Asteraceae	Herb	Whole plant	Stomach pains (extract drunk). Also: Sexually transmitted infections; used to induce abortion	Digestive; STIs; Women's health	South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Public Domain	None recorded
+21	Rurimirwemombe	Not found	Sow thistle	Sonchus oleraceus	Asteraceae	Herb	Leaves	Stomach problems (extract drunk)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Public Domain	None recorded
+22	Mupepe	Not found	Paperbark corkwood	Commiphora marlothii	Burseraceae	Tree	Roots	Sexually transmitted infections (extract drunk)	STIs	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+23	Chizhuzhu	Not found	Common spike-thorn	Gymnosporia buxifolia	Celastraceae	Shrub	Leaves	Abdominal pains (leaves chewed, sap swallowed). Local use: Mazino (toothache)	Pain; Digestive; Dental	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013; your list	Used in rituals for ridding witchcraft
+24	Muhacha (Muchakata)	umkhuna	Mobola plum	Parinari curatellifolia	Chrysobalanaceae	Tree	Roots	Constipation (extract drunk); toothache (teeth washed with root decoction)	Digestive; Dental	Buhera; South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013 + your list	Much-loved chakata/hacha fruit; proverb 'Totenda maruva, tadya chakata'
+25	Mutunduru	Not found	Granite garcinia	Garcinia buchananii	Clusiaceae	Tree	Bark; fruits	Tightening the birth canal (bark extract); aphrodisiac (ripe fruit eaten). Local use: Joint ache	Women's health; Men's health; Pain	Honde Valley; South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013 + your list	Fleshy yellow fruit when ripe
+26	Muchacha	Not found	Wild cucumber	Cucumis anguria	Cucurbitaceae	Herb	Fruits	Snake repellent (fruit pieces left around homestead)	Other	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013	Tender leaves cooked as a vegetable
+27	Rufuri	Not found	No widely used English name	Coleochloa setifera	Cyperaceae	Herb	Roots	Pneumonia (root powder)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013; ZimbOriginal	Grass-like sedge
+28	Musumadombo (Musumhadombo)	Not found	Bluebush	Diospyros lycioides	Ebenaceae	Shrub	Roots	Infertility in women (extract drunk)	Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013; ZimbOriginal	None recorded
+29	Musuma (Musumha)	umdlawuzo	Jackal berry	Diospyros mespiliformis	Ebenaceae	Tree	Roots	Abdominal pains (extract drunk)	Pain; Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013; ZimbOriginal	Edible fruit
+30	Muvhinji	Not found	Blue guarri	Euclea crispa	Ebenaceae	Shrub	Roots	Cough (extract drunk)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit
+31	Mushangura (Mushangura mudiki)	umhlangula	Magic guarri	Euclea divinorum	Ebenaceae	Shrub	Roots	Diarrhoea (extract drunk). Also: Troubled or growling stomach	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013; ZimbOriginal	Edible fruit
+32	Musimbiti	Not found	Lebombo ironwood	Androstachys johnsonii	Euphorbiaceae	Tree	Roots	Aphrodisiac (extract drunk)	Men's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Very hard, durable wood used for fencing and construction
+33	Mutsvoritsvoto	Not found	Blue sweetberry	Bridelia cathartica	Euphorbiaceae	Shrub	Roots	Infertility in men (extract drunk)	Men's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit
+34	Mutuzvidzembwa	Not found	Velvet sweetberry	Bridelia mollis	Euphorbiaceae	Shrub	Roots	Cough (extract drunk)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+35	Mushagahuwe	Not found	White-berry bush	Flueggea virosa	Euphorbiaceae	Shrub	Roots	Pneumonia; contraceptive; snakebite (root powder on bite); wounds (root powder)	Respiratory; Women's health; Snakebite; Skin & wounds	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+36	Musvosve	Not found	River macaranga	Macaranga capensis	Euphorbiaceae	Tree	Roots	Aphrodisiac (extract drunk)	Men's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+37	Mupfuta	umhlakuva	Castor oil plant	Ricinus communis	Euphorbiaceae	Herb	Roots; seed oil	Toothache (teeth washed with root decoction); sore eyes (seed oil). Local use: Mazino (toothache); Inflammation	Dental; Eyes & ears; Pain	Honde Valley; South-central Zimbabwe (Masvingo & Midlands)	Yes	Seeds are highly poisonous (ricin)	Maroyi 2013 + your list	None recorded
+38	Munhiti	umthombothi	Tamboti	Spirostachys africana	Euphorbiaceae	Tree	Roots	Venereal infections (root powder in porridge)	STIs	South-central Zimbabwe (Masvingo & Midlands)	No	Latex is toxic and irritant	Maroyi 2013	None recorded
+39	Muvunga	isinga	Sweet thorn	Acacia karroo (Vachellia karroo)	Fabaceae	Tree	Roots	Convulsions; aphrodisiac; gonorrhoea and syphilis	Nervous system; Men's health; STIs	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+40	Muriranyenze	Not found	Purple-leaved albizia	Albizia antunesiana	Fabaceae	Tree	Bark; leaves; roots	Constipation (bark); purgative (leaves); aphrodisiac, diarrhoea, gonorrhoea, infertility in women (roots)	Digestive; Men's health; STIs; Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+41	Mupfuti	Not found	Prince-of-Wales feathers	Brachystegia boehmii	Fabaceae	Tree	Bark	Sexually transmitted infections (extract drunk)	STIs	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Common firewood tree
+42	Muremberembe	Not found	Long-tail cassia	Cassia abbreviata	Fabaceae	Shrub	Roots	Aphrodisiac, constipation, diarrhoea, gonorrhoea; also used to induce abortion	Men's health; Digestive; STIs; Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	Abortifacient: unsafe in pregnancy	Maroyi 2013	None recorded
+43	Mugwiti	umphingo	African blackwood	Dalbergia melanoxylon	Fabaceae	Shrub	Leaves	Asthma (dried leaves smoked)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+44	Ntorani (Ndorani)	Not found	Elephant root	Elephantorrhiza goetzei	Fabaceae	Shrub	Roots	Abdominal pains, diarrhoea, gonorrhoea; bilharzia (mixed with Musekesa roots). Also: Indigestion, loss of appetite, aphrodisiac; taken to warm the body (kudziyisa muviri). Root powder taken in porridge or boiled as a tonic	Pain; Digestive; STIs; Parasites; Men's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+45	Mutiti	umsinsi	Coral tree	Erythrina abyssinica	Fabaceae	Tree	Bark; roots	Backache (bark extract); wounds (washed with root extract). Also: Root extract used to rinse wounds in the mouth	Pain; Skin & wounds	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Seeds used to make necklaces
+46	Ruvavashuro	Not found	No widely used English name	Indigofera setiflora	Fabaceae	Herb	Roots	Diarrhoea (extract drunk)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+47	Muzeze	umsehle	African wattle	Peltophorum africanum	Fabaceae	Shrub	Bark; leaves; roots	Syphilis and other STIs; diarrhoea; sore eyes (eye drops); toothache (mouthwash). Local use: Mazino (toothache)	STIs; Digestive; Eyes & ears; Dental	Honde Valley; South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013 + your list	None recorded
+48	Musekesa (Mutukutu)	ihabahaba	Camel's foot	Piliostigma thonningii	Fabaceae	Tree	Bark; leaves; roots	Cough; heavy menstruation (leaves); bilharzia (mixed with Ntorani roots). Local use: Blood pressure	Respiratory; Women's health; Parasites; Heart & blood pressure	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013; ZimbOriginal; your list	None recorded
+49	Mubvamaropa	umvangazi	Mukwa / Kiaat	Pterocarpus angolensis	Fabaceae	Tree	Bark; roots; sap	Earache (bark extract in ear); heavy menstruation; infertility in women (roots); sore eyes (sap)	Eyes & ears; Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Prized mukwa hardwood; threatened by over-harvesting
+50	Munhunguru	umqokolo	Governor's plum	Flacourtia indica	Flacourtiaceae	Shrub	Leaves	Diarrhoea (leaves chewed)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Nhunguru (batoka plum) fruit, purple when ripe
+51	Nhindiri	Not found	Star flower	Hypoxis obtusa	Hypoxidaceae	Herb	Bulb	Abdominal pains (bulb chewed, sap swallowed)	Pain; Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+52	Mubvumira	umvumila	White seringa	Kirkia acuminata	Kirkiaceae	Tree	Bark; fruits	Diarrhoea, cholera, dysentery, constipation (bark); snakebite and wounds (fruit juice applied)	Digestive; Snakebite; Skin & wounds	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Soft wood; roots store water
+53	Hwahwa hwe shiri (Hwahwa hweshiri)	Not found	Orange bird berry	Hoslundia opposita	Lamiaceae	Herb	Leaves	Cataract (extract dropped into eyes)	Eyes & ears	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013; ZimbOriginal	None recorded
+54	Mutodzvo	Not found	Wild dagga	Leonotis leonurus	Lamiaceae	Herb	Leaves	Ulcers (leaves chewed, sap swallowed)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+55	Mutsvubvu	Not found	Chocolate berry	Vitex payos	Lamiaceae	Tree	Leaves	Cough (leaves burnt, smoke inhaled)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+56	Muzumwi	umhlali	Monkey orange	Strychnos cocculoides	Loganiaceae	Tree	Roots	Abdominal pains, aphrodisiac, gonorrhoea, infertility in men, sore throat	Pain; Men's health; STIs; Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible monkey orange fruit
+57	Mukwakwa	Not found	Black monkey orange	Strychnos madagascariensis	Loganiaceae	Tree	Roots	Sore eyes (eye drops)	Eyes & ears	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+58	Mutamba	umhlali	Spiny monkey orange	Strychnos spinosa	Loganiaceae	Tree	Roots; fruits	Abdominal pains, gonorrhoea (roots); gonorrhoea and genital warts (fruit)	Pain; STIs	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible monkey orange fruit
+59	Mutohwe	uxakuxaku	Snot apple	Azanza garckeana	Malvaceae	Tree	Roots	Earache (extract dropped into ear). Local use: Jeko (period pain)	Eyes & ears; Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Mutohwe fruit chewed as a snack
+60	Mudyavarungu	Not found	No widely used English name	Ekebergia benguelensis	Meliaceae	Tree	Bark; roots	Infertility in men (bark); painful periods (roots)	Men's health; Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+61	Mubanana	Not found	Mountain mahogany	Entandrophragma caudatum	Meliaceae	Tree	Fruits	Genital warts (burnt peel mixed with petroleum jelly)	STIs; Skin & wounds	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+62	Mushavhi	Not found	Red-leaved rock fig	Ficus ingens	Moraceae	Tree	Roots	Cough (extract drunk)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+63	Muonde (Muwonde)	umkhiwa	Cape fig	Ficus sur	Moraceae	Tree	Roots	Diarrhoea, syphilis (extract drunk). Local use: Mudumbu (stomach ache)	Digestive; STIs	Honde Valley; South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013 + your list	Edible figs
+64	Muonde	umkhiwa	Sycamore fig	Ficus sycomorus	Moraceae	Tree	Roots	Cough (extract drunk)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible figs
+65	Moringa	moringa	Moringa	Moringa oleifera	Moringaceae	Shrub	Leaves; roots	Diarrhoea (leaves); toothache (root decoction)	Digestive; Dental	South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Public Domain	Leaves eaten as a nutritious vegetable
+66	Mufandichimuka (Rufandichimuka)	Not found	Resurrection bush	Myrothamnus flabellifolius	Myrothamnaceae	Shrub	Leaves; twigs	Colds (boiled and drunk as tea)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Dried leaves revive when wet ("resurrection" plant); drunk as a tea
+67	Mugamutiri	ugamthilini	River red gum (eucalyptus)	Eucalyptus camaldulensis	Myrtaceae	Tree	Leaves	Cough, flu, fever (with lemon and guava leaves)	Respiratory; Fever	South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Public Domain	None recorded
+68	Mugwavha	igwava	Guava	Psidium guajava	Myrtaceae	Shrub	Leaves	Cough, flu, fever (with lemon and eucalyptus); diarrhoea (infusion). Local use: Flu	Respiratory; Fever; Digestive	Honde Valley; South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Maroyi 2013 + your list	Guava fruit widely eaten
+69	Muhute (Mukute)	umdoni	Water berry	Syzygium cordatum	Myrtaceae	Tree	Bark	Tuberculosis (extract drunk)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Maroyi 2013 + your list	Edible purple berries
+70	Munimu	Not found	Peeling plane	Ochna pulchra	Ochnaceae	Shrub	Leaves	Stomach problems (leaf sap)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+71	Mutengeni	umthunduluka	Blue sourplum	Ximenia americana	Olacaceae	Shrub	Leaves	Backache (extract drunk)	Pain	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible sour fruit
+72	Munhengeni	umthunduluka	Sourplum	Ximenia caffra	Olacaceae	Shrub	Leaves; roots	Backache (leaves); aphrodisiac, diarrhoea, venereal diseases, wounds (roots)	Pain; Men's health; Digestive; STIs; Skin & wounds	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible sour fruit
+73	Ruredzo	Not found	Devil's thorn	Dicerocaryum zanguebarium	Pedaliaceae	Herb	Whole plant	To dilate the birth canal (plant foam)	Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+74	Mufufu	Not found	Violet tree	Securidaca longepedunculata	Polygalaceae	Shrub	Roots	Epilepsy; mixed with Muroro roots as snake repellent	Nervous system; Other	South-central Zimbabwe (Masvingo & Midlands)	No	Roots are toxic; fatal poisonings recorded	Public Domain	None recorded
+75	Mudziwebwe	Not found	Fern	Pellaea sp.	Pteridaceae	Fern	Leaves; roots	Chest pains (burnt, smoke inhaled)	Respiratory	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+76	Nyii	umnyi	Bird plum	Berchemia discolor	Rhamnaceae	Tree	Roots	Abdominal pains (extract drunk)	Pain; Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+77	Muchecheni	umphafa	Buffalo thorn	Ziziphus mucronata	Rhamnaceae	Tree	Fruits; leaves; roots	Boils (powder); abdominal pains, infertility in women (roots); wounds (root powder). Local use: Nhova (sunken fontanelle in infants)	Skin & wounds; Pain; Women's health; Child health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit
+78	Mupichisi	umpetshisi	Peach	Prunus persica	Rosaceae	Tree	Leaves	Diarrhoea (extract drunk)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Public Domain	Peach fruit eaten
+79	Mukomberwa	Not found	Crystal bark	Crossopteryx febrifuga	Rubiaceae	Shrub	Bark	Diarrhoea and dysentery (added to porridge)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+80	Mudzvirungombe	umviyo	Wild medlar	Vangueria infausta	Rubiaceae	Tree	Roots	Diarrhoea (extract drunk)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit (matufu)
+81	Mulemoni	ulamula	Lemon	Citrus limon	Rutaceae	Tree	Fruit	Cough, flu, fever (with eucalyptus and guava leaves)	Respiratory; Fever	South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Public Domain	Lemon fruit used in food and drinks
+82	Fodya	ugwayi	Tobacco	Nicotiana tabacum	Solanaceae	Herb	Leaves	Wounds (snuff applied)	Skin & wounds	South-central Zimbabwe (Masvingo & Midlands)	Yes	Toxic if ingested	Public Domain	None recorded
+83	Nhundurwa	intuma	Bitter apple	Solanum incanum	Solanaceae	Shrub	Fruits	Scabies (child bathed in fruit macerate). Local use: Rash	Skin & wounds; Child health	South-central Zimbabwe (Masvingo & Midlands)	Yes	Fruits are poisonous if eaten	Public Domain	None recorded
+84	Derere	idelele	Wild jute (okra-like leaves)	Corchorus tridens	Tiliaceae	Herb	Roots	Backache (extract drunk)	Pain	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Leaves cooked as a slimy vegetable (derere)
+85	Mutewa	Not found	White raisin	Grewia bicolor	Tiliaceae	Shrub	Roots	Diarrhoea, gonorrhoea (extract drunk)	Digestive; STIs	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit
+86	Mubhubhunu	Not found	Donkey berry	Grewia flavescens	Tiliaceae	Shrub	Roots	Heavy menstruation (extract drunk)	Women's health	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit
+87	Mutewa	Not found	Velvet raisin	Grewia monticola	Tiliaceae	Shrub	Roots	Diarrhoea (extract drunk)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Edible fruit
+88	Munanzwa	Not found	Soap nettle	Pouzolzia mixta	Urticaceae	Shrub	Roots	To dilate the birth canal; STIs; wounds (root powder)	Women's health; STIs; Skin & wounds	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+89	Mbarambati	Not found	Lantana	Lantana camara	Verbenaceae	Shrub	Leaves	Ringworm (leaf sap applied)	Skin & wounds	South-central Zimbabwe (Masvingo & Midlands)	Yes	Leaves and unripe berries are toxic	Public Domain	None recorded
+90	Zumbani (Zimbani, Musumba)	umsuzwane	Fever tea	Lippia javanica	Verbenaceae	Shrub	Leaves; twigs	Cough and colds (boiled and drunk as tea). Local use: Chikosoro (cough), dzihwa (cold/flu)	Respiratory	Honde Valley; South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	Leaves drunk as a herbal tea; aromatic insect repellent
+91	Muzambiringa	Not found	Wild grape	Ampelocissus africana	Vitaceae	Climber	Roots	Diarrhoea (extract drunk)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+92	Muzambiringa	Not found	Wild grape	Ampelocissus obtusata	Vitaceae	Climber	Roots	Diarrhoea (extract drunk)	Digestive	South-central Zimbabwe (Masvingo & Midlands)	No	No specific warning recorded	Public Domain	None recorded
+93	Tsangamidzi	Not found	Ginger	Zingiber officinale	Zingiberaceae	Herb	Rhizome	Stomach pains (chewed and swallowed). Local use: Mudumbu (stomach ache)	Digestive	Honde Valley; South-central Zimbabwe (Masvingo & Midlands)	Yes	No specific warning recorded	Public Domain	Ginger used in food and drinks
+94	Dhorofiya	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Mudumbu (stomach ache)	Digestive	Honde Valley	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+95	Murumanyama	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Mudumbu (stomach ache); boosts the immune system / kusimbisa musana (strengthens the body and back); sexually transmitted infections	Digestive; Tonic & immunity; STIs; Pain	Honde Valley	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+96	Munhimbiti	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Mudumbu (stomach ache)	Digestive	Honde Valley	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+97	Mukamba	umkhamba	Pod mahogany	Afzelia quanzensis	Fabaceae	Tree	Not specified	Mudumbu (stomach ache)	Digestive	Honde Valley	No	No specific warning recorded	Public Domain	Valuable hardwood; seeds used for ornaments
+98	Dindindi / Hohwa hweMopane	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Heart problems	Heart & blood pressure	Honde Valley	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+99	Mutarara	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Nzeve (ear problems)	Eyes & ears	Honde Valley	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+100	Muzingizi	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Safe delivery in childbirth	Women's health	Honde Valley	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+101	Ndove yeNzou	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Delivery of mothers (childbirth)	Women's health	Hwange; Gokwe	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+102	Weti yeGudo	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Sex enhancement	Men's health	Found in all provinces	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+103	Mumvee	umvebe	Sausage tree	Kigelia africana	Bignoniaceae	Tree	Not specified	Boosts the immune system; blood pressure; sex enhancement	Tonic & immunity; Heart & blood pressure; Men's health	Widespread; mainly along rivers and in lower-lying, hotter areas	No	Fresh fruit is poisonous and strongly purgative	Public Domain	Large sausage-shaped fruit; wood used for dugout canoes
+104	Muuyu	umkhomo	Baobab	Adansonia digitata	Malvaceae	Tree	Not specified	Blood pressure; heart disease	Heart & blood pressure	Hot, low-lying areas: Zambezi Valley, Hwange, Lowveld (Mwenezi, Chiredzi, Beitbridge)	No	No specific warning recorded	Public Domain	Fruit pulp (mauyu) eaten and made into drinks; bark fibre used for rope
+105	Mupangangara (Mupangara)	Not found	Sickle bush	Dichrostachys cinerea	Fabaceae	Shrub	Not specified	Moyo (heart disease)	Heart & blood pressure	Widespread throughout Zimbabwe, especially on disturbed and overgrazed land	No	No specific warning recorded	Public Domain	Firewood and fencing; pods eaten by livestock
+106	Mugaranjiva	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Pahuro (throat ailments)	Respiratory	Not recorded	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+107	Mutondo	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Energy booster	Tonic & immunity	Not recorded	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+108	Mungurahwe	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Appetite booster	Digestive; Tonic & immunity	Not recorded	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+109	Mutsine	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Blood pressure	Heart & blood pressure	Not recorded	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+110	Musosa Wafa	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Mazino (toothache)	Dental	Not recorded	Unknown	Unknown: plant not yet identified	Public Domain	None recorded
+111	Mupondanyoka	Not found	No widely used English name	Not yet identified	Not yet identified	Not yet identified	Not specified	Sex enhancement; blood pressure	Men's health; Heart & blood pressure	Not recorded	Unknown	Unknown: plant not yet identified	Public Domain	None recorded''';
+
+    test('parseSpreadsheet parses all 111 rows with 0 errors', () {
+      // Convert raw TSV lines to CSV lines with proper CSV quoting
+      final lines = rawTsv.trim().split('\n');
+      final csvBuffer = StringBuffer();
+      for (final line in lines) {
+        final cells = line.split('\t');
+        final quotedCells = cells.map((cell) {
+          final escaped = cell.replaceAll('"', '""');
+          return '"$escaped"';
+        }).join(',');
+        csvBuffer.writeln(quotedCells);
+      }
+
+      final bytes = Uint8List.fromList(utf8.encode(csvBuffer.toString()));
+      final parsedRows = HerbSpreadsheetService.parseSpreadsheet(
+        bytes: bytes,
+        fileName: 'zimbabwe_traditional_herbs_111.csv',
+        currentUserId: 'test-admin-uuid',
+      );
+
+      expect(parsedRows.length, 111);
+
+      // Verify that every single row is valid (0 errors)
+      final invalidRows = parsedRows.where((r) => !r.isValid).toList();
+      expect(invalidRows, isEmpty,
+          reason: 'All rows should be valid. Errors: ${invalidRows.map((r) => "Row ${r.rowNumber}: ${r.errors}").join("; ")}');
+
+      // Spot check Row 1 (Lannea discolor)
+      final row1 = parsedRows[0];
+      expect(row1.herb.nameEn, 'Live-long');
+      expect(row1.herb.nameSn, "Mugan'acha");
+      expect(row1.herb.scientificName, 'Lannea discolor');
+      expect(row1.herb.family, 'Anacardiaceae');
+      expect(row1.herb.partsUsed, contains('roots'));
+      expect(row1.herb.placesFound, contains('Zimbabwe'));
+      expect(row1.herb.exoticStatus, 'Indigenous');
+      expect(row1.herb.caution, isNull); // "No specific warning recorded" mapped to null
+      expect(row1.herb.source, 'Public Domain');
+      expect(row1.herb.otherUsesNotes, contains('Grape-like fruit'));
+      expect(row1.herb.description, contains('Heavy menstrual flow'));
+      expect(row1.herb.description, contains("Women's health"));
+
+      // Spot check Row 13 (Madagascar periwinkle - toxic warning & exotic)
+      final row13 = parsedRows[12];
+      expect(row13.herb.nameEn, 'Madagascar periwinkle');
+      expect(row13.herb.exoticStatus, 'Exotic / Cultivated');
+      expect(row13.herb.caution, contains('toxic in excess'));
+
+      // Spot check Row 19 (Chifumuro - no English name, fallback to Shona name)
+      final row19 = parsedRows[18];
+      expect(row19.herb.nameEn, 'Chifumuro');
+      expect(row19.herb.nameSn, 'Chifumuro');
+      expect(row19.herb.scientificName, 'Dicoma anomala');
+
+      // Spot check Row 37 (Castor oil plant - Ricinus communis)
+      final row37 = parsedRows[36];
+      expect(row37.herb.nameEn, 'Castor oil plant');
+      expect(row37.herb.nameSn, 'Mupfuta');
+      expect(row37.herb.nameNd, 'umhlakuva');
+      expect(row37.herb.caution, contains('ricin'));
+
+      // Spot check Row 104 (Baobab)
+      final row104 = parsedRows[103];
+      expect(row104.herb.nameEn, 'Baobab');
+      expect(row104.herb.nameSn, 'Muuyu');
+      expect(row104.herb.nameNd, 'umkhomo');
+    });
+  });
+}
+
