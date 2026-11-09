@@ -51,139 +51,178 @@ class _HerbImportPageState extends State<HerbImportPage> {
 
   static const List<_ImportRuleSpec> _importRules = [
     _ImportRuleSpec(
-      number: 'Rule 1',
-      title: 'Supported File Formats (.xlsx & .csv)',
+      number: 'Guideline 1',
+      title: 'Use Microsoft Excel (.xlsx) or CSV (.csv)',
       description:
-          'Upload a Microsoft Excel workbook (.xlsx) or a UTF-8 Comma-Separated Values (.csv) file. The importer reads the first worksheet automatically.',
-      icon: Icons.insert_drive_file_outlined,
+          'Save your file as a standard Microsoft Excel workbook (.xlsx) or UTF-8 CSV (.csv). The importer automatically detects the columns in the first worksheet.',
+      tip: 'Excel (.xlsx) is recommended for best character support with accents and Shona apostrophes.',
+      icon: Icons.description_outlined,
       isRequired: true,
     ),
     _ImportRuleSpec(
-      number: 'Rule 2',
-      title: 'Keep Row 1 as Column Headers',
+      number: 'Guideline 2',
+      title: 'Keep Column Titles in Row 1',
       description:
-          'Row 1 must contain the column header names (e.g. common_name_en, scientific_name). Plant records must start on Row 2.',
-      icon: Icons.table_rows_outlined,
+          'The first row of your spreadsheet must contain the column header names (such as "Shona name", "English / common name", "Scientific name"). Your plant records start on Row 2.',
+      tip: 'Do not add banner titles, logos, or empty rows above Row 1.',
+      icon: Icons.table_chart_outlined,
       isRequired: true,
     ),
     _ImportRuleSpec(
-      number: 'Rule 3',
-      title: 'Common English Name is Mandatory',
+      number: 'Guideline 3',
+      title: 'Provide at Least One Plant Name',
       description:
-          'Every row must have common_name_en filled in. Any row missing a Common Name will fail validation and be skipped safely.',
-      icon: Icons.verified_outlined,
+          'Each row needs a name so the herb can be identified. You can enter an English name, a Shona name, or a Scientific name. If there is no English name, the Shona name is automatically used as the main title.',
+      tip: 'Flexible: Zimbabwean plants without an English name (e.g. Chifumuro, Rufuri) are fully supported.',
+      icon: Icons.local_florist_outlined,
       isRequired: true,
     ),
     _ImportRuleSpec(
-      number: 'Rule 4',
-      title: 'Comma-Separated Plant Parts',
+      number: 'Guideline 4',
+      title: 'Fill What You Know — Blanks Are Allowed',
       description:
-          'In the parts_used column, separate multiple parts with commas, slashes, or semicolons (for example: Leaves, Roots, Bark).',
-      icon: Icons.local_offer_outlined,
-      isRequired: false,
-    ),
-    _ImportRuleSpec(
-      number: 'Rule 5',
-      title: 'Origin / Exotic Status Values',
-      description:
-          'Use "Indigenous", "Introduced / Naturalized", or "Exotic / Cultivated" in exotic_status. Defaults to Indigenous if left blank.',
-      icon: Icons.public_rounded,
-      isRequired: false,
-    ),
-    _ImportRuleSpec(
-      number: 'Rule 6',
-      title: 'Traditional Non-Medicinal Uses',
-      description:
-          'Any text entered in food_nutrition, construction_fencing, firewood, cultural_spiritual, ritual, crafts_tools, or other_uses is automatically linked to the herb.',
-      icon: Icons.auto_awesome_mosaic_outlined,
+          'You do not need complete data for every column. Leave unknown fields blank (such as family, caution, or ailments). You or other contributors can enrich them later.',
+      tip: 'Separate multiple values (e.g. Leaves, Roots, Bark) with commas or semicolons.',
+      icon: Icons.playlist_add_check_rounded,
       isRequired: false,
     ),
   ];
 
-  static const List<_ColumnRuleSpec> _columnSpecs = [
-    _ColumnRuleSpec(
-      keyName: 'Shona name',
-      label: 'Shona Name',
-      required: false,
-      example: 'Zumbani, Mugan\'acha',
+  static const List<_ColumnCategory> _columnCategories = [
+    _ColumnCategory(
+      title: 'Plant & Botanical Identity',
+      subtitle: 'Local names, scientific classification, and plant growth habit',
+      icon: Icons.local_florist_rounded,
+      color: Color(0xFF2E7D32),
+      columns: [
+        _ColumnRuleSpec(
+          keyName: 'Shona name',
+          label: 'Shona Name',
+          required: false,
+          description:
+              'Traditional Shona plant name. Used as main title if English name is not provided.',
+          example: 'Mugan\'acha, Mupfura, Zumbani',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Ndebele name',
+          label: 'Ndebele Name',
+          required: false,
+          description:
+              'Traditional Ndebele plant name, or "Not found" if unrecorded.',
+          example: 'umganu, Insuzwane, umkhuna',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'English / common name',
+          label: 'Common English Name',
+          required: true,
+          description:
+              'Standard English or common name. If not known, enter the Shona name.',
+          example: 'Live-long, Marula, Fever tea, Wild grape',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Scientific name',
+          label: 'Scientific / Botanical Name',
+          required: false,
+          description:
+              'Binomial Latin botanical classification (Genus and species).',
+          example: 'Lannea discolor, Sclerocarya birrea',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Family',
+          label: 'Botanical Family',
+          required: false,
+          description: 'Plant taxonomic family.',
+          example: 'Anacardiaceae, Verbenaceae, Fabaceae',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Growth habit',
+          label: 'Growth Habit',
+          required: false,
+          description:
+              'Biological plant form: Tree, Shrub, Herb, Climber, or Succulent.',
+          example: 'Tree, Shrub, Herb, Climber',
+        ),
+      ],
     ),
-    _ColumnRuleSpec(
-      keyName: 'Ndebele name',
-      label: 'Ndebele Name',
-      required: false,
-      example: 'Insuzwane, umganu',
+    _ColumnCategory(
+      title: 'Traditional Uses & Health',
+      subtitle:
+          'Harvested plant parts, treated ailments, and practical community uses',
+      icon: Icons.healing_rounded,
+      color: Color(0xFFB45309),
+      columns: [
+        _ColumnRuleSpec(
+          keyName: 'Part used',
+          label: 'Plant Part Used',
+          required: false,
+          description:
+              'Harvested parts (separate multiples with commas, semicolons, or slashes).',
+          example: 'Leaves, Roots, Bark, Fibre, Seeds',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Traditional use (ailments treated)',
+          label: 'Traditional Medicinal Uses',
+          required: false,
+          description:
+              'Ailments treated and method of preparation / consumption.',
+          example: 'Heavy menstrual flow; sore eyes (extract); fevers & cough',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Ailment categories',
+          label: 'Ailment Categories',
+          required: false,
+          description: 'High-level medical categories for search and filtering.',
+          example: 'Women\'s health; Eyes & ears; Digestive; Respiratory',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Other uses & notes',
+          label: 'Other Uses & Notes',
+          required: false,
+          description:
+              'Practical, nutritional, cultural, or domestic non-medicinal uses.',
+          example: 'Edible grape-like fruit; poles used for fencing; firewood',
+        ),
+      ],
     ),
-    _ColumnRuleSpec(
-      keyName: 'English / common name',
-      label: 'Common English Name',
-      required: true,
-      example: 'Fever tea, Live-long (or Shona name if no English)',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Scientific name',
-      label: 'Scientific / Botanical Name',
-      required: false,
-      example: 'Lippia javanica, Lannea discolor',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Family',
-      label: 'Botanical Family',
-      required: false,
-      example: 'Verbenaceae, Anacardiaceae',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Growth habit',
-      label: 'Growth Habit',
-      required: false,
-      example: 'Tree, Shrub, Herb, Climber',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Part used',
-      label: 'Plant Part Used',
-      required: false,
-      example: 'Leaves; twigs; roots; bark',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Traditional use (ailments treated)',
-      label: 'Traditional Medicinal Uses',
-      required: false,
-      example: 'Cough, colds, flu (boiled as tea); stomach ache',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Ailment categories',
-      label: 'Ailment Categories',
-      required: false,
-      example: 'Respiratory; Fever; Digestive; Pain',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Where commonly found / used',
-      label: 'Where Found / Distribution',
-      required: false,
-      example: 'Masvingo & Midlands, Honde Valley, Zambezi Valley',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Exotic to Zimbabwe',
-      label: 'Exotic to Zimbabwe',
-      required: false,
-      example: 'No (Indigenous) or Yes (Exotic)',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Caution',
-      label: 'Caution / Warnings',
-      required: false,
-      example: 'Avoid high doses in pregnancy, or No specific warning recorded',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Source',
-      label: 'Source / References',
-      required: false,
-      example: 'Public Domain, Maroyi 2013, ZimbOriginal',
-    ),
-    _ColumnRuleSpec(
-      keyName: 'Other uses & notes',
-      label: 'Other Uses & Notes',
-      required: false,
-      example: 'Leaves drunk as tea; insect repellent; fencing poles',
+    _ColumnCategory(
+      title: 'Location, Safety & Citations',
+      subtitle: 'Where found in Zimbabwe, origin, precautions, and references',
+      icon: Icons.shield_outlined,
+      color: Color(0xFF1D4ED8),
+      columns: [
+        _ColumnRuleSpec(
+          keyName: 'Where commonly found / used',
+          label: 'Where Found / Distribution',
+          required: false,
+          description:
+              'Districts or provinces in Zimbabwe where commonly found or practiced.',
+          example: 'South-central Zimbabwe (Masvingo & Midlands), Buhera',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Exotic to Zimbabwe',
+          label: 'Exotic to Zimbabwe',
+          required: false,
+          description:
+              '"No" for native/indigenous Zimbabwean plants; "Yes" for introduced/exotic species.',
+          example: 'No (Indigenous) or Yes (Exotic)',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Caution',
+          label: 'Caution / Warnings',
+          required: false,
+          description:
+              'Toxicity, contraindications, pregnancy warnings, or "No specific warning recorded".',
+          example: 'Avoid high doses in pregnancy; Contains potent alkaloids',
+        ),
+        _ColumnRuleSpec(
+          keyName: 'Source',
+          label: 'Source / References',
+          required: false,
+          description:
+              'Ethnobotanical literature, research paper, community elder, or public domain.',
+          example: 'Public Domain, Maroyi 2013, ZimbOriginal',
+        ),
+      ],
     ),
   ];
 
@@ -615,164 +654,344 @@ class _HerbImportPageState extends State<HerbImportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _StepBanner(
+        const _StepBanner(
           stepBadge: 'STEP 1 OF 4',
-          title: 'Spreadsheet Import Rules',
+          title: 'Spreadsheet Import Guidelines',
           subtitle:
-              'Please review these 6 rules before uploading your Excel or CSV file so all records validate cleanly.',
-          icon: Icons.rule_rounded,
+              'Follow these 4 simple guidelines to ensure your Zimbabwean botanical records import smoothly and cleanly.',
+          icon: Icons.menu_book_rounded,
         ),
         const SizedBox(height: 16),
-        if (isMobile)
-          Material(
+
+        // Quick 3-Step Process Overview
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
             color: Colors.white,
-            clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _importRules.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              itemBuilder: (context, index) {
-                final rule = _importRules[index];
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  leading: CircleAvatar(
-                    backgroundColor: rule.isRequired
-                        ? const Color(0xFFFEF2F2)
-                        : const Color(0xFFEAF5EB),
-                    child: Icon(
-                      rule.icon,
-                      size: 20,
-                      color: rule.isRequired
-                          ? const Color(0xFFDC2626)
-                          : _primaryGreen,
-                    ),
-                  ),
-                  title: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          rule.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Color(0xFF1E293B),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _RuleBadge(isRequired: rule.isRequired),
-                    ],
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      rule.description,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: Color(0xFF475569),
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 360,
-              mainAxisExtent: 170,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-            ),
-            itemCount: _importRules.length,
-            itemBuilder: (context, index) {
-              final rule = _importRules[index];
-              return Card(
-                elevation: 0,
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: rule.isRequired
-                                  ? const Color(0xFFFEF2F2)
-                                  : const Color(0xFFEAF5EB),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              rule.icon,
-                              size: 20,
-                              color: rule.isRequired
-                                  ? const Color(0xFFDC2626)
-                                  : _primaryGreen,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            rule.number,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          const Spacer(),
-                          _RuleBadge(isRequired: rule.isRequired),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        rule.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14.5,
-                          color: Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Expanded(
-                        child: Text(
-                          rule.description,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            color: Color(0xFF475569),
-                            height: 1.35,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.timeline_rounded,
+                    color: _primaryGreen,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'How Import Works in 3 Quick Steps',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              isMobile
+                  ? Column(
+                      children: [
+                        _buildWorkflowMiniStep(
+                          stepNum: '1',
+                          title: 'Download Template',
+                          description:
+                              'Get the pre-formatted Excel file in Step 2 with sample Zimbabwean plants.',
+                          isLast: false,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildWorkflowMiniStep(
+                          stepNum: '2',
+                          title: 'Add Your Plants',
+                          description:
+                              'Paste or type your herb data. Row 1 has headers; empty cells are OK.',
+                          isLast: false,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildWorkflowMiniStep(
+                          stepNum: '3',
+                          title: 'Upload & Review',
+                          description:
+                              'Upload in Step 3, preview each plant in Step 4, and import with one click.',
+                          isLast: true,
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: _buildWorkflowMiniStep(
+                            stepNum: '1',
+                            title: 'Download Template',
+                            description:
+                                'Get the pre-formatted Excel file in Step 2 with sample Zimbabwean plants.',
+                            isLast: false,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Color(0xFF94A3B8),
+                            size: 20,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildWorkflowMiniStep(
+                            stepNum: '2',
+                            title: 'Add Your Plants',
+                            description:
+                                'Paste or type your herb data. Row 1 has headers; empty cells are OK.',
+                            isLast: false,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Color(0xFF94A3B8),
+                            size: 20,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildWorkflowMiniStep(
+                            stepNum: '3',
+                            title: 'Upload & Review',
+                            description:
+                                'Upload in Step 3, preview each plant in Step 4, and import with one click.',
+                            isLast: true,
+                          ),
+                        ),
+                      ],
+                    ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'The 4 Key Import Guidelines',
+            style: TextStyle(
+              fontSize: 15.5,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Guideline Cards
+        ..._importRules.map((rule) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: rule.isRequired
+                      ? const Color(0xFFCBD5E1)
+                      : const Color(0xFFE2E8F0),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: rule.isRequired
+                              ? const Color(0xFFEAF5EB)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          rule.icon,
+                          size: 20,
+                          color: rule.isRequired
+                              ? _primaryGreen
+                              : const Color(0xFF475569),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        rule.number,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const Spacer(),
+                      _RuleBadge(
+                        isRequired: rule.isRequired,
+                        label: rule.isRequired ? 'Required' : 'Flexible',
+                        color: rule.isRequired
+                            ? _primaryGreen
+                            : const Color(0xFF64748B),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    rule.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    rule.description,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      height: 1.45,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          size: 16,
+                          color: Color(0xFFD97706),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            rule.tip,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: Color(0xFF475569),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF5EB),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFC8E6C9)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_outline_rounded,
+                color: _primaryGreen,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Ready to start? Download our ready-to-fill spreadsheet template in the next step, or proceed to Step 3 if your file is already prepared.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1B5E20),
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: () => setState(() => _currentStep = 1),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                label: const Text('View Template'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _primaryGreen,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWorkflowMiniStep({
+    required String stepNum,
+    required String title,
+    required String description,
+    required bool isLast,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: _primaryGreen,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            stepNum,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF64748B),
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -785,239 +1004,372 @@ class _HerbImportPageState extends State<HerbImportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _StepBanner(
+        const _StepBanner(
           stepBadge: 'STEP 2 OF 4',
-          title: 'Download Standard Template',
+          title: 'Download Template & Column Guide',
           subtitle:
-              'Download the pre-formatted Excel (.xlsx) or CSV template. It includes all 17 supported column headers and a sample row.',
+              'Download the pre-formatted Excel or CSV template, or review how to organize the 14 supported columns.',
           icon: Icons.file_download_outlined,
         ),
         const SizedBox(height: 16),
 
-        // Download buttons card
+        // Download Action Card
         Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: isMobile
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () => _downloadTemplate(asExcel: true),
-                        icon: const Icon(Icons.download_rounded, size: 17),
-                        label: const Text('Excel'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: _primaryGreen,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF5EB),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _downloadTemplate(asExcel: false),
-                        icon: const Icon(Icons.download_rounded, size: 17),
-                        label: const Text('CSV'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _primaryGreen,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
+                    child: const Icon(
+                      Icons.table_view_rounded,
+                      color: _primaryGreen,
+                      size: 26,
                     ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Official Zim Herbs Spreadsheet Templates',
-                            style: TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E293B),
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Choose Excel (.xlsx) for Microsoft Excel/Google Sheets or UTF-8 CSV.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    FilledButton.icon(
-                      onPressed: () => _downloadTemplate(asExcel: true),
-                      icon: const Icon(Icons.download_rounded, size: 17),
-                      label: const Text('Excel'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _primaryGreen,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    OutlinedButton.icon(
-                      onPressed: () => _downloadTemplate(asExcel: false),
-                      icon: const Icon(Icons.download_rounded, size: 17),
-                      label: const Text('CSV'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _primaryGreen,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-        const SizedBox(height: 18),
-
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
-            'Supported Columns (1 Required, 16 Optional)',
-            style: TextStyle(
-              fontSize: 14.5,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-
-        // Mobile: ListTiles | Desktop: Grid Cards
-        if (isMobile)
-          Material(
-            color: Colors.white,
-            clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _columnSpecs.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              itemBuilder: (context, index) {
-                final col = _columnSpecs[index];
-                return ListTile(
-                  dense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 4,
                   ),
-                  title: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          col.label,
-                          style: const TextStyle(
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Official 14-Column Herbal Template',
+                          style: TextStyle(
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
                             color: Color(0xFF1E293B),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      _RuleBadge(isRequired: col.required),
-                    ],
-                  ),
-                  subtitle: Text(
-                    'Header: ${col.keyName} • e.g. "${col.example}"',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
+                        SizedBox(height: 4),
+                        Text(
+                          'Includes all 14 standard columns with sample Zimbabwean plants (Live-long, Wild grape, Mango, Marula) already filled in.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF64748B),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 340,
-              mainAxisExtent: 104,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: _columnSpecs.length,
-            itemBuilder: (context, index) {
-              final col = _columnSpecs[index];
-              return Card(
-                elevation: 0,
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _downloadTemplate(asExcel: true),
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: Text(
+                        isMobile
+                            ? 'Download Excel (.xlsx)'
+                            : 'Download Excel Spreadsheet (.xlsx)',
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _primaryGreen,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _downloadTemplate(asExcel: false),
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: Text(
+                        isMobile ? 'Download CSV' : 'Download CSV File (.csv)',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _primaryGreen,
+                        side: const BorderSide(color: _primaryGreen, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 22),
+
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'The 14 Supported Columns Explained',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              col.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13.5,
-                                color: Color(0xFF1E293B),
+              ),
+              SizedBox(height: 3),
+              Text(
+                'Grouped into 3 logical categories. Only one plant name is required — all other columns are optional.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Grouped Column Categories
+        ..._columnCategories.map((category) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Category Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: category.color.withValues(alpha: 0.08),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: category.color.withValues(alpha: 0.18),
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: category.color,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            category.icon,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                category.title,
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: category.color,
+                                ),
                               ),
+                              Text(
+                                category.subtitle,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: category.color.withValues(alpha: 0.35),
                             ),
                           ),
-                          _RuleBadge(isRequired: col.required),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        col.keyName,
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: _primaryGreen,
+                          child: Text(
+                            '${category.columns.length} Columns',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: category.color,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'e.g. ${col.example}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: Color(0xFF64748B),
+                      ],
+                    ),
+                  ),
+
+                  // Column list inside category
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: category.columns.length,
+                    separatorBuilder: (_, _) => const Divider(
+                      height: 1,
+                      color: Color(0xFFF1F5F9),
+                    ),
+                    itemBuilder: (context, colIndex) {
+                      final col = category.columns[colIndex];
+                      return Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: const Color(0xFFCBD5E1),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    col.keyName,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    col.label,
+                                    style: const TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ),
+                                _RuleBadge(
+                                  isRequired: col.required,
+                                  label: col.required
+                                      ? 'Key Identifier'
+                                      : 'Optional',
+                                  color: col.required
+                                      ? _primaryGreen
+                                      : const Color(0xFF64748B),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              col.description,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF475569),
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Example: ${col.example}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF5EB),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFC8E6C9)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.cloud_upload_outlined,
+                color: _primaryGreen,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Have your spreadsheet ready? Proceed to Step 3 to select and upload your file.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1B5E20),
+                    height: 1.4,
                   ),
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: () => setState(() => _currentStep = 2),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                label: const Text('Proceed to Upload'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _primaryGreen,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -1599,6 +1951,7 @@ class _ImportRuleSpec {
   final String number;
   final String title;
   final String description;
+  final String tip;
   final IconData icon;
   final bool isRequired;
 
@@ -1606,6 +1959,7 @@ class _ImportRuleSpec {
     required this.number,
     required this.title,
     required this.description,
+    required this.tip,
     required this.icon,
     required this.isRequired,
   });
@@ -1615,37 +1969,66 @@ class _ColumnRuleSpec {
   final String keyName;
   final String label;
   final bool required;
+  final String description;
   final String example;
 
   const _ColumnRuleSpec({
     required this.keyName,
     required this.label,
     required this.required,
+    required this.description,
     required this.example,
+  });
+}
+
+class _ColumnCategory {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final List<_ColumnRuleSpec> columns;
+
+  const _ColumnCategory({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.columns,
   });
 }
 
 class _RuleBadge extends StatelessWidget {
   final bool isRequired;
+  final String? label;
+  final Color? color;
 
-  const _RuleBadge({required this.isRequired});
+  const _RuleBadge({
+    required this.isRequired,
+    this.label,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final text = label ?? (isRequired ? 'Required' : 'Optional');
+    final textColor = color ??
+        (isRequired ? const Color(0xFFDC2626) : const Color(0xFF475569));
+    final bgColor = color != null
+        ? color!.withValues(alpha: 0.12)
+        : (isRequired ? const Color(0xFFFEF2F2) : const Color(0xFFF1F5F9));
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: isRequired ? const Color(0xFFFEF2F2) : const Color(0xFFF1F5F9),
+        color: bgColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        isRequired ? 'Required' : 'Optional',
+        text,
         style: TextStyle(
-          fontSize: 10.5,
+          fontSize: 11,
           fontWeight: FontWeight.bold,
-          color: isRequired
-              ? const Color(0xFFDC2626)
-              : const Color(0xFF475569),
+          color: textColor,
         ),
       ),
     );
