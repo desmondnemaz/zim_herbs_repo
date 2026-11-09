@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
@@ -7,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/components/app_page_app_bar.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
+import 'package:zim_herbs_repo/core/utils/clipboard_image_service.dart';
 import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
@@ -231,6 +233,56 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
     });
   }
 
+  Future<void> _pasteImageFromClipboard() async {
+    final bytes = await ClipboardImageService.getClipboardImage();
+    if (bytes != null) {
+      final plantName = _nameEnController.text.trim().isNotEmpty
+          ? _nameEnController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_')
+          : (_nameSnController.text.trim().isNotEmpty
+              ? _nameSnController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_')
+              : 'herb');
+      final xFile = ClipboardImageService.bytesToXFile(bytes, prefix: plantName);
+      setState(() {
+        _selectedImages.add(xFile);
+        _selectedImageBytes.add(bytes);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text('Image pasted from clipboard!'),
+              ],
+            ),
+            backgroundColor: Color(0xFF2E7D32),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'No image found on clipboard. Copy an image or press Win+Shift+S first.',
+                  ),
+                ),
+              ],
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -430,9 +482,17 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
                       rs: rs,
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(
-                      height: 124,
-                      child: ListView(
+                    CallbackShortcuts(
+                      bindings: {
+                        const SingleActivator(LogicalKeyboardKey.keyV, control: true):
+                            _pasteImageFromClipboard,
+                        const SingleActivator(LogicalKeyboardKey.keyV, meta: true):
+                            _pasteImageFromClipboard,
+                      },
+                      child: Focus(
+                        child: SizedBox(
+                          height: 124,
+                          child: ListView(
                         scrollDirection: Axis.horizontal,
                         children: [
                           if (widget.herb != null)
@@ -515,7 +575,7 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
                                   Icon(
                                     Icons.add_a_photo_rounded,
                                     color: theme.colorScheme.primary,
-                                    size: 32,
+                                    size: 30,
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
@@ -530,10 +590,63 @@ class _AddEditHerbPageState extends State<AddEditHerbPage> {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: _pasteImageFromClipboard,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF5EB),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.45),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.04),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.content_paste_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 30,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Paste Image',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: rs.labelFont,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '(Ctrl+V)',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 28),
+                  ),
+                ),
+                const SizedBox(height: 28),
 
                     // Section 2: Vernacular & Common Names
                     _buildSectionHeader(

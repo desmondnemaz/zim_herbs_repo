@@ -1,12 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
-import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 import 'package:zim_herbs_repo/core/components/app_error_view.dart';
 import 'package:zim_herbs_repo/core/errors/error_handler.dart';
-import 'package:flutter/foundation.dart';
+import 'package:zim_herbs_repo/core/utils/clipboard_image_service.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/datasources/herb_remote_datasource.dart';
+import 'package:zim_herbs_repo/features/repository/herbs/data/models/herb_model.dart';
 
 class AddEditHerbDialog extends StatefulWidget {
   final HerbModel? herb;
@@ -87,6 +89,56 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
     });
   }
 
+  Future<void> _pasteImageFromClipboard() async {
+    final bytes = await ClipboardImageService.getClipboardImage();
+    if (bytes != null) {
+      final plantName = _nameEnController.text.trim().isNotEmpty
+          ? _nameEnController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_')
+          : (_nameSnController.text.trim().isNotEmpty
+              ? _nameSnController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_')
+              : 'herb');
+      final xFile = ClipboardImageService.bytesToXFile(bytes, prefix: plantName);
+      setState(() {
+        _selectedImages.add(xFile);
+        _selectedImageBytes.add(bytes);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text('Image pasted from clipboard!'),
+              ],
+            ),
+            backgroundColor: Color(0xFF2E7D32),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'No image found on clipboard. Copy an image or press Win+Shift+S first.',
+                  ),
+                ),
+              ],
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -108,90 +160,160 @@ class _AddEditHerbDialogState extends State<AddEditHerbDialog> {
               const SizedBox(height: 8),
 
               // Horizontal list of images
-              SizedBox(
-                height: 100,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    // Existing Images (from database)
-                    if (widget.herb != null)
-                      ...widget.herb!.images.map(
-                        (img) => Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              img.imageUrl,
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
+              CallbackShortcuts(
+                bindings: {
+                  const SingleActivator(LogicalKeyboardKey.keyV, control: true):
+                      _pasteImageFromClipboard,
+                  const SingleActivator(LogicalKeyboardKey.keyV, meta: true):
+                      _pasteImageFromClipboard,
+                },
+                child: Focus(
+                  child: SizedBox(
+                    height: 100,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        // Existing Images (from database)
+                        if (widget.herb != null)
+                          ...widget.herb!.images.map(
+                            (img) => Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  img.imageUrl,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
 
-                    // Newly Selected Images
-                    ..._selectedImages.asMap().entries.map(
-                      (entry) => Stack(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: ClipRRect(
+                        // Newly Selected Images
+                        ..._selectedImages.asMap().entries.map(
+                          (entry) => Stack(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.memory(
+                                    _selectedImageBytes[entry.key],
+                                    width: 100,
+                                    height: 100,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: 4,
+                                top: 0,
+                                child: GestureDetector(
+                                  onTap: () => _removeSelectedImage(entry.key),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Add Photo Button
+                        GestureDetector(
+                          onTap: _pickImages,
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(
-                                _selectedImageBytes[entry.key],
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.outlineVariant,
                               ),
                             ),
-                          ),
-                          Positioned(
-                            right: 4,
-                            top: 0,
-                            child: GestureDetector(
-                              onTap: () => _removeSelectedImage(entry.key),
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add_a_photo,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  size: 26,
                                 ),
-                                child: Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: Colors.white,
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Photo',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                        const SizedBox(width: 8),
 
-                    // Add Button
-                    GestureDetector(
-                      onTap: _pickImages,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color:
-                              Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant,
+                        // Paste Image Button
+                        GestureDetector(
+                          onTap: _pasteImageFromClipboard,
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF5EB),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF2E7D32).withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.content_paste_rounded,
+                                  color: Color(0xFF2E7D32),
+                                  size: 26,
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Paste',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2E7D32),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '(Ctrl+V)',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    color: const Color(0xFF2E7D32).withValues(alpha: 0.75),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        child: Icon(
-                          Icons.add_a_photo,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
