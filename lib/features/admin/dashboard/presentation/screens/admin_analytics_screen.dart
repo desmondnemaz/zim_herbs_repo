@@ -192,7 +192,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
         child: Column(
           children: [
             AppPageHeader(
-              title: 'Platform Analytics & Insights',
+              title: 'Live Platform Analytics',
               subtitle:
                   'Visual breakdowns of botanical records, ailment categories, and community activity',
               icon: Icons.analytics_rounded,
@@ -235,7 +235,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                                       subtitle:
                                           'Plant form distribution ($_totalHerbs total)',
                                       icon: Icons.nature_rounded,
-                                      accentColor: const Color(0xFF22633C),
+                                      accentColor: const Color(0xFF059669),
+                                      palette: const [
+                                        Color(0xFF059669), // Emerald
+                                        Color(0xFF0D9488), // Deep Teal
+                                        Color(0xFF10B981), // Mint
+                                        Color(0xFFD97706), // Amber Ochre
+                                        Color(0xFF65A30D), // Lime Olive
+                                      ],
                                       data: _growthHabits,
                                       total: _totalHerbs,
                                     );
@@ -245,7 +252,13 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                                       subtitle:
                                           'Indigenous vs. Naturalized & Exotic flora',
                                       icon: Icons.public_rounded,
-                                      accentColor: const Color(0xFF15803D),
+                                      accentColor: const Color(0xFF2563EB),
+                                      palette: const [
+                                        Color(0xFF059669), // Indigenous Emerald
+                                        Color(0xFF2563EB), // Exotic Sapphire
+                                        Color(0xFFD97706), // Naturalized Amber
+                                        Color(0xFF64748B), // Slate Other
+                                      ],
                                       data: _exoticStatuses,
                                       total: _totalHerbs,
                                     );
@@ -256,7 +269,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                                           subtitle:
                                               'Medical category breakdown ($_totalAilments total)',
                                           icon: Icons.monitor_heart_outlined,
-                                          accentColor: const Color(0xFF106F74),
+                                          accentColor: const Color(0xFF0D9488),
+                                          palette: const [
+                                            Color(0xFF0D9488), // Clinical Teal
+                                            Color(0xFF2563EB), // Royal Blue
+                                            Color(0xFFE11D48), // Rose Coral
+                                            Color(0xFF7C3AED), // Amethyst
+                                            Color(0xFFEA580C), // Sunset Orange
+                                          ],
                                           data: _ailmentCategories,
                                           total: _totalAilments,
                                         );
@@ -267,7 +287,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                                           subtitle:
                                               'Most documented taxonomic families',
                                           icon: Icons.local_florist_rounded,
-                                          accentColor: const Color(0xFF295CA2),
+                                          accentColor: const Color(0xFF7C3AED),
+                                          palette: const [
+                                            Color(0xFF7C3AED), // Amethyst Violet
+                                            Color(0xFF2563EB), // Sapphire
+                                            Color(0xFF0D9488), // Teal
+                                            Color(0xFFD97706), // Ochre Amber
+                                            Color(0xFFE11D48), // Rose Crimson
+                                          ],
                                           data: _topFamilies,
                                           total: _totalHerbs,
                                         );
@@ -277,7 +304,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                                       subtitle:
                                           'Registered accounts by role ($_totalUsers total)',
                                       icon: Icons.people_outline_rounded,
-                                      accentColor: const Color(0xFF684B8A),
+                                      accentColor: const Color(0xFF2563EB),
+                                      palette: const [
+                                        Color(0xFF2563EB), // Royal Blue
+                                        Color(0xFF059669), // Emerald
+                                        Color(0xFFD97706), // Amber
+                                        Color(0xFF7C3AED), // Violet
+                                        Color(0xFF64748B), // Slate
+                                      ],
                                       data: _userRoles,
                                       total: _totalUsers,
                                     );
@@ -417,6 +451,13 @@ class _ApprovalGaugeCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -442,27 +483,54 @@ class _ApprovalGaugeCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                '$percent%',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$percent%',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 10,
-              color: color,
-              backgroundColor: const Color(0xFFE2E8F0),
+          const SizedBox(height: 14),
+          Container(
+            height: 14,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: progress.clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withValues(alpha: 0.75),
+                      color,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(7),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -495,14 +563,26 @@ class _DistributionChartCard extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final Color accentColor;
+  final List<Color>? palette;
   final Map<String, int> data;
   final int total;
+
+  static const List<Color> _defaultPalette = [
+    Color(0xFF059669), // Emerald
+    Color(0xFF2563EB), // Sapphire Blue
+    Color(0xFF0D9488), // Deep Teal
+    Color(0xFFD97706), // Amber Ochre
+    Color(0xFF7C3AED), // Amethyst Violet
+    Color(0xFFE11D48), // Rose Crimson
+    Color(0xFFEA580C), // Sunset Orange
+  ];
 
   const _DistributionChartCard({
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.accentColor,
+    this.palette,
     required this.data,
     required this.total,
   });
@@ -510,6 +590,7 @@ class _DistributionChartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entries = data.entries.toList();
+    final activePalette = palette ?? _defaultPalette;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -517,6 +598,13 @@ class _DistributionChartCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,9 +656,13 @@ class _DistributionChartCard extends StatelessWidget {
               ),
             )
           else
-            ...entries.map((e) {
+            ...entries.asMap().entries.map((mapEntry) {
+              final index = mapEntry.key;
+              final e = mapEntry.value;
+              final itemColor = activePalette[index % activePalette.length];
               final ratio = total <= 0 ? 0.0 : (e.value / total).clamp(0.0, 1.0);
               final pct = (ratio * 100).round();
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Column(
@@ -579,37 +671,71 @@ class _DistributionChartCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: Text(
-                            e.key,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF334155),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: itemColor,
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Text(
+                              e.key,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF334155),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${e.value} ($pct%)',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                            color: accentColor,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: itemColor.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${e.value} ($pct%)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: itemColor,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: ratio,
-                        minHeight: 8,
-                        color: accentColor,
-                        backgroundColor: const Color(0xFFF1F5F9),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: ratio,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                itemColor.withValues(alpha: 0.75),
+                                itemColor,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
                       ),
                     ),
                   ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:zim_herbs_repo/core/utils/enums.dart';
 import 'package:zim_herbs_repo/core/utils/responsive_sizes.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_cubit.dart';
 import 'package:zim_herbs_repo/features/auth/bloc/auth_state.dart';
@@ -39,10 +40,26 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   bool _isLoading = true;
   Failure? _errorFailure;
 
+  bool _isAnalyticsExpanded = true;
+  bool _isLoadingAnalytics = false;
+  bool _hasLoadedAnalytics = false;
+
+  int _analyticsTotalHerbs = 0;
+  int _analyticsApprovedHerbs = 0;
+  int _analyticsTotalRemedies = 0;
+  int _analyticsApprovedRemedies = 0;
+  int _analyticsTotalAilments = 0;
+
+  Map<String, int> _analyticsGrowthHabits = {};
+  Map<String, int> _analyticsExoticStatuses = {};
+  Map<String, int> _analyticsTopFamilies = {};
+  Map<String, int> _analyticsAilmentCategories = {};
+
   @override
   void initState() {
     super.initState();
     _loadLiveStats();
+    _loadAnalyticsData();
   }
 
   Future<void> _loadLiveStats() async {
@@ -92,6 +109,115 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
         });
       }
     }
+  }
+
+  Future<void> _loadAnalyticsData() async {
+    if (_hasLoadedAnalytics && !_isLoadingAnalytics) return;
+    setState(() => _isLoadingAnalytics = true);
+
+    try {
+      List<Map<String, dynamic>> ailmentsData = [];
+      try {
+        final res = await _client.from('ailments').select();
+        ailmentsData = List<Map<String, dynamic>>.from(res);
+      } catch (_) {
+        try {
+          final res = await _client.from('conditions').select();
+          ailmentsData = List<Map<String, dynamic>>.from(res);
+        } catch (_) {}
+      }
+
+      final results = await Future.wait([
+        _client
+            .from('herbs')
+            .select()
+            .then((v) => List<Map<String, dynamic>>.from(v))
+            .catchError((_) => <Map<String, dynamic>>[]),
+        _client
+            .from('remedies')
+            .select()
+            .then((v) => List<Map<String, dynamic>>.from(v))
+            .catchError((_) => <Map<String, dynamic>>[]),
+      ]);
+
+      final herbs = results[0];
+      final remedies = results[1];
+
+      final habits = <String, int>{};
+      final origins = <String, int>{};
+      final families = <String, int>{};
+      int approvedH = 0;
+
+      for (final h in herbs) {
+        final status = RecordValidationStatus.fromString(
+          h['validation_status'] as String?,
+        );
+        if (status.isPublished) approvedH++;
+
+        final habit = (h['growth_habit'] ?? '').toString().trim();
+        final habitKey = habit.isEmpty ? 'Unspecified' : habit;
+        habits[habitKey] = (habits[habitKey] ?? 0) + 1;
+
+        final origin = (h['exotic_status'] ?? '').toString().trim();
+        final originKey = origin.isEmpty ? 'Indigenous' : origin;
+        origins[originKey] = (origins[originKey] ?? 0) + 1;
+
+        final family = (h['family'] ?? '').toString().trim();
+        if (family.isNotEmpty) {
+          families[family] = (families[family] ?? 0) + 1;
+        }
+      }
+
+      int approvedR = 0;
+      for (final r in remedies) {
+        final status = RecordValidationStatus.fromString(
+          r['validation_status'] as String?,
+        );
+        if (status.isPublished) approvedR++;
+      }
+
+      final categories = <String, int>{};
+      for (final a in ailmentsData) {
+        final rawCat =
+            (a['ailment_category'] ?? a['body_system'] ?? 'Other').toString();
+        final label = _formatCategoryName(rawCat);
+        categories[label] = (categories[label] ?? 0) + 1;
+      }
+
+      final sortedFamilies = Map.fromEntries(
+        families.entries.toList()..sort((a, b) => b.value.compareTo(a.value)),
+      );
+
+      if (mounted) {
+        setState(() {
+          _analyticsTotalHerbs = herbs.length;
+          _analyticsApprovedHerbs = approvedH;
+          _analyticsTotalRemedies = remedies.length;
+          _analyticsApprovedRemedies = approvedR;
+          _analyticsTotalAilments = ailmentsData.length;
+          _analyticsGrowthHabits = habits;
+          _analyticsExoticStatuses = origins;
+          _analyticsTopFamilies = Map.fromEntries(sortedFamilies.entries.take(5));
+          _analyticsAilmentCategories = categories;
+          _hasLoadedAnalytics = true;
+          _isLoadingAnalytics = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[AdminOverviewScreen] Error loading analytics: $e');
+      if (mounted) {
+        setState(() => _isLoadingAnalytics = false);
+      }
+    }
+  }
+
+  String _formatCategoryName(String raw) {
+    if (raw.isEmpty) return 'Other';
+    return raw
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
+        .join(' ');
   }
 
   @override
@@ -499,11 +625,544 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                   },
                 ),
 
+                const SizedBox(height: 32),
+
+                // ─── Section: Collapsed Platform Analytics & Insights ────────
+                _buildAnalyticsCollapsibleSection(rs),
+
                 const SizedBox(height: 40),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsCollapsibleSection(ResponsiveSize rs) {
+    final herbApprovalRate = _analyticsTotalHerbs > 0
+        ? (_analyticsApprovedHerbs / _analyticsTotalHerbs)
+        : 1.0;
+    final remedyApprovalRate = _analyticsTotalRemedies > 0
+        ? (_analyticsApprovedRemedies / _analyticsTotalRemedies)
+        : 1.0;
+    final herbPercent = (herbApprovalRate * 100).round();
+    final remedyPercent = (remedyApprovalRate * 100).round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ─── Section: Platform Analytics & Insights Header (Outside Container) ─
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            GestureDetector(
+              onTap: () {
+                setState(() => _isAnalyticsExpanded = !_isAnalyticsExpanded);
+                if (_isAnalyticsExpanded && !_hasLoadedAnalytics) {
+                  _loadAnalyticsData();
+                }
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Live Platform Analytics',
+                    style: TextStyle(
+                      fontSize: rs.titleFont * 1.1,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1B5E20),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onNavigate != null) ...[
+                  IconButton(
+                    icon: const Icon(Icons.open_in_new_rounded),
+                    iconSize: 19,
+                    color: const Color(0xFF1B5E20),
+                    tooltip: 'Full Analytics View',
+                    onPressed: () => widget.onNavigate?.call(8),
+                    visualDensity: VisualDensity.compact,
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFFEAF5EB),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                IconButton(
+                  icon: Icon(
+                    _isAnalyticsExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                  ),
+                  iconSize: 22,
+                  color: const Color(0xFF1B5E20),
+                  tooltip: _isAnalyticsExpanded ? 'Collapse' : 'Expand',
+                  onPressed: () {
+                    setState(() => _isAnalyticsExpanded = !_isAnalyticsExpanded);
+                    if (_isAnalyticsExpanded && !_hasLoadedAnalytics) {
+                      _loadAnalyticsData();
+                    }
+                  },
+                  visualDensity: VisualDensity.compact,
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFFEAF5EB),
+                    padding: const EdgeInsets.all(8),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // ─── Expandable Container Body ────────────────────────────────────────
+        if (_isAnalyticsExpanded) ...[
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.all(18),
+            child: _isLoadingAnalytics
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 36),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(
+                            color: Color(0xFF2E7D32),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'Compiling real-time platform analytics...',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Row 1: Verification Health Bars
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 600;
+                          final herbHealth = _buildHealthGauge(
+                            title: 'Herbs Publication Rate',
+                            rateText: '$herbPercent%',
+                            subtitle:
+                                '$_analyticsApprovedHerbs of $_analyticsTotalHerbs published',
+                            progress: herbApprovalRate,
+                            accentColor: const Color(0xFF059669),
+                            gradientColors: const [
+                              Color(0xFF34D399),
+                              Color(0xFF059669),
+                            ],
+                            icon: Icons.local_florist_rounded,
+                          );
+                          final remedyHealth = _buildHealthGauge(
+                            title: 'Remedies Publication Rate',
+                            rateText: '$remedyPercent%',
+                            subtitle:
+                                '$_analyticsApprovedRemedies of $_analyticsTotalRemedies published',
+                            progress: remedyApprovalRate,
+                            accentColor: const Color(0xFF2563EB),
+                            gradientColors: const [
+                              Color(0xFF60A5FA),
+                              Color(0xFF2563EB),
+                            ],
+                            icon: Icons.healing_rounded,
+                          );
+
+                          if (isWide) {
+                            return Row(
+                              children: [
+                                Expanded(child: herbHealth),
+                                const SizedBox(width: 14),
+                                Expanded(child: remedyHealth),
+                              ],
+                            );
+                          }
+                          return Column(
+                            children: [
+                              herbHealth,
+                              const SizedBox(height: 12),
+                              remedyHealth,
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Row 2: Distribution Insights
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 600;
+                          final habitsCard = _buildMiniBreakdownCard(
+                            title: 'Herbs by Growth Habit',
+                            icon: Icons.nature_rounded,
+                            accentColor: const Color(0xFF059669),
+                            palette: const [
+                              Color(0xFF059669), // Emerald Forest
+                              Color(0xFF0D9488), // Deep Teal
+                              Color(0xFF10B981), // Mint
+                              Color(0xFFD97706), // Amber Ochre
+                              Color(0xFF65A30D), // Lime Olive
+                            ],
+                            data: _analyticsGrowthHabits,
+                            total: _analyticsTotalHerbs,
+                          );
+                          final originCard = _buildMiniBreakdownCard(
+                            title: 'Botanical Origin Status',
+                            icon: Icons.public_rounded,
+                            accentColor: const Color(0xFF2563EB),
+                            palette: const [
+                              Color(0xFF059669), // Indigenous Emerald
+                              Color(0xFF2563EB), // Exotic Sapphire
+                              Color(0xFFD97706), // Naturalized Amber
+                              Color(0xFF64748B), // Slate Other
+                            ],
+                            data: _analyticsExoticStatuses,
+                            total: _analyticsTotalHerbs,
+                          );
+
+                          if (isWide) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: habitsCard),
+                                const SizedBox(width: 14),
+                                Expanded(child: originCard),
+                              ],
+                            );
+                          }
+                          return Column(
+                            children: [
+                              habitsCard,
+                              const SizedBox(height: 12),
+                              originCard,
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Row 3: Top Families & Ailment Categories
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 600;
+                          final familiesCard = _buildMiniBreakdownCard(
+                            title: 'Top Botanical Families',
+                            icon: Icons.eco_rounded,
+                            accentColor: const Color(0xFF7C3AED),
+                            palette: const [
+                              Color(0xFF7C3AED), // Amethyst Violet
+                              Color(0xFF2563EB), // Sapphire
+                              Color(0xFF0D9488), // Teal
+                              Color(0xFFD97706), // Ochre Amber
+                              Color(0xFFE11D48), // Rose Crimson
+                            ],
+                            data: _analyticsTopFamilies,
+                            total: _analyticsTotalHerbs,
+                          );
+                          final ailmentsCard = _buildMiniBreakdownCard(
+                            title: 'Ailments by Category',
+                            icon: Icons.monitor_heart_outlined,
+                            accentColor: const Color(0xFF0D9488),
+                            palette: const [
+                              Color(0xFF0D9488), // Clinical Teal
+                              Color(0xFF2563EB), // Royal Blue
+                              Color(0xFFE11D48), // Rose Coral
+                              Color(0xFF7C3AED), // Purple
+                              Color(0xFFEA580C), // Sunset Orange
+                            ],
+                            data: _analyticsAilmentCategories,
+                            total: _analyticsTotalAilments,
+                          );
+
+                          if (isWide) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: familiesCard),
+                                const SizedBox(width: 14),
+                                Expanded(child: ailmentsCard),
+                              ],
+                            );
+                          }
+                          return Column(
+                            children: [
+                              familiesCard,
+                              const SizedBox(height: 12),
+                              ailmentsCard,
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildHealthGauge({
+    required String title,
+    required String rateText,
+    required String subtitle,
+    required double progress,
+    required Color accentColor,
+    required List<Color> gradientColors,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 16, color: accentColor),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  rateText,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 14,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: progress.clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradientColors),
+                  borderRadius: BorderRadius.circular(7),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniBreakdownCard({
+    required String title,
+    required IconData icon,
+    required Color accentColor,
+    required List<Color> palette,
+    required Map<String, int> data,
+    required int total,
+  }) {
+    final entries = data.entries.take(4).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 16, color: accentColor),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (entries.isEmpty)
+            const Text(
+              'No distribution data available',
+              style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+            )
+          else
+            ...entries.asMap().entries.map((mapEntry) {
+              final index = mapEntry.key;
+              final entry = mapEntry.value;
+              final itemColor = palette[index % palette.length];
+              final pct = total > 0 ? (entry.value / total) : 0.0;
+              final pctText = '${(pct * 100).round()}%';
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: itemColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              entry.key,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF334155),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: itemColor.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${entry.value} ($pctText)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: itemColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Container(
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: pct.clamp(0.0, 1.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                itemColor.withValues(alpha: 0.75),
+                                itemColor,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
